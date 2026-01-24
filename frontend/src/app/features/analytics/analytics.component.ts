@@ -14,6 +14,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
+import { MatDividerModule } from '@angular/material/divider';
 
 export interface AnalyticsRule {
   id: string;
@@ -48,7 +49,8 @@ export interface AnalyticsRule {
     MatProgressSpinnerModule,
     MatTooltipModule,
     MatMenuModule,
-    MatDialogModule
+    MatDialogModule,
+    MatDividerModule
   ],
   template: `
     <div class="analytics">
