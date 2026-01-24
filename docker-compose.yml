@@ -93,12 +93,12 @@ services:
     profiles:
       - dev
 
-  # Frontend (development mode)
-  frontend:
+  # Frontend (development mode - Angular dev server)
+  frontend-dev:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
-    container_name: eleanor-frontend
+      dockerfile: Dockerfile.dev
+    container_name: eleanor-frontend-dev
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -112,6 +112,21 @@ services:
       - eleanor-network
     profiles:
       - dev
+
+  # Frontend (production mode - Nginx)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: eleanor-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - eleanor-network
+    profiles:
+      - prod
 
 volumes:
   postgres_data:
