@@ -64,6 +64,26 @@ export const routes: Routes = [
         loadComponent: () => import('./features/response/response-actions.component').then(m => m.ResponseActionsComponent)
       },
       {
+        path: 'threat-intel',
+        loadComponent: () => import('./features/threat-intel/threat-intel.component').then(m => m.ThreatIntelComponent)
+      },
+      {
+        path: 'analytics',
+        loadComponent: () => import('./features/analytics/analytics.component').then(m => m.AnalyticsComponent)
+      },
+      {
+        path: 'automation',
+        loadComponent: () => import('./features/automation/automation.component').then(m => m.AutomationComponent)
+      },
+      {
+        path: 'mitre',
+        loadComponent: () => import('./features/mitre/mitre.component').then(m => m.MitreComponent)
+      },
+      {
+        path: 'connectors',
+        loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent)
+      },
+      {
         path: 'settings',
         loadComponent: () => import('./features/settings/settings.component').then(m => m.SettingsComponent)
       }

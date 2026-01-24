@@ -21,6 +21,11 @@ interface NavItem {
   badge?: number;
 }
 
+interface NavGroup {
+  label: string;
+  items: NavItem[];
+}
+
 @Component({
   selector: 'app-shell',
   standalone: true,
@@ -54,19 +59,26 @@ interface NavItem {
         </div>
 
         <nav class="nav-list">
-          @for (item of navItems; track item.route) {
-            <a class="nav-item"
-               [routerLink]="item.route"
-               routerLinkActive="active"
-               [matTooltip]="sidebarCollapsed() ? item.label : ''"
-               matTooltipPosition="right">
-              <mat-icon [matBadge]="item.badge" matBadgeColor="accent" [matBadgeHidden]="!item.badge">
-                {{ item.icon }}
-              </mat-icon>
+          @for (group of navGroups; track group.label) {
+            <div class="nav-group">
               @if (!sidebarCollapsed()) {
-                <span class="nav-label">{{ item.label }}</span>
+                <span class="nav-group-label">{{ group.label }}</span>
               }
-            </a>
+              @for (item of group.items; track item.route) {
+                <a class="nav-item"
+                   [routerLink]="item.route"
+                   routerLinkActive="active"
+                   [matTooltip]="sidebarCollapsed() ? item.label : ''"
+                   matTooltipPosition="right">
+                  <mat-icon [matBadge]="item.badge" matBadgeColor="accent" [matBadgeHidden]="!item.badge">
+                    {{ item.icon }}
+                  </mat-icon>
+                  @if (!sidebarCollapsed()) {
+                    <span class="nav-label">{{ item.label }}</span>
+                  }
+                </a>
+              }
+            </div>
           }
         </nav>
 
@@ -219,6 +231,20 @@ interface NavItem {
       flex: 1;
       padding: 8px;
       overflow-y: auto;
+    }
+
+    .nav-group {
+      margin-bottom: 8px;
+    }
+
+    .nav-group-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      padding: 12px 16px 6px;
+      letter-spacing: 0.5px;
     }
 
     .nav-item {
@@ -393,15 +419,44 @@ export class ShellComponent implements OnInit {
   healthyCount = signal(0);
   totalCount = signal(0);
 
-  navItems: NavItem[] = [
-    { label: 'Dashboard', icon: 'dashboard', route: '/dashboard' },
-    { label: 'Incidents', icon: 'report_problem', route: '/incidents' },
-    { label: 'Hunting', icon: 'search', route: '/hunting' },
-    { label: 'Entities', icon: 'hub', route: '/entities' },
-    { label: 'Evidence', icon: 'folder_open', route: '/evidence' },
-    { label: 'Timeline', icon: 'timeline', route: '/timeline' },
-    { label: 'Response', icon: 'play_circle', route: '/response', badge: 2 },
-    { label: 'Settings', icon: 'settings', route: '/settings' }
+  navGroups: NavGroup[] = [
+    {
+      label: 'General',
+      items: [
+        { label: 'Dashboard', icon: 'dashboard', route: '/dashboard' },
+        { label: 'Incidents', icon: 'warning_amber', route: '/incidents' }
+      ]
+    },
+    {
+      label: 'Threat Management',
+      items: [
+        { label: 'Hunting', icon: 'manage_search', route: '/hunting' },
+        { label: 'Threat Intel', icon: 'policy', route: '/threat-intel' },
+        { label: 'MITRE ATT&CK', icon: 'grid_view', route: '/mitre' }
+      ]
+    },
+    {
+      label: 'Configuration',
+      items: [
+        { label: 'Analytics', icon: 'analytics', route: '/analytics' },
+        { label: 'Automation', icon: 'smart_toy', route: '/automation', badge: 2 },
+        { label: 'Data Connectors', icon: 'cable', route: '/connectors' }
+      ]
+    },
+    {
+      label: 'Investigation',
+      items: [
+        { label: 'Entities', icon: 'account_tree', route: '/entities' },
+        { label: 'Evidence', icon: 'folder_copy', route: '/evidence' },
+        { label: 'Timeline', icon: 'timeline', route: '/timeline' }
+      ]
+    },
+    {
+      label: 'Settings',
+      items: [
+        { label: 'Settings', icon: 'settings', route: '/settings' }
+      ]
+    }
   ];
 
   user = this.authService.user;
@@ -459,8 +514,14 @@ export class ShellComponent implements OnInit {
 
   private updatePageTitle(): void {
     const url = this.router.url;
-    const item = this.navItems.find(i => url.startsWith(i.route));
-    this.pageTitle.set(item?.label || 'Eleanor');
+    for (const group of this.navGroups) {
+      const item = group.items.find(i => url.startsWith(i.route));
+      if (item) {
+        this.pageTitle.set(item.label);
+        return;
+      }
+    }
+    this.pageTitle.set('Eleanor');
   }
 
   toggleSidebar(): void {

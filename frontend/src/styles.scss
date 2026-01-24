@@ -3,26 +3,26 @@
 // Include core first
 @include mat.core();
 
-// Sentinel-style dark theme colors
-$bg-primary: #1a1a2e;
-$bg-secondary: #16213e;
-$bg-tertiary: #0f3460;
-$bg-surface: #1e1e3f;
-$bg-card: #252547;
-$accent: #e94560;
-$accent-light: #ff6b6b;
-$text-primary: #eaeaea;
-$text-secondary: #a0a0a0;
-$text-muted: #6b6b6b;
-$success: #4ade80;
-$warning: #fbbf24;
-$danger: #ef4444;
-$info: #3b82f6;
-$border-color: #2a2a4a;
+// Sentinel-style dark theme colors (GitHub/Azure dark palette)
+$bg-primary: #0d1117;      // Almost black - main background
+$bg-secondary: #161b22;    // Dark charcoal - sidebar/header
+$bg-tertiary: #21262d;     // Hover/active states
+$bg-surface: #0d1117;      // Input fields background
+$bg-card: #161b22;         // Card backgrounds
+$accent: #58a6ff;          // Sentinel blue - primary accent
+$accent-light: #79c0ff;    // Lighter blue for hover
+$text-primary: #e6edf3;    // Primary text
+$text-secondary: #8b949e;  // Secondary text
+$text-muted: #484f58;      // Muted/disabled text
+$success: #3fb950;         // Green for success
+$warning: #d29922;         // Amber for warnings
+$danger: #f85149;          // Red for errors/critical
+$info: #58a6ff;            // Blue for info
+$border-color: #30363d;    // Border color
 
-// Use predefined Material palettes for theme
-$eleanor-primary: mat.define-palette(mat.$deep-purple-palette);
-$eleanor-accent: mat.define-palette(mat.$pink-palette, A200, A100, A400);
+// Use predefined Material palettes for Sentinel-style theme
+$eleanor-primary: mat.define-palette(mat.$blue-palette);
+$eleanor-accent: mat.define-palette(mat.$light-blue-palette, A200, A100, A400);
 $eleanor-warn: mat.define-palette(mat.$red-palette);
 
 $eleanor-theme: mat.define-dark-theme((
@@ -60,7 +60,12 @@ $eleanor-theme: mat.define-dark-theme((
   --severity-high: #f97316;
   --severity-medium: #{$warning};
   --severity-low: #{$info};
-  --severity-info: #6b7280;
+  --severity-info: #6e7681;
+
+  // Additional Sentinel-style colors
+  --link-color: #{$accent};
+  --focus-ring: rgba(88, 166, 255, 0.4);
+  --selection-bg: rgba(56, 139, 253, 0.4);
 }
 
 // Global styles
