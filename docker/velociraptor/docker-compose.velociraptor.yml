@@ -1,0 +1,56 @@
+# Velociraptor Docker Compose for Eleanor Integration
+# Endpoint collection and live response
+
+services:
+  velociraptor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: eleanor-velociraptor
+    restart: always
+    ports:
+      - "8889:8001"   # GUI
+      - "8001:8000"   # Frontend (client connections)
+      - "8003:8003"   # API
+    volumes:
+      - velociraptor_config:/velociraptor/config
+      - velociraptor_data:/velociraptor/data
+      - velociraptor_logs:/velociraptor/logs
+    networks:
+      - eleanor_eleanor-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-k", "https://localhost:8001/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # Init container to generate config if needed
+  velociraptor-init:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: eleanor-velociraptor-init
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        if [ ! -f /velociraptor/config/server.config.yaml ]; then
+          echo "Generating Velociraptor server configuration..."
+          /usr/local/bin/velociraptor config generate > /velociraptor/config/server.config.yaml
+          echo "Configuration generated. You may need to customize it."
+        else
+          echo "Configuration already exists, skipping generation."
+        fi
+    volumes:
+      - velociraptor_config:/velociraptor/config
+    networks:
+      - eleanor_eleanor-network
+
+volumes:
+  velociraptor_config:
+  velociraptor_data:
+  velociraptor_logs:
+
+networks:
+  eleanor_eleanor-network:
+    external: true

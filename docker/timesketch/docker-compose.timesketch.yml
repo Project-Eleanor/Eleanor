@@ -1,0 +1,99 @@
+# Timesketch Docker Compose for Eleanor Integration
+# Adapted from: https://github.com/google/timesketch
+
+services:
+  timesketch-web:
+    container_name: eleanor-timesketch-web
+    image: us-docker.pkg.dev/osdfir-registry/timesketch/timesketch:20240826
+    environment:
+      - NUM_WSGI_WORKERS=4
+    restart: always
+    command: timesketch-web
+    volumes:
+      - ./config:/etc/timesketch/
+      - timesketch_upload:/usr/share/timesketch/upload/
+      - timesketch_logs:/var/log/timesketch/
+    networks:
+      - eleanor_eleanor-network
+      - timesketch_internal
+    depends_on:
+      timesketch-postgres:
+        condition: service_healthy
+      timesketch-redis:
+        condition: service_healthy
+
+  timesketch-worker:
+    container_name: eleanor-timesketch-worker
+    image: us-docker.pkg.dev/osdfir-registry/timesketch/timesketch:20240826
+    environment:
+      - WORKER_LOG_LEVEL=INFO
+    restart: always
+    command: timesketch-worker
+    volumes:
+      - ./config:/etc/timesketch/
+      - timesketch_upload:/usr/share/timesketch/upload/
+      - timesketch_logs:/var/log/timesketch/
+    networks:
+      - eleanor_eleanor-network
+      - timesketch_internal
+    depends_on:
+      timesketch-postgres:
+        condition: service_healthy
+      timesketch-redis:
+        condition: service_healthy
+
+  timesketch-postgres:
+    container_name: eleanor-timesketch-postgres
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=timesketch
+      - POSTGRES_PASSWORD=${TIMESKETCH_DB_PASSWORD:-timesketch_db_password}
+      - POSTGRES_DB=timesketch
+    restart: always
+    volumes:
+      - timesketch_postgres_data:/var/lib/postgresql/data
+    networks:
+      - timesketch_internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U timesketch -d timesketch"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  timesketch-redis:
+    container_name: eleanor-timesketch-redis
+    image: redis:7-alpine
+    command: "redis-server"
+    restart: always
+    networks:
+      - timesketch_internal
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  timesketch-nginx:
+    container_name: eleanor-timesketch-nginx
+    image: nginx:alpine
+    restart: always
+    ports:
+      - "5000:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - eleanor_eleanor-network
+      - timesketch_internal
+    depends_on:
+      - timesketch-web
+
+volumes:
+  timesketch_upload:
+  timesketch_logs:
+  timesketch_postgres_data:
+
+networks:
+  timesketch_internal:
+    name: timesketch_internal
+  eleanor_eleanor-network:
+    external: true

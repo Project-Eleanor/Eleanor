@@ -1,0 +1,405 @@
+# Eleanor Integrated Tools Stack
+# Deploy alongside main docker-compose.yml
+# Usage: docker compose -f docker-compose.yml -f docker-compose.tools.yml up -d
+
+version: '3.8'
+
+services:
+  # =============================================================================
+  # VELOCIRAPTOR - Endpoint Visibility & Collection
+  # =============================================================================
+  velociraptor:
+    image: velocidex/velociraptor:latest
+    container_name: eleanor-velociraptor
+    ports:
+      - "8889:8889"   # Frontend GUI
+      - "8001:8001"   # Client communication
+      - "8003:8003"   # API server
+    volumes:
+      - velociraptor_data:/velociraptor
+      - velociraptor_config:/etc/velociraptor
+      - ./config/velociraptor/server.config.yaml:/etc/velociraptor/server.config.yaml:ro
+    environment:
+      - VELOCIRAPTOR_CONFIG=/etc/velociraptor/server.config.yaml
+    command: >
+      velociraptor
+      --config /etc/velociraptor/server.config.yaml
+      frontend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8889/app/index.html"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - eleanor-network
+    restart: unless-stopped
+
+  # =============================================================================
+  # IRIS - Case Management Backend
+  # =============================================================================
+  iris-db:
+    image: postgres:16-alpine
+    container_name: eleanor-iris-db
+    environment:
+      POSTGRES_DB: iris
+      POSTGRES_USER: iris
+      POSTGRES_PASSWORD: ${IRIS_DB_PASSWORD:-iris_secure_password}
+    volumes:
+      - iris_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U iris -d iris"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - eleanor-network
+    restart: unless-stopped
+
+  iris-app:
+    image: ghcr.io/dfir-iris/iriswebapp_app:latest
+    container_name: eleanor-iris-app
+    depends_on:
+      iris-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - IRIS_SECRET_KEY=${IRIS_SECRET_KEY:-iris_secret_key_change_in_production}
+      - IRIS_SECURITY_PASSWORD_SALT=${IRIS_PASSWORD_SALT:-iris_salt_change_in_production}
+      - POSTGRES_SERVER=iris-db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=iris
+      - POSTGRES_USER=iris
+      - POSTGRES_PASSWORD=${IRIS_DB_PASSWORD:-iris_secure_password}
+      - IRIS_ADM_PASSWORD=${IRIS_ADMIN_PASSWORD:-iris_admin_password}
+      - IRIS_ADM_USERNAME=administrator
+      - IRIS_ADM_EMAIL=admin@eleanor.local
+      - CELERY_BROKER=redis://redis:6379/1
+      - IRIS_UPSTREAM_SERVER=https://v2.dfir-iris.org
+      - IRIS_UPSTREAM_KEY=
+    volumes:
+      - iris_data:/home/iris/server_data
+      - iris_backups:/home/iris/backups
+    ports:
+      - "8443:8443"
+    healthcheck:
+      test: ["CMD", "curl", "-fk", "https://localhost:8443/api/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    networks:
+      - eleanor-network
+    restart: unless-stopped
+
+  iris-worker:
+    image: ghcr.io/dfir-iris/iriswebapp_worker:latest
+    container_name: eleanor-iris-worker
+    depends_on:
+      iris-app:
+        condition: service_healthy
+    environment:
+      - POSTGRES_SERVER=iris-db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=iris
+      - POSTGRES_USER=iris
+      - POSTGRES_PASSWORD=${IRIS_DB_PASSWORD:-iris_secure_password}
+      - CELERY_BROKER=redis://redis:6379/1
+      - IRIS_WORKER=1
+    volumes:
+      - iris_data:/home/iris/server_data
+    networks:
+      - eleanor-network
+    restart: unless-stopped
+
+  # =============================================================================
+  # OPENCTI - Threat Intelligence Platform
+  # =============================================================================
+  opencti-minio:
+    image: minio/minio:latest
+    container_name: eleanor-opencti-minio
+    environment:
+      MINIO_ROOT_USER: ${OPENCTI_MINIO_USER:-opencti_minio_user}
+      MINIO_ROOT_PASSWORD: ${OPENCTI_MINIO_PASSWORD:-opencti_minio_password}
+    volumes:
+      - opencti_minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - eleanor-network
+    restart: unless-stopped
+
+  opencti-rabbitmq:
+    image: rabbitmq:3-management
+    container_name: eleanor-opencti-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${OPENCTI_RABBITMQ_USER:-opencti_rabbitmq}
+      RABBITMQ_DEFAULT_PASS: ${OPENCTI_RABBITMQ_PASSWORD:-opencti_rabbitmq_password}
+    volumes:
+      - opencti_rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - eleanor-network
+    restart: unless-stopped
+
+  opencti:
+    image: opencti/platform:6
+    container_name: eleanor-opencti
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      opencti-minio:
+        condition: service_healthy
+      opencti-rabbitmq:
+        condition: service_healthy
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=8192
+      - APP__PORT=8080
+      - APP__BASE_URL=${OPENCTI_BASE_URL:-http://localhost:8080}
+      - APP__ADMIN__EMAIL=${OPENCTI_ADMIN_EMAIL:-admin@eleanor.local}
+      - APP__ADMIN__PASSWORD=${OPENCTI_ADMIN_PASSWORD:-opencti_admin_password}
+      - APP__ADMIN__TOKEN=${OPENCTI_ADMIN_TOKEN:-00000000-0000-0000-0000-000000000001}
+      - APP__APP_LOGS__LOGS_LEVEL=error
+      - REDIS__HOSTNAME=redis
+      - REDIS__PORT=6379
+      - REDIS__NAMESPACE=opencti
+      - ELASTICSEARCH__URL=http://elasticsearch:9200
+      - ELASTICSEARCH__INDEX_PREFIX=opencti
+      - MINIO__ENDPOINT=opencti-minio
+      - MINIO__PORT=9000
+      - MINIO__USE_SSL=false
+      - MINIO__ACCESS_KEY=${OPENCTI_MINIO_USER:-opencti_minio_user}
+      - MINIO__SECRET_KEY=${OPENCTI_MINIO_PASSWORD:-opencti_minio_password}
+      - RABBITMQ__HOSTNAME=opencti-rabbitmq
+      - RABBITMQ__PORT=5672
+      - RABBITMQ__PORT_MANAGEMENT=15672
+      - RABBITMQ__MANAGEMENT_SSL=false
+      - RABBITMQ__USERNAME=${OPENCTI_RABBITMQ_USER:-opencti_rabbitmq}
+      - RABBITMQ__PASSWORD=${OPENCTI_RABBITMQ_PASSWORD:-opencti_rabbitmq_password}
+      - PROVIDERS__LOCAL__STRATEGY=LocalStrategy
+    ports:
+      - "8080:8080"
+    volumes:
+      - opencti_data:/opt/opencti/public
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    networks:
+      - eleanor-network
+    restart: unless-stopped
+
+  opencti-worker:
+    image: opencti/worker:6
+    container_name: eleanor-opencti-worker
+    depends_on:
+      opencti:
+        condition: service_healthy
+    environment:
+      - OPENCTI_URL=http://opencti:8080
+      - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN:-00000000-0000-0000-0000-000000000001}
+      - WORKER_LOG_LEVEL=info
+    networks:
+      - eleanor-network
+    restart: unless-stopped
+
+  # =============================================================================
+  # SHUFFLE - SOAR / Workflow Automation
+  # =============================================================================
+  shuffle-backend:
+    image: ghcr.io/shuffle/shuffle-backend:latest
+    container_name: eleanor-shuffle-backend
+    hostname: shuffle-backend
+    environment:
+      - BACKEND_HOSTNAME=shuffle-backend
+      - SHUFFLE_APP_HOTLOAD_FOLDER=/shuffle-apps
+      - SHUFFLE_FILE_LOCATION=/shuffle-files
+      - SHUFFLE_OPENSEARCH_URL=http://elasticsearch:9200
+      - SHUFFLE_DEFAULT_USERNAME=${SHUFFLE_ADMIN_USER:-admin}
+      - SHUFFLE_DEFAULT_PASSWORD=${SHUFFLE_ADMIN_PASSWORD:-shuffle_admin_password}
+      - SHUFFLE_DEFAULT_APIKEY=${SHUFFLE_API_KEY:-00000000-0000-0000-0000-000000000002}
+      - DOCKER_API_VERSION=1.40
+      - SHUFFLE_BASE_URL=http://shuffle-backend:5001
+      - SHUFFLE_ORBIT_NAME=eleanor-shuffle
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - shuffle_apps:/shuffle-apps
+      - shuffle_files:/shuffle-files
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - eleanor-network
+    restart: unless-stopped
+
+  shuffle-frontend:
+    image: ghcr.io/shuffle/shuffle-frontend:latest
+    container_name: eleanor-shuffle-frontend
+    hostname: shuffle-frontend
+    depends_on:
+      shuffle-backend:
+        condition: service_healthy
+    environment:
+      - BACKEND_HOSTNAME=shuffle-backend
+    ports:
+      - "3001:80"
+      - "3443:443"
+    networks:
+      - eleanor-network
+    restart: unless-stopped
+
+  shuffle-orborus:
+    image: ghcr.io/shuffle/shuffle-orborus:latest
+    container_name: eleanor-shuffle-orborus
+    hostname: shuffle-orborus
+    depends_on:
+      shuffle-backend:
+        condition: service_healthy
+    environment:
+      - SHUFFLE_APP_SDK_VERSION=1.4.0
+      - SHUFFLE_WORKER_VERSION=latest
+      - BASE_URL=http://shuffle-backend:5001
+      - DOCKER_API_VERSION=1.40
+      - SHUFFLE_BASE_IMAGE_NAME=shuffle
+      - SHUFFLE_BASE_IMAGE_REGISTRY=ghcr.io
+      - SHUFFLE_BASE_IMAGE_TAG_SUFFIX=-1.4.0
+      - CLEANUP=true
+      - SHUFFLE_ORBORUS_EXECUTION_TIMEOUT=600
+      - ENVIRONMENT_NAME=Eleanor
+      - ORG_ID=Eleanor
+      - SHUFFLE_PASS_WORKER_PROXY=false
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - eleanor-network
+    restart: unless-stopped
+
+  # =============================================================================
+  # TIMESKETCH - Timeline Analysis
+  # =============================================================================
+  timesketch:
+    image: us-docker.pkg.dev/osdfir-registry/timesketch/timesketch:latest
+    container_name: eleanor-timesketch
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - TIMESKETCH_USER=${TIMESKETCH_USER:-admin}
+      - TIMESKETCH_PASSWORD=${TIMESKETCH_PASSWORD:-timesketch_admin_password}
+      - POSTGRES_USER=timesketch
+      - POSTGRES_PASSWORD=${TIMESKETCH_DB_PASSWORD:-timesketch_db_password}
+      - POSTGRES_ADDRESS=postgres
+      - POSTGRES_PORT=5432
+      - REDIS_ADDRESS=redis
+      - REDIS_PORT=6379
+      - OPENSEARCH_HOST=elasticsearch
+      - OPENSEARCH_PORT=9200
+      - OPENSEARCH_SSL_VERIFY=false
+      - SECRET_KEY=${TIMESKETCH_SECRET_KEY:-timesketch_secret_key_change_me}
+    volumes:
+      - timesketch_data:/var/lib/timesketch
+      - timesketch_uploads:/usr/share/timesketch/upload
+      - ./config/timesketch/timesketch.conf:/etc/timesketch/timesketch.conf:ro
+    ports:
+      - "5000:5000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/v1/status/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    networks:
+      - eleanor-network
+    restart: unless-stopped
+
+  timesketch-worker:
+    image: us-docker.pkg.dev/osdfir-registry/timesketch/timesketch:latest
+    container_name: eleanor-timesketch-worker
+    depends_on:
+      timesketch:
+        condition: service_healthy
+    environment:
+      - TIMESKETCH_USER=${TIMESKETCH_USER:-admin}
+      - TIMESKETCH_PASSWORD=${TIMESKETCH_PASSWORD:-timesketch_admin_password}
+      - POSTGRES_USER=timesketch
+      - POSTGRES_PASSWORD=${TIMESKETCH_DB_PASSWORD:-timesketch_db_password}
+      - POSTGRES_ADDRESS=postgres
+      - POSTGRES_PORT=5432
+      - REDIS_ADDRESS=redis
+      - REDIS_PORT=6379
+      - OPENSEARCH_HOST=elasticsearch
+      - OPENSEARCH_PORT=9200
+      - SECRET_KEY=${TIMESKETCH_SECRET_KEY:-timesketch_secret_key_change_me}
+    command: celery -A timesketch.lib.tasks worker --loglevel=info
+    volumes:
+      - timesketch_data:/var/lib/timesketch
+      - timesketch_uploads:/usr/share/timesketch/upload
+      - ./config/timesketch/timesketch.conf:/etc/timesketch/timesketch.conf:ro
+    networks:
+      - eleanor-network
+    restart: unless-stopped
+
+# =============================================================================
+# VOLUMES
+# =============================================================================
+volumes:
+  # Velociraptor
+  velociraptor_data:
+    driver: local
+  velociraptor_config:
+    driver: local
+
+  # IRIS
+  iris_db_data:
+    driver: local
+  iris_data:
+    driver: local
+  iris_backups:
+    driver: local
+
+  # OpenCTI
+  opencti_data:
+    driver: local
+  opencti_minio_data:
+    driver: local
+  opencti_rabbitmq_data:
+    driver: local
+
+  # Shuffle
+  shuffle_apps:
+    driver: local
+  shuffle_files:
+    driver: local
+
+  # Timesketch
+  timesketch_data:
+    driver: local
+  timesketch_uploads:
+    driver: local
+
+# =============================================================================
+# NETWORKS - Extends main docker-compose.yml network
+# =============================================================================
+networks:
+  eleanor-network:
+    external: true

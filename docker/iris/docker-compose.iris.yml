@@ -1,0 +1,133 @@
+# DFIR-IRIS Docker Compose for Eleanor Integration
+# Based on: https://github.com/dfir-iris/iris-web
+
+services:
+  iris-rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: eleanor-iris-rabbitmq
+    restart: always
+    networks:
+      - iris_backend
+      - eleanor_eleanor-network
+
+  iris-db:
+    image: ghcr.io/dfir-iris/iriswebapp_db:v2.4.20
+    container_name: eleanor-iris-db
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${IRIS_DB_PASSWORD:-iris_secure_password}
+      - POSTGRES_ADMIN_USER=iris_admin
+      - POSTGRES_ADMIN_PASSWORD=${IRIS_DB_PASSWORD:-iris_secure_password}
+      - POSTGRES_DB=iris_db
+    networks:
+      - iris_backend
+    volumes:
+      - iris_db_data:/var/lib/postgresql/data
+
+  iris-app:
+    image: ghcr.io/dfir-iris/iriswebapp_app:v2.4.20
+    container_name: eleanor-iris-app
+    command: ["nohup", "./iris-entrypoint.sh", "iriswebapp"]
+    restart: always
+    depends_on:
+      - iris-rabbitmq
+      - iris-db
+    environment:
+      - DOCKERIZED=1
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${IRIS_DB_PASSWORD:-iris_secure_password}
+      - POSTGRES_ADMIN_USER=iris_admin
+      - POSTGRES_ADMIN_PASSWORD=${IRIS_DB_PASSWORD:-iris_secure_password}
+      - POSTGRES_SERVER=iris-db
+      - POSTGRES_PORT=5432
+      - IRIS_SECRET_KEY=${IRIS_SECRET_KEY:-iris_secret_key_change_in_production}
+      - IRIS_SECURITY_PASSWORD_SALT=${IRIS_PASSWORD_SALT:-iris_salt_change_in_production}
+      - IRIS_UPSTREAM_SERVER=iris-app
+      - IRIS_UPSTREAM_PORT=8000
+      - IRIS_ADM_PASSWORD=${IRIS_ADMIN_PASSWORD:-iris_admin_password}
+      - IRIS_ADM_USERNAME=administrator
+      - IRIS_ADM_EMAIL=admin@eleanor.local
+      - IRIS_AUTHENTICATION_TYPE=local
+      - CELERY_BROKER=amqp://iris-rabbitmq
+      - LOG_LEVEL=INFO
+    networks:
+      - iris_backend
+      - iris_frontend
+      - eleanor_eleanor-network
+    volumes:
+      - iris_downloads:/home/iris/downloads
+      - iris_user_templates:/home/iris/user_templates
+      - iris_server_data:/home/iris/server_data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  iris-worker:
+    image: ghcr.io/dfir-iris/iriswebapp_app:v2.4.20
+    container_name: eleanor-iris-worker
+    command: ["./wait-for-iriswebapp.sh", "iris-app:8000", "./iris-entrypoint.sh", "iris-worker"]
+    restart: always
+    depends_on:
+      - iris-rabbitmq
+      - iris-db
+      - iris-app
+    environment:
+      - DOCKERIZED=1
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${IRIS_DB_PASSWORD:-iris_secure_password}
+      - POSTGRES_ADMIN_USER=iris_admin
+      - POSTGRES_ADMIN_PASSWORD=${IRIS_DB_PASSWORD:-iris_secure_password}
+      - POSTGRES_SERVER=iris-db
+      - POSTGRES_PORT=5432
+      - IRIS_SECRET_KEY=${IRIS_SECRET_KEY:-iris_secret_key_change_in_production}
+      - IRIS_SECURITY_PASSWORD_SALT=${IRIS_PASSWORD_SALT:-iris_salt_change_in_production}
+      - IRIS_WORKER=1
+      - CELERY_BROKER=amqp://iris-rabbitmq
+      - LOG_LEVEL=INFO
+    networks:
+      - iris_backend
+      - eleanor_eleanor-network
+    volumes:
+      - iris_downloads:/home/iris/downloads
+      - iris_user_templates:/home/iris/user_templates
+      - iris_server_data:/home/iris/server_data
+
+  iris-nginx:
+    image: ghcr.io/dfir-iris/iriswebapp_nginx:v2.4.20
+    container_name: eleanor-iris-nginx
+    restart: always
+    depends_on:
+      - iris-app
+    environment:
+      - IRIS_UPSTREAM_SERVER=iris-app
+      - IRIS_UPSTREAM_PORT=8000
+      - INTERFACE_HTTPS_PORT=443
+      - SERVER_NAME=iris.eleanor.local
+      - CERT_FILENAME=server.crt
+      - KEY_FILENAME=server.key
+      - IRIS_AUTHENTICATION_TYPE=local
+    networks:
+      - iris_frontend
+      - eleanor_eleanor-network
+    ports:
+      - "8443:443"
+    volumes:
+      - ./certificates:/www/certs:ro
+
+volumes:
+  iris_db_data:
+  iris_downloads:
+  iris_user_templates:
+  iris_server_data:
+
+networks:
+  iris_backend:
+    name: iris_backend
+  iris_frontend:
+    name: iris_frontend
+  eleanor_eleanor-network:
+    external: true

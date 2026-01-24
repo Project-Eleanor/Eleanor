@@ -1,0 +1,62 @@
+# Velociraptor Server Configuration for Eleanor Integration
+# This is a sample configuration - generate a proper config with:
+# velociraptor config generate > server.config.yaml
+
+version:
+  name: Velociraptor-Eleanor
+  version: 0.7.1
+
+Client:
+  server_urls:
+    - https://eleanor-velociraptor:8001/
+  ca_certificate: |
+    -----BEGIN CERTIFICATE-----
+    # Replace with your CA certificate
+    -----END CERTIFICATE-----
+  nonce: REPLACE_WITH_NONCE
+  writeback_linux: /etc/velociraptor.writeback.yaml
+  writeback_windows: C:\Program Files\Velociraptor\velociraptor.writeback.yaml
+  writeback_darwin: /etc/velociraptor.writeback.yaml
+
+API:
+  hostname: 0.0.0.0
+  bind_address: 0.0.0.0
+  bind_port: 8003
+  bind_scheme: https
+  # API key for Eleanor integration
+  api_key: REPLACE_WITH_API_KEY
+
+GUI:
+  bind_address: 0.0.0.0
+  bind_port: 8889
+  public_url: https://localhost:8889/
+  authenticator:
+    type: Basic
+  initial_users:
+    - name: admin
+      # Change this password immediately
+      password_hash: REPLACE_WITH_PASSWORD_HASH
+
+Frontend:
+  hostname: eleanor-velociraptor
+  bind_address: 0.0.0.0
+  bind_port: 8001
+  certificate: |
+    -----BEGIN CERTIFICATE-----
+    # Replace with your server certificate
+    -----END CERTIFICATE-----
+  private_key: |
+    -----BEGIN RSA PRIVATE KEY-----
+    # Replace with your private key
+    -----END RSA PRIVATE KEY-----
+
+Datastore:
+  implementation: FileBaseDataStore
+  location: /velociraptor/data/
+  filestore_directory: /velociraptor/data/filestore/
+
+Logging:
+  output_directory: /velociraptor/logs/
+  separate_logs_per_component: true
+  rotation_time: 86400
+  max_age: 31536000
