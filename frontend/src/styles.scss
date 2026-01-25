@@ -3,27 +3,45 @@
 // Include core first
 @include mat.core();
 
-// Sentinel-style dark theme colors (GitHub/Azure dark palette)
-$bg-primary: #0d1117;      // Almost black - main background
-$bg-secondary: #161b22;    // Dark charcoal - sidebar/header
-$bg-tertiary: #21262d;     // Hover/active states
-$bg-surface: #0d1117;      // Input fields background
-$bg-card: #161b22;         // Card backgrounds
-$accent: #58a6ff;          // Sentinel blue - primary accent
-$accent-light: #79c0ff;    // Lighter blue for hover
-$text-primary: #e6edf3;    // Primary text
-$text-secondary: #8b949e;  // Secondary text
-$text-muted: #484f58;      // Muted/disabled text
+// Steel & Sapphire dark theme colors (complementing silver/blue horse logo)
+$bg-primary: #0a0e14;      // Deep navy-black
+$bg-secondary: #12171f;    // Charcoal with blue undertone
+$bg-tertiary: #1a2230;     // Hover/active states
+$bg-surface: #0d1219;      // Input fields background
+$bg-card: #141a24;         // Warmer card backgrounds
+$accent: #4a9eff;          // Sapphire blue (warmer)
+$accent-light: #6bb3ff;    // Lighter blue for hover
+$silver: #a8b5c4;          // Silver highlights
+$text-primary: #e8eef5;    // Primary text
+$text-secondary: #8b9ab0;  // Secondary text
+$text-muted: #4a5568;      // Muted/disabled text
 $success: #3fb950;         // Green for success
 $warning: #d29922;         // Amber for warnings
 $danger: #f85149;          // Red for errors/critical
-$info: #58a6ff;            // Blue for info
-$border-color: #30363d;    // Border color
+$info: #4a9eff;            // Blue for info
+$border-color: #1e2a3a;    // Blue-tinted borders
 
 // Use predefined Material palettes for Sentinel-style theme
 $eleanor-primary: mat.define-palette(mat.$blue-palette);
 $eleanor-accent: mat.define-palette(mat.$light-blue-palette, A200, A100, A400);
 $eleanor-warn: mat.define-palette(mat.$red-palette);
+
+// Custom typography using Syne and Manrope
+$eleanor-typography: mat.define-typography-config(
+  $font-family: 'Manrope, sans-serif',
+  $headline-1: mat.define-typography-level(96px, 1.2, 700, 'Syne, sans-serif'),
+  $headline-2: mat.define-typography-level(60px, 1.2, 700, 'Syne, sans-serif'),
+  $headline-3: mat.define-typography-level(48px, 1.2, 600, 'Syne, sans-serif'),
+  $headline-4: mat.define-typography-level(34px, 1.2, 600, 'Syne, sans-serif'),
+  $headline-5: mat.define-typography-level(24px, 1.2, 600, 'Syne, sans-serif'),
+  $headline-6: mat.define-typography-level(20px, 1.2, 600, 'Syne, sans-serif'),
+  $subtitle-1: mat.define-typography-level(16px, 1.5, 500),
+  $subtitle-2: mat.define-typography-level(14px, 1.5, 500),
+  $body-1: mat.define-typography-level(16px, 1.5, 400),
+  $body-2: mat.define-typography-level(14px, 1.5, 400),
+  $caption: mat.define-typography-level(12px, 1.5, 400),
+  $button: mat.define-typography-level(14px, 1.5, 600),
+);
 
 $eleanor-theme: mat.define-dark-theme((
   color: (
@@ -31,7 +49,7 @@ $eleanor-theme: mat.define-dark-theme((
     accent: $eleanor-accent,
     warn: $eleanor-warn,
   ),
-  typography: mat.define-typography-config(),
+  typography: $eleanor-typography,
   density: 0,
 ));
 
@@ -46,6 +64,7 @@ $eleanor-theme: mat.define-dark-theme((
   --bg-card: #{$bg-card};
   --accent: #{$accent};
   --accent-light: #{$accent-light};
+  --silver: #{$silver};
   --text-primary: #{$text-primary};
   --text-secondary: #{$text-secondary};
   --text-muted: #{$text-muted};
@@ -62,10 +81,15 @@ $eleanor-theme: mat.define-dark-theme((
   --severity-low: #{$info};
   --severity-info: #6e7681;
 
-  // Additional Sentinel-style colors
+  // Additional colors
   --link-color: #{$accent};
-  --focus-ring: rgba(88, 166, 255, 0.4);
-  --selection-bg: rgba(56, 139, 253, 0.4);
+  --focus-ring: rgba(74, 158, 255, 0.4);
+  --selection-bg: rgba(74, 158, 255, 0.3);
+
+  // Font families
+  --font-display: 'Syne', sans-serif;
+  --font-body: 'Manrope', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
 }
 
 // Global styles
@@ -81,11 +105,42 @@ html, body {
 }
 
 body {
-  font-family: 'Inter', 'Roboto', sans-serif;
+  font-family: var(--font-body);
   background-color: $bg-primary;
   color: $text-primary;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+// Page fade-in animation
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Shimmer animation for buttons
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+// Skeleton loading animation
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.7; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-tertiary) 25%, var(--bg-secondary) 50%, var(--bg-tertiary) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+  border-radius: 4px;
 }
 
 // Scrollbar styling
@@ -109,6 +164,7 @@ body {
 
 // Typography
 h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
   color: $text-primary;
   font-weight: 600;
 }
@@ -116,10 +172,42 @@ h1, h2, h3, h4, h5, h6 {
 a {
   color: $accent;
   text-decoration: none;
+  position: relative;
+  transition: color 0.2s ease;
 
   &:hover {
     color: $accent-light;
   }
+
+  // Subtle underline animation for text links
+  &:not([mat-button]):not([mat-icon-button]):not([mat-raised-button]):not([mat-flat-button]):not(.nav-item) {
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 0;
+      height: 1px;
+      background: currentColor;
+      transition: width 0.2s ease;
+    }
+
+    &:hover::after {
+      width: 100%;
+    }
+  }
+}
+
+// Focus-visible outlines
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+// Selection
+::selection {
+  background: var(--selection-bg);
+  color: var(--text-primary);
 }
 
 // Angular Material overrides
@@ -144,6 +232,11 @@ a {
     color: $text-secondary;
     background-color: $bg-secondary;
     border-bottom-color: $border-color;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 
   .mat-mdc-cell {
@@ -151,8 +244,12 @@ a {
     border-bottom-color: $border-color;
   }
 
-  .mat-mdc-row:hover {
-    background-color: rgba($bg-tertiary, 0.5);
+  .mat-mdc-row {
+    transition: background-color 0.15s ease;
+
+    &:hover {
+      background-color: rgba($bg-tertiary, 0.5);
+    }
   }
 }
 
@@ -183,6 +280,52 @@ a {
   &.severity-info { background-color: var(--severity-info) !important; }
 }
 
+// Button enhancements
+.mat-mdc-button, .mat-mdc-raised-button, .mat-mdc-flat-button {
+  font-family: var(--font-body) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.3px;
+  transition: all 0.2s ease !important;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+}
+
+// Primary/accent buttons get shimmer on hover
+.mat-mdc-raised-button.mat-accent,
+.mat-mdc-flat-button.mat-accent {
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.1) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  &:hover::before {
+    opacity: 1;
+    animation: shimmer 1.5s ease-in-out infinite;
+  }
+}
+
 // Utility classes
 .text-primary { color: $text-primary !important; }
 .text-secondary { color: $text-secondary !important; }
@@ -192,12 +335,18 @@ a {
 .text-danger { color: $danger !important; }
 .text-info { color: $info !important; }
 .text-accent { color: $accent !important; }
+.text-silver { color: $silver !important; }
 
 .bg-primary { background-color: $bg-primary !important; }
 .bg-secondary { background-color: $bg-secondary !important; }
 .bg-tertiary { background-color: $bg-tertiary !important; }
 .bg-surface { background-color: $bg-surface !important; }
 .bg-card { background-color: $bg-card !important; }
+
+// Font family utilities
+.font-display { font-family: var(--font-display) !important; }
+.font-body { font-family: var(--font-body) !important; }
+.font-mono { font-family: var(--font-mono) !important; }
 
 // Status badges
 .status-badge {
@@ -208,6 +357,7 @@ a {
   font-size: 12px;
   font-weight: 500;
   text-transform: uppercase;
+  letter-spacing: 0.3px;
 
   &.status-open { background-color: $info; color: white; }
   &.status-in-progress { background-color: $warning; color: black; }
@@ -223,9 +373,11 @@ a {
   border: 1px solid $border-color;
   border-radius: 8px;
   padding: 16px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 
   &:hover {
-    border-color: $accent;
+    border-color: rgba($accent, 0.5);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   }
 }
 

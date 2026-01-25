@@ -75,6 +75,7 @@ import { IntegrationStatus, Case, Hunt, ApprovalRequest } from '../../shared/mod
       <section class="section">
         <div class="stats-grid">
           <mat-card class="stat-card">
+            <div class="stat-accent"></div>
             <div class="stat-icon bg-info">
               <mat-icon>report_problem</mat-icon>
             </div>
@@ -85,6 +86,7 @@ import { IntegrationStatus, Case, Hunt, ApprovalRequest } from '../../shared/mod
           </mat-card>
 
           <mat-card class="stat-card">
+            <div class="stat-accent warning"></div>
             <div class="stat-icon bg-warning">
               <mat-icon>priority_high</mat-icon>
             </div>
@@ -95,6 +97,7 @@ import { IntegrationStatus, Case, Hunt, ApprovalRequest } from '../../shared/mod
           </mat-card>
 
           <mat-card class="stat-card">
+            <div class="stat-accent success"></div>
             <div class="stat-icon bg-success">
               <mat-icon>search</mat-icon>
             </div>
@@ -105,6 +108,7 @@ import { IntegrationStatus, Case, Hunt, ApprovalRequest } from '../../shared/mod
           </mat-card>
 
           <mat-card class="stat-card">
+            <div class="stat-accent accent"></div>
             <div class="stat-icon bg-accent">
               <mat-icon>pending_actions</mat-icon>
             </div>
@@ -131,6 +135,7 @@ import { IntegrationStatus, Case, Hunt, ApprovalRequest } from '../../shared/mod
           } @else {
             @for (caseItem of recentCases(); track caseItem.id) {
               <mat-card class="case-card" [routerLink]="['/incidents', caseItem.id]">
+                <div class="case-accent"></div>
                 <div class="case-header">
                   <span class="case-number">{{ caseItem.case_number }}</span>
                   <mat-chip [class]="'severity-' + caseItem.severity">
@@ -199,6 +204,18 @@ import { IntegrationStatus, Case, Hunt, ApprovalRequest } from '../../shared/mod
     .dashboard {
       max-width: 1400px;
       margin: 0 auto;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     .section {
@@ -213,10 +230,12 @@ import { IntegrationStatus, Case, Hunt, ApprovalRequest } from '../../shared/mod
     }
 
     .section-title {
+      font-family: var(--font-display);
       font-size: 18px;
       font-weight: 600;
       color: var(--text-primary);
       margin: 0 0 16px 0;
+      letter-spacing: -0.3px;
     }
 
     .loading-container {
@@ -235,13 +254,27 @@ import { IntegrationStatus, Case, Hunt, ApprovalRequest } from '../../shared/mod
     .integration-card {
       background: var(--bg-card);
       border: 1px solid var(--border-color);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      }
 
       &.healthy {
-        border-color: var(--success);
+        border-color: rgba(63, 185, 80, 0.3);
+
+        &:hover {
+          border-color: var(--success);
+        }
       }
 
       &.unhealthy {
-        border-color: var(--danger);
+        border-color: rgba(248, 81, 73, 0.3);
+
+        &:hover {
+          border-color: var(--danger);
+        }
       }
 
       mat-card-avatar {
@@ -251,6 +284,11 @@ import { IntegrationStatus, Case, Hunt, ApprovalRequest } from '../../shared/mod
         display: flex;
         align-items: center;
         justify-content: center;
+      }
+
+      mat-card-title {
+        font-family: var(--font-display);
+        font-weight: 600;
       }
     }
 
@@ -283,6 +321,7 @@ import { IntegrationStatus, Case, Hunt, ApprovalRequest } from '../../shared/mod
     .version {
       color: var(--text-secondary);
       font-size: 12px;
+      font-family: var(--font-mono);
     }
 
     .error-message {
@@ -298,7 +337,7 @@ import { IntegrationStatus, Case, Hunt, ApprovalRequest } from '../../shared/mod
     /* Stats Grid */
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
       gap: 16px;
     }
 
@@ -306,14 +345,40 @@ import { IntegrationStatus, Case, Hunt, ApprovalRequest } from '../../shared/mod
       display: flex;
       align-items: center;
       gap: 16px;
-      padding: 20px;
+      padding: 24px;
       background: var(--bg-card);
       border: 1px solid var(--border-color);
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+      &:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+
+        .stat-accent {
+          height: 100%;
+        }
+      }
+    }
+
+    .stat-accent {
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      width: 3px;
+      height: 0;
+      background: var(--accent);
+      transition: height 0.3s ease;
+
+      &.warning { background: var(--warning); }
+      &.success { background: var(--success); }
+      &.accent { background: var(--accent); }
     }
 
     .stat-icon {
-      width: 48px;
-      height: 48px;
+      width: 52px;
+      height: 52px;
       border-radius: 12px;
       display: flex;
       align-items: center;
@@ -321,15 +386,15 @@ import { IntegrationStatus, Case, Hunt, ApprovalRequest } from '../../shared/mod
 
       mat-icon {
         color: white;
-        font-size: 24px;
-        width: 24px;
-        height: 24px;
+        font-size: 26px;
+        width: 26px;
+        height: 26px;
       }
 
-      &.bg-info { background: var(--info); }
-      &.bg-warning { background: var(--warning); mat-icon { color: black; } }
-      &.bg-success { background: var(--success); mat-icon { color: black; } }
-      &.bg-accent { background: var(--accent); }
+      &.bg-info { background: linear-gradient(135deg, var(--info) 0%, #3d8bd9 100%); }
+      &.bg-warning { background: linear-gradient(135deg, var(--warning) 0%, #b8840a 100%); mat-icon { color: black; } }
+      &.bg-success { background: linear-gradient(135deg, var(--success) 0%, #2d9a40 100%); mat-icon { color: black; } }
+      &.bg-accent { background: linear-gradient(135deg, var(--accent) 0%, #2d7dd2 100%); }
     }
 
     .stat-content {
@@ -338,14 +403,17 @@ import { IntegrationStatus, Case, Hunt, ApprovalRequest } from '../../shared/mod
     }
 
     .stat-value {
-      font-size: 28px;
+      font-family: var(--font-display);
+      font-size: 32px;
       font-weight: 700;
       color: var(--text-primary);
+      line-height: 1;
     }
 
     .stat-label {
       font-size: 14px;
       color: var(--text-secondary);
+      margin-top: 4px;
     }
 
     /* Cases List */
@@ -356,15 +424,33 @@ import { IntegrationStatus, Case, Hunt, ApprovalRequest } from '../../shared/mod
     }
 
     .case-card {
-      padding: 16px;
+      padding: 20px;
       background: var(--bg-card);
       border: 1px solid var(--border-color);
       cursor: pointer;
-      transition: border-color 0.15s ease;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 
       &:hover {
-        border-color: var(--accent);
+        border-color: rgba(74, 158, 255, 0.5);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+
+        .case-accent {
+          width: 100%;
+        }
       }
+    }
+
+    .case-accent {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-light));
+      transition: width 0.3s ease;
     }
 
     .case-header {
@@ -377,12 +463,13 @@ import { IntegrationStatus, Case, Hunt, ApprovalRequest } from '../../shared/mod
     .case-number {
       font-size: 12px;
       color: var(--text-secondary);
-      font-family: monospace;
+      font-family: var(--font-mono);
     }
 
     .case-title {
+      font-family: var(--font-display);
       font-size: 16px;
-      font-weight: 500;
+      font-weight: 600;
       color: var(--text-primary);
       margin: 0 0 12px 0;
       overflow: hidden;
@@ -418,9 +505,15 @@ import { IntegrationStatus, Case, Hunt, ApprovalRequest } from '../../shared/mod
     }
 
     .hunt-card {
-      padding: 16px;
+      padding: 20px;
       background: var(--bg-card);
       border: 1px solid var(--border-color);
+      transition: border-color 0.2s ease, transform 0.2s ease;
+
+      &:hover {
+        border-color: rgba(74, 158, 255, 0.3);
+        transform: translateY(-2px);
+      }
     }
 
     .hunt-header {
@@ -430,8 +523,9 @@ import { IntegrationStatus, Case, Hunt, ApprovalRequest } from '../../shared/mod
       margin-bottom: 8px;
 
       h3 {
+        font-family: var(--font-display);
         font-size: 16px;
-        font-weight: 500;
+        font-weight: 600;
         margin: 0;
         color: var(--text-primary);
       }
@@ -441,7 +535,7 @@ import { IntegrationStatus, Case, Hunt, ApprovalRequest } from '../../shared/mod
       font-size: 12px;
       color: var(--text-secondary);
       margin: 0 0 12px 0;
-      font-family: monospace;
+      font-family: var(--font-mono);
     }
 
     .hunt-progress {
@@ -460,7 +554,7 @@ import { IntegrationStatus, Case, Hunt, ApprovalRequest } from '../../shared/mod
 
     .progress-fill {
       height: 100%;
-      background: var(--success);
+      background: linear-gradient(90deg, var(--success) 0%, #4ade80 100%);
       transition: width 0.3s ease;
     }
 
@@ -468,6 +562,7 @@ import { IntegrationStatus, Case, Hunt, ApprovalRequest } from '../../shared/mod
       font-size: 12px;
       color: var(--text-secondary);
       white-space: nowrap;
+      font-family: var(--font-mono);
     }
 
     .empty-card {
@@ -475,7 +570,7 @@ import { IntegrationStatus, Case, Hunt, ApprovalRequest } from '../../shared/mod
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 32px;
+      padding: 48px;
       background: var(--bg-card);
       border: 1px solid var(--border-color);
       color: var(--text-muted);
@@ -484,7 +579,13 @@ import { IntegrationStatus, Case, Hunt, ApprovalRequest } from '../../shared/mod
         font-size: 48px;
         width: 48px;
         height: 48px;
-        margin-bottom: 8px;
+        margin-bottom: 12px;
+        opacity: 0.5;
+      }
+
+      p {
+        margin: 0;
+        font-size: 14px;
       }
     }
 

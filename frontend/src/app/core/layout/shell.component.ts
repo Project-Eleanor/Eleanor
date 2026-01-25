@@ -50,7 +50,7 @@ interface NavGroup {
       <aside class="sidebar" [class.collapsed]="sidebarCollapsed()">
         <div class="sidebar-header">
           <div class="logo" [class.collapsed]="sidebarCollapsed()">
-            <img src="assets/logo.jpg" alt="Eleanor" class="logo-img">
+            <img src="assets/logo.png" alt="Eleanor" class="logo-img">
             @if (!sidebarCollapsed()) {
               <span class="logo-text">Eleanor</span>
             }
@@ -72,6 +72,7 @@ interface NavGroup {
                    routerLinkActive="active"
                    [matTooltip]="sidebarCollapsed() ? item.label : ''"
                    matTooltipPosition="right">
+                  <div class="nav-indicator"></div>
                   <mat-icon [matBadge]="item.badge" matBadgeColor="accent" [matBadgeHidden]="!item.badge">
                     {{ item.icon }}
                   </mat-icon>
@@ -161,11 +162,24 @@ interface NavGroup {
     .sidebar {
       width: 240px;
       min-width: 240px;
-      background: var(--bg-secondary);
+      background: linear-gradient(180deg, var(--bg-secondary) 0%, #0f141c 100%);
       border-right: 1px solid var(--border-color);
       display: flex;
       flex-direction: column;
       transition: width 0.2s ease, min-width 0.2s ease;
+      position: relative;
+
+      /* Subtle radial pattern overlay */
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: radial-gradient(ellipse at 50% 0%, rgba(74, 158, 255, 0.03) 0%, transparent 70%);
+        pointer-events: none;
+      }
 
       &.collapsed {
         width: 64px;
@@ -179,6 +193,8 @@ interface NavGroup {
       justify-content: space-between;
       padding: 16px;
       height: 64px;
+      position: relative;
+      z-index: 1;
     }
 
     .logo {
@@ -192,26 +208,45 @@ interface NavGroup {
     }
 
     .logo-img {
-      width: 32px;
-      height: 32px;
+      width: 36px;
+      height: 36px;
       object-fit: contain;
-      border-radius: 4px;
+      border-radius: 6px;
+      filter: drop-shadow(0 2px 8px rgba(74, 158, 255, 0.3));
+      transition: filter 0.3s ease, transform 0.3s ease;
+
+      &:hover {
+        filter: drop-shadow(0 4px 16px rgba(74, 158, 255, 0.5));
+        transform: scale(1.05);
+      }
     }
 
     .logo-text {
-      font-size: 20px;
+      font-family: var(--font-display);
+      font-size: 22px;
       font-weight: 700;
-      color: var(--text-primary);
+      background: linear-gradient(135deg, var(--text-primary) 0%, var(--silver) 50%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.5px;
     }
 
     .collapse-btn {
       color: var(--text-secondary);
+      transition: color 0.2s ease;
+
+      &:hover {
+        color: var(--text-primary);
+      }
     }
 
     .nav-list {
       flex: 1;
       padding: 8px;
       overflow-y: auto;
+      position: relative;
+      z-index: 1;
     }
 
     .nav-group {
@@ -220,6 +255,7 @@ interface NavGroup {
 
     .nav-group-label {
       display: block;
+      font-family: var(--font-display);
       font-size: 11px;
       font-weight: 600;
       text-transform: uppercase;
@@ -238,6 +274,20 @@ interface NavGroup {
       color: var(--text-secondary);
       text-decoration: none;
       transition: all 0.15s ease;
+      position: relative;
+      overflow: hidden;
+
+      .nav-indicator {
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 3px;
+        height: 0;
+        background: var(--accent);
+        border-radius: 0 2px 2px 0;
+        transition: height 0.2s ease;
+      }
 
       &:hover {
         background: rgba(255, 255, 255, 0.05);
@@ -245,8 +295,12 @@ interface NavGroup {
       }
 
       &.active {
-        background: var(--bg-tertiary);
+        background: rgba(74, 158, 255, 0.1);
         color: var(--accent);
+
+        .nav-indicator {
+          height: 24px;
+        }
 
         mat-icon {
           color: var(--accent);
@@ -255,6 +309,7 @@ interface NavGroup {
 
       mat-icon {
         color: inherit;
+        transition: color 0.15s ease;
       }
     }
 
@@ -265,6 +320,8 @@ interface NavGroup {
 
     .sidebar-footer {
       padding: 16px;
+      position: relative;
+      z-index: 1;
     }
 
     .integration-status {
@@ -309,8 +366,21 @@ interface NavGroup {
       justify-content: space-between;
       height: 64px;
       padding: 0 24px;
-      background: var(--bg-secondary);
+      background: linear-gradient(90deg, var(--bg-secondary) 0%, #151c26 100%);
       border-bottom: 1px solid var(--border-color);
+      position: relative;
+
+      /* Subtle accent line at bottom */
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent 0%, var(--accent) 50%, transparent 100%);
+        opacity: 0.3;
+      }
     }
 
     .header-left {
@@ -320,9 +390,11 @@ interface NavGroup {
     }
 
     .page-title {
-      font-size: 18px;
+      font-family: var(--font-display);
+      font-size: 20px;
       font-weight: 600;
       color: var(--text-primary);
+      letter-spacing: -0.3px;
     }
 
     .header-right {
@@ -340,6 +412,12 @@ interface NavGroup {
       border: 1px solid var(--border-color);
       border-radius: 20px;
       margin-right: 16px;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+      &:focus-within {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px var(--focus-ring);
+      }
 
       mat-icon {
         color: var(--text-secondary);
@@ -354,6 +432,7 @@ interface NavGroup {
         outline: none;
         color: var(--text-primary);
         width: 200px;
+        font-family: var(--font-body);
 
         &::placeholder {
           color: var(--text-muted);
@@ -367,6 +446,18 @@ interface NavGroup {
       padding: 24px;
       overflow-y: auto;
       background: var(--bg-primary);
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     /* Menu Styles */
