@@ -10,6 +10,7 @@ from app.adapters import get_registry, init_adapters
 from app.api.v1 import router as api_v1_router
 from app.config import get_settings
 from app.database import close_elasticsearch, close_redis, init_elasticsearch_indices
+from app.exceptions import setup_exception_handlers
 
 settings = get_settings()
 
@@ -78,6 +79,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Setup exception handlers for standardized error responses
+setup_exception_handlers(app)
 
 # Include API routers
 app.include_router(api_v1_router, prefix="/api/v1")

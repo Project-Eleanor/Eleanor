@@ -15,6 +15,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { CaseService } from '../../core/api/case.service';
 import { TimelineEvent } from '../../shared/models';
+import { D3TimelineComponent, TimelineItem } from '../../shared/components/d3-timeline/d3-timeline.component';
 
 @Component({
   selector: 'app-timeline-view',
@@ -32,7 +33,8 @@ import { TimelineEvent } from '../../shared/models';
     MatNativeDateModule,
     MatChipsModule,
     MatProgressSpinnerModule,
-    MatTooltipModule
+    MatTooltipModule,
+    D3TimelineComponent
   ],
   template: `
     <div class="timeline-view">
@@ -104,36 +106,14 @@ import { TimelineEvent } from '../../shared/models';
         </div>
       } @else {
         <div class="timeline-container">
-          <!-- Timeline Chart Area -->
-          <div class="timeline-chart">
-            <div class="chart-header">
-              <span class="range-label">
-                {{ getTimeRange() }}
-              </span>
-              <div class="zoom-controls">
-                <button mat-icon-button (click)="zoomIn()">
-                  <mat-icon>zoom_in</mat-icon>
-                </button>
-                <button mat-icon-button (click)="zoomOut()">
-                  <mat-icon>zoom_out</mat-icon>
-                </button>
-              </div>
-            </div>
-
-            <div class="chart-area">
-              <!-- Simple timeline visualization -->
-              <div class="timeline-track">
-                @for (event of events(); track event.id) {
-                  <div class="event-marker"
-                       [class]="'category-' + event.category"
-                       [style.left.%]="getEventPosition(event)"
-                       [matTooltip]="event.title"
-                       (click)="selectEvent(event)">
-                  </div>
-                }
-              </div>
-            </div>
-          </div>
+          <!-- D3 Timeline Chart -->
+          <app-d3-timeline
+            [items]="timelineItems()"
+            [selectedId]="selectedEvent()?.id || null"
+            [config]="{ height: 180 }"
+            (itemSelected)="onTimelineItemSelected($event)"
+            (rangeChanged)="onRangeChanged($event)">
+          </app-d3-timeline>
 
           <!-- Event List -->
           <div class="event-list">
@@ -519,6 +499,9 @@ export class TimelineViewComponent implements OnInit {
   isLoading = signal(false);
   selectedEvent = signal<TimelineEvent | null>(null);
 
+  // Computed signal for D3 timeline items
+  timelineItems = signal<TimelineItem[]>([]);
+
   selectedCaseId: string | null = null;
   startDate: Date | null = null;
   endDate: Date | null = null;
@@ -550,6 +533,7 @@ export class TimelineViewComponent implements OnInit {
   loadTimeline(): void {
     if (!this.selectedCaseId) {
       this.events.set([]);
+      this.timelineItems.set([]);
       return;
     }
 
@@ -557,10 +541,31 @@ export class TimelineViewComponent implements OnInit {
     this.caseService.getTimeline(this.selectedCaseId).subscribe({
       next: (events) => {
         this.events.set(events);
+        // Convert to D3 timeline format
+        this.timelineItems.set(events.map(e => ({
+          id: e.id,
+          timestamp: e.timestamp,
+          title: e.title,
+          description: e.description ?? undefined,
+          category: e.category ?? undefined,
+          data: e.entities
+        })));
         this.isLoading.set(false);
       },
       error: () => this.isLoading.set(false)
     });
+  }
+
+  onTimelineItemSelected(item: TimelineItem): void {
+    const event = this.events().find(e => e.id === item.id);
+    if (event) {
+      this.selectEvent(event);
+    }
+  }
+
+  onRangeChanged(range: { start: Date; end: Date }): void {
+    // Could be used to load more data or update filters
+    console.log('Timeline range changed:', range);
   }
 
   selectEvent(event: TimelineEvent): void {
@@ -602,6 +607,4 @@ export class TimelineViewComponent implements OnInit {
     return Object.keys(entities);
   }
 
-  zoomIn(): void {}
-  zoomOut(): void {}
 }

@@ -1,42 +1,57 @@
-export type EvidenceType = 'file' | 'image' | 'log' | 'memory' | 'network' | 'registry' | 'artifact' | 'other';
-export type EvidenceStatus = 'pending' | 'processing' | 'analyzed' | 'archived';
+export type EvidenceType = 'disk_image' | 'memory' | 'logs' | 'triage' | 'pcap' | 'artifact' | 'document' | 'malware' | 'other';
+export type EvidenceStatus = 'pending' | 'uploading' | 'processing' | 'ready' | 'failed' | 'quarantined';
 
 export interface Evidence {
   id: string;
   case_id: string;
   filename: string;
-  original_filename: string;
-  file_path: string;
-  file_size: number;
-  file_hash_md5: string | null;
-  file_hash_sha256: string | null;
+  original_filename: string | null;
+  file_size: number | null;
+  md5: string | null;
+  sha1: string | null;
+  sha256: string | null;
   mime_type: string | null;
   evidence_type: EvidenceType;
   status: EvidenceStatus;
   description: string | null;
-  source: string | null;
+  source_host: string | null;
   collected_at: string | null;
   collected_by: string | null;
-  chain_of_custody: CustodyEntry[];
+  uploaded_by: string | null;
+  uploader_name: string | null;
+  uploaded_at: string;
   metadata: Record<string, unknown>;
-  created_at: string;
-  updated_at: string;
 }
 
-export interface CustodyEntry {
-  timestamp: string;
+export interface CustodyEvent {
+  id: string;
+  evidence_id: string;
   action: string;
-  user: string;
-  notes: string | null;
+  actor_id: string | null;
+  actor_name: string | null;
+  ip_address: string | null;
+  user_agent: string | null;
+  details: Record<string, unknown>;
+  created_at: string;
 }
 
 export interface EvidenceCreate {
   case_id: string;
-  filename: string;
   evidence_type?: EvidenceType;
-  description?: string;
-  source?: string;
+  source_host?: string;
   collected_at?: string;
+  collected_by?: string;
+  description?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface EvidenceUpdate {
+  evidence_type?: EvidenceType;
+  status?: EvidenceStatus;
+  description?: string;
+  source_host?: string;
+  collected_at?: string;
+  collected_by?: string;
   metadata?: Record<string, unknown>;
 }
 

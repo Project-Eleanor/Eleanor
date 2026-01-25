@@ -15,12 +15,14 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { AnalyticsService, DetectionRule, RuleSeverity, RuleStatus } from '../../core/api/analytics.service';
 
 export interface AnalyticsRule {
   id: string;
   name: string;
   description: string;
-  severity: 'critical' | 'high' | 'medium' | 'low' | 'info';
+  severity: 'critical' | 'high' | 'medium' | 'low' | 'informational';
   enabled: boolean;
   source: string;
   tactics: string[];
@@ -50,7 +52,8 @@ export interface AnalyticsRule {
     MatTooltipModule,
     MatMenuModule,
     MatDialogModule,
-    MatDividerModule
+    MatDividerModule,
+    MatSnackBarModule
   ],
   template: `
     <div class="analytics">
@@ -132,7 +135,7 @@ export interface AnalyticsRule {
               <mat-option value="high">High</mat-option>
               <mat-option value="medium">Medium</mat-option>
               <mat-option value="low">Low</mat-option>
-              <mat-option value="info">Info</mat-option>
+              <mat-option value="informational">Info</mat-option>
             </mat-select>
           </mat-form-field>
 
@@ -419,7 +422,7 @@ export interface AnalyticsRule {
       &.severity-high { background: #f97316; color: white; }
       &.severity-medium { background: var(--warning); color: black; }
       &.severity-low { background: var(--info); color: white; }
-      &.severity-info { background: var(--text-muted); color: white; }
+      &.severity-informational { background: var(--text-muted); color: white; }
     }
 
     .tactics-list {
@@ -500,155 +503,100 @@ export class AnalyticsComponent implements OnInit {
 
   ruleColumns = ['enabled', 'severity', 'name', 'tactics', 'source', 'triggers', 'actions'];
 
-  constructor(private dialog: MatDialog) {}
+  constructor(
+    private dialog: MatDialog,
+    private analyticsService: AnalyticsService,
+    private snackBar: MatSnackBar
+  ) {}
 
   ngOnInit(): void {
     this.loadRules();
+    this.loadStats();
   }
 
   loadRules(): void {
     this.isLoading.set(true);
 
-    // Mock data - in production, this would come from the API
-    const mockRules: AnalyticsRule[] = [
-      {
-        id: '1',
-        name: 'Suspicious PowerShell Command Execution',
-        description: 'Detects suspicious PowerShell command execution with encoded commands or download cradles',
-        severity: 'high',
-        enabled: true,
-        source: 'sigma',
-        tactics: ['Execution', 'Defense Evasion'],
-        techniques: ['T1059.001', 'T1027'],
-        last_triggered: '2024-01-24T10:30:00Z',
-        trigger_count: 42,
-        created_at: '2024-01-01T00:00:00Z',
-        updated_at: '2024-01-20T00:00:00Z'
-      },
-      {
-        id: '2',
-        name: 'Credential Dumping via LSASS Access',
-        description: 'Detects attempts to access LSASS process memory for credential theft',
-        severity: 'critical',
-        enabled: true,
-        source: 'sigma',
-        tactics: ['Credential Access'],
-        techniques: ['T1003.001'],
-        last_triggered: '2024-01-23T15:45:00Z',
-        trigger_count: 8,
-        created_at: '2024-01-01T00:00:00Z',
-        updated_at: '2024-01-15T00:00:00Z'
-      },
-      {
-        id: '3',
-        name: 'Lateral Movement via WMI',
-        description: 'Detects remote WMI execution which may indicate lateral movement',
-        severity: 'medium',
-        enabled: true,
-        source: 'elastic',
-        tactics: ['Lateral Movement', 'Execution'],
-        techniques: ['T1047'],
-        last_triggered: '2024-01-22T08:15:00Z',
-        trigger_count: 156,
-        created_at: '2024-01-01T00:00:00Z',
-        updated_at: '2024-01-10T00:00:00Z'
-      },
-      {
-        id: '4',
-        name: 'Scheduled Task Creation',
-        description: 'Monitors for creation of scheduled tasks which may be used for persistence',
-        severity: 'low',
-        enabled: false,
-        source: 'elastic',
-        tactics: ['Persistence', 'Privilege Escalation'],
-        techniques: ['T1053.005'],
-        last_triggered: null,
-        trigger_count: 0,
-        created_at: '2024-01-05T00:00:00Z',
-        updated_at: '2024-01-05T00:00:00Z'
-      },
-      {
-        id: '5',
-        name: 'Suspicious Network Connection to Known C2',
-        description: 'Detects outbound connections to known command and control infrastructure',
-        severity: 'critical',
-        enabled: true,
-        source: 'custom',
-        tactics: ['Command and Control'],
-        techniques: ['T1071.001'],
-        last_triggered: '2024-01-24T09:00:00Z',
-        trigger_count: 3,
-        created_at: '2024-01-10T00:00:00Z',
-        updated_at: '2024-01-24T00:00:00Z'
-      },
-      {
-        id: '6',
-        name: 'Registry Run Key Modification',
-        description: 'Detects modifications to registry run keys commonly used for persistence',
-        severity: 'medium',
-        enabled: true,
-        source: 'sigma',
-        tactics: ['Persistence'],
-        techniques: ['T1547.001'],
-        last_triggered: '2024-01-21T14:30:00Z',
-        trigger_count: 89,
-        created_at: '2024-01-01T00:00:00Z',
-        updated_at: '2024-01-18T00:00:00Z'
-      }
-    ];
+    const params: any = {};
+    if (this.severityFilter) params.severity = this.severityFilter;
+    if (this.statusFilter) params.status = this.statusFilter;
+    if (this.searchQuery) params.search = this.searchQuery;
 
-    setTimeout(() => {
-      this.rules.set(mockRules);
-      this.filteredRules.set(mockRules);
-      this.updateStats();
-      this.isLoading.set(false);
-    }, 500);
+    this.analyticsService.listRules(params).subscribe({
+      next: (response) => {
+        const mappedRules = response.items.map(r => this.mapToAnalyticsRule(r));
+        this.rules.set(mappedRules);
+        this.filteredRules.set(mappedRules);
+        this.totalRules.set(response.total);
+        this.isLoading.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load rules:', err);
+        this.isLoading.set(false);
+        this.snackBar.open('Failed to load rules', 'Dismiss', { duration: 3000 });
+      }
+    });
   }
 
-  updateStats(): void {
-    const rules = this.rules();
-    this.totalRules.set(rules.length);
-    this.enabledRules.set(rules.filter(r => r.enabled).length);
-    this.totalTriggers.set(rules.reduce((sum, r) => sum + r.trigger_count, 0));
-    this.criticalRules.set(rules.filter(r => r.severity === 'critical').length);
+  loadStats(): void {
+    this.analyticsService.getStats().subscribe({
+      next: (stats) => {
+        this.totalRules.set(stats.total_rules);
+        this.enabledRules.set(stats.by_status['enabled'] || 0);
+        this.totalTriggers.set(stats.total_hits);
+        this.criticalRules.set(stats.by_severity['critical'] || 0);
+      },
+      error: (err) => console.error('Failed to load stats:', err)
+    });
+  }
+
+  mapToAnalyticsRule(rule: DetectionRule): AnalyticsRule {
+    return {
+      id: rule.id,
+      name: rule.name,
+      description: rule.description || '',
+      severity: rule.severity as AnalyticsRule['severity'],
+      enabled: rule.status === 'enabled',
+      source: rule.category || rule.query_language,
+      tactics: rule.mitre_tactics,
+      techniques: rule.mitre_techniques,
+      last_triggered: rule.last_run_at,
+      trigger_count: rule.hit_count,
+      created_at: rule.created_at,
+      updated_at: rule.updated_at
+    };
   }
 
   filterRules(): void {
-    let filtered = this.rules();
-
-    if (this.searchQuery) {
-      const query = this.searchQuery.toLowerCase();
-      filtered = filtered.filter(r =>
-        r.name.toLowerCase().includes(query) ||
-        r.description.toLowerCase().includes(query)
-      );
-    }
-
-    if (this.severityFilter) {
-      filtered = filtered.filter(r => r.severity === this.severityFilter);
-    }
-
-    if (this.statusFilter) {
-      const enabled = this.statusFilter === 'enabled';
-      filtered = filtered.filter(r => r.enabled === enabled);
-    }
-
-    if (this.sourceFilter) {
-      filtered = filtered.filter(r => r.source === this.sourceFilter);
-    }
-
-    this.filteredRules.set(filtered);
+    this.loadRules();
   }
 
   refresh(): void {
     this.loadRules();
+    this.loadStats();
   }
 
   toggleRule(rule: AnalyticsRule): void {
-    rule.enabled = !rule.enabled;
-    this.rules.set([...this.rules()]);
-    this.filterRules();
-    this.updateStats();
+    const action = rule.enabled
+      ? this.analyticsService.disableRule(rule.id)
+      : this.analyticsService.enableRule(rule.id);
+
+    action.subscribe({
+      next: (updated) => {
+        rule.enabled = updated.status === 'enabled';
+        this.rules.set([...this.rules()]);
+        this.loadStats();
+        this.snackBar.open(
+          `Rule ${rule.enabled ? 'enabled' : 'disabled'}`,
+          'Dismiss',
+          { duration: 2000 }
+        );
+      },
+      error: (err) => {
+        console.error('Failed to toggle rule:', err);
+        this.snackBar.open('Failed to update rule', 'Dismiss', { duration: 3000 });
+      }
+    });
   }
 
   viewRule(rule: AnalyticsRule): void {
@@ -664,14 +612,28 @@ export class AnalyticsComponent implements OnInit {
   }
 
   viewTriggers(rule: AnalyticsRule): void {
-    console.log('View triggers for:', rule);
+    this.analyticsService.getRuleExecutions(rule.id, 50).subscribe({
+      next: (executions) => {
+        console.log('Rule executions:', executions);
+      },
+      error: (err) => console.error('Failed to load executions:', err)
+    });
   }
 
   deleteRule(rule: AnalyticsRule): void {
     if (confirm(`Are you sure you want to delete "${rule.name}"?`)) {
-      this.rules.set(this.rules().filter(r => r.id !== rule.id));
-      this.filterRules();
-      this.updateStats();
+      this.analyticsService.deleteRule(rule.id).subscribe({
+        next: () => {
+          this.rules.set(this.rules().filter(r => r.id !== rule.id));
+          this.filteredRules.set(this.filteredRules().filter(r => r.id !== rule.id));
+          this.loadStats();
+          this.snackBar.open('Rule deleted', 'Dismiss', { duration: 2000 });
+        },
+        error: (err) => {
+          console.error('Failed to delete rule:', err);
+          this.snackBar.open('Failed to delete rule', 'Dismiss', { duration: 3000 });
+        }
+      });
     }
   }
 }

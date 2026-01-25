@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -14,6 +15,7 @@ import { AuthService } from '../../core/auth/auth.service';
   standalone: true,
   imports: [
     CommonModule,
+    RouterModule,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
@@ -62,6 +64,21 @@ import { AuthService } from '../../core/auth/auth.service';
         </mat-card-actions>
       </mat-card>
 
+      <!-- Notifications -->
+      <mat-card class="settings-card clickable" routerLink="/settings/notifications">
+        <mat-card-header>
+          <mat-icon mat-card-avatar>notifications</mat-icon>
+          <mat-card-title>Notifications</mat-card-title>
+          <mat-card-subtitle>Manage notification preferences and channels</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="link-row">
+            <span>Configure email, push, and in-app notifications</span>
+            <mat-icon>chevron_right</mat-icon>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
       <!-- Preferences -->
       <mat-card class="settings-card">
         <mat-card-header>
@@ -70,22 +87,6 @@ import { AuthService } from '../../core/auth/auth.service';
           <mat-card-subtitle>Customize your experience</mat-card-subtitle>
         </mat-card-header>
         <mat-card-content>
-          <div class="preference-row">
-            <div class="preference-info">
-              <span class="preference-label">Desktop Notifications</span>
-              <span class="preference-desc">Receive browser notifications for alerts</span>
-            </div>
-            <mat-slide-toggle></mat-slide-toggle>
-          </div>
-          <mat-divider></mat-divider>
-          <div class="preference-row">
-            <div class="preference-info">
-              <span class="preference-label">Email Notifications</span>
-              <span class="preference-desc">Receive email notifications for case updates</span>
-            </div>
-            <mat-slide-toggle></mat-slide-toggle>
-          </div>
-          <mat-divider></mat-divider>
           <div class="preference-row">
             <div class="preference-info">
               <span class="preference-label">Auto-refresh Dashboard</span>
@@ -141,6 +142,15 @@ import { AuthService } from '../../core/auth/auth.service';
       margin-bottom: 24px;
       background: var(--bg-card);
 
+      &.clickable {
+        cursor: pointer;
+        transition: background-color 0.15s ease;
+
+        &:hover {
+          background: var(--bg-tertiary);
+        }
+      }
+
       mat-card-avatar {
         font-size: 24px;
         width: 40px;
@@ -149,6 +159,17 @@ import { AuthService } from '../../core/auth/auth.service';
         align-items: center;
         justify-content: center;
         color: var(--accent);
+      }
+    }
+
+    .link-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--text-secondary);
+
+      mat-icon {
+        color: var(--text-muted);
       }
     }
 

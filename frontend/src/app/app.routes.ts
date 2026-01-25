@@ -85,7 +85,16 @@ export const routes: Routes = [
       },
       {
         path: 'settings',
-        loadComponent: () => import('./features/settings/settings.component').then(m => m.SettingsComponent)
+        children: [
+          {
+            path: '',
+            loadComponent: () => import('./features/settings/settings.component').then(m => m.SettingsComponent)
+          },
+          {
+            path: 'notifications',
+            loadComponent: () => import('./features/settings/notification-settings.component').then(m => m.NotificationSettingsComponent)
+          }
+        ]
       }
     ]
   },

@@ -5,8 +5,10 @@ import { environment } from '../../../environments/environment';
 import {
   Evidence,
   EvidenceCreate,
+  EvidenceUpdate,
   EvidenceListResponse,
-  EvidenceType
+  EvidenceType,
+  CustodyEvent
 } from '../../shared/models';
 
 @Injectable({
@@ -60,7 +62,7 @@ export class EvidenceService {
     });
   }
 
-  update(id: string, data: Partial<EvidenceCreate>): Observable<Evidence> {
+  update(id: string, data: EvidenceUpdate): Observable<Evidence> {
     return this.http.patch<Evidence>(`${this.apiUrl}/${id}`, data);
   }
 
@@ -74,14 +76,14 @@ export class EvidenceService {
     });
   }
 
-  verify(id: string): Observable<{ valid: boolean; message: string; hashes: Record<string, string> }> {
-    return this.http.post<{ valid: boolean; message: string; hashes: Record<string, string> }>(
+  verify(id: string): Observable<{ integrity_valid: boolean; stored_hashes: Record<string, string>; computed_hashes: Record<string, string> }> {
+    return this.http.post<{ integrity_valid: boolean; stored_hashes: Record<string, string>; computed_hashes: Record<string, string> }>(
       `${this.apiUrl}/${id}/verify`,
       {}
     );
   }
 
-  addCustodyEntry(id: string, entry: { action: string; notes?: string }): Observable<Evidence> {
-    return this.http.post<Evidence>(`${this.apiUrl}/${id}/custody`, entry);
+  getCustodyChain(id: string): Observable<CustodyEvent[]> {
+    return this.http.get<CustodyEvent[]>(`${this.apiUrl}/${id}/custody`);
   }
 }

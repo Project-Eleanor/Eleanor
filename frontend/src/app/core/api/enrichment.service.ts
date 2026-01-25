@@ -35,14 +35,19 @@ export class EnrichmentService {
   constructor(private http: HttpClient) {}
 
   enrich(indicator: string, indicatorType?: string): Observable<EnrichmentResult> {
-    return this.http.post<EnrichmentResult>(`${this.apiUrl}/enrich`, {
-      indicator,
-      indicator_type: indicatorType
+    return this.http.post<EnrichmentResult>(`${this.apiUrl}/indicator`, {
+      value: indicator,
+      indicator_type: indicatorType || 'unknown'
     });
   }
 
   enrichBatch(indicators: { value: string; type?: string }[]): Observable<EnrichmentResult[]> {
-    return this.http.post<EnrichmentResult[]>(`${this.apiUrl}/enrich/batch`, { indicators });
+    return this.http.post<EnrichmentResult[]>(`${this.apiUrl}/bulk`, {
+      indicators: indicators.map(i => ({
+        value: i.value,
+        indicator_type: i.type || 'unknown'
+      }))
+    });
   }
 
   getIOCs(params?: {

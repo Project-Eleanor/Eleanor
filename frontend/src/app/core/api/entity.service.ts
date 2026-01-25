@@ -5,6 +5,8 @@ import { environment } from '../../../environments/environment';
 import {
   Entity,
   EntityType,
+  EntityProfile,
+  EntityEvent,
   HostProfile,
   UserProfile,
   IPProfile
@@ -39,15 +41,29 @@ export class EntityService {
   }
 
   getHostProfile(hostname: string): Observable<HostProfile> {
-    return this.http.get<HostProfile>(`${this.apiUrl}/host/${encodeURIComponent(hostname)}/profile`);
+    return this.http.get<HostProfile>(`${this.apiUrl}/hosts/${encodeURIComponent(hostname)}`);
   }
 
   getUserProfile(username: string): Observable<UserProfile> {
-    return this.http.get<UserProfile>(`${this.apiUrl}/user/${encodeURIComponent(username)}/profile`);
+    return this.http.get<UserProfile>(`${this.apiUrl}/users/${encodeURIComponent(username)}`);
   }
 
   getIPProfile(ip: string): Observable<IPProfile> {
-    return this.http.get<IPProfile>(`${this.apiUrl}/ip/${encodeURIComponent(ip)}/profile`);
+    return this.http.get<IPProfile>(`${this.apiUrl}/ips/${encodeURIComponent(ip)}`);
+  }
+
+  /**
+   * Get events for an entity.
+   */
+  getEntityEvents(entityType: EntityType, identifier: string, params?: { from?: number; size?: number }): Observable<EntityEvent[]> {
+    let httpParams = new HttpParams();
+    if (params?.from !== undefined) httpParams = httpParams.set('from', params.from.toString());
+    if (params?.size !== undefined) httpParams = httpParams.set('size', params.size.toString());
+
+    return this.http.get<EntityEvent[]>(
+      `${this.apiUrl}/${entityType}/${encodeURIComponent(identifier)}/events`,
+      { params: httpParams }
+    );
   }
 
   enrich(type: EntityType, value: string): Observable<Entity> {

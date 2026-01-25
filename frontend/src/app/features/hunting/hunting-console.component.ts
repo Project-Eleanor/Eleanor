@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, signal, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
@@ -16,9 +16,11 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { SearchService } from '../../core/api/search.service';
 import { SavedQuery, SearchResult } from '../../shared/models';
 import { SaveQueryDialogComponent } from './save-query-dialog.component';
+import { MonacoEditorComponent } from '../../shared/components/monaco-editor/monaco-editor.component';
 
 @Component({
   selector: 'app-hunting-console',
@@ -39,7 +41,9 @@ import { SaveQueryDialogComponent } from './save-query-dialog.component';
     MatTooltipModule,
     MatChipsModule,
     MatDialogModule,
-    MatSnackBarModule
+    MatSnackBarModule,
+    MatButtonToggleModule,
+    MonacoEditorComponent
   ],
   template: `
     <div class="hunting-console">
@@ -80,19 +84,23 @@ import { SaveQueryDialogComponent } from './save-query-dialog.component';
           </div>
         </div>
 
-        <!-- Query Editor -->
+        <!-- Query Language Toggle -->
+        <div class="language-toggle">
+          <mat-button-toggle-group [(ngModel)]="queryLanguage" (change)="onLanguageChange()">
+            <mat-button-toggle value="esql">ES|QL</mat-button-toggle>
+            <mat-button-toggle value="kql">KQL</mat-button-toggle>
+          </mat-button-toggle-group>
+          <div class="editor-hint">Press Ctrl+Enter to run query</div>
+        </div>
+
+        <!-- Monaco Editor -->
         <div class="query-editor">
-          <textarea #queryInput
-                    class="code-editor"
-                    [(ngModel)]="query"
-                    placeholder="Enter ES|QL query..."
-                    spellcheck="false"
-                    (keydown.control.enter)="executeQuery()"
-                    (keydown.meta.enter)="executeQuery()">
-          </textarea>
-          <div class="editor-hint">
-            Press Ctrl+Enter to run query
-          </div>
+          <app-monaco-editor
+            #monacoEditor
+            [(ngModel)]="query"
+            [language]="queryLanguage"
+            (executeQuery)="executeQuery()">
+          </app-monaco-editor>
         </div>
 
         <!-- Query Examples -->
@@ -246,40 +254,39 @@ import { SaveQueryDialogComponent } from './save-query-dialog.component';
       gap: 8px;
     }
 
-    .query-editor {
-      position: relative;
-      margin-bottom: 16px;
-    }
+    .language-toggle {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
 
-    .code-editor {
-      width: 100%;
-      min-height: 150px;
-      padding: 16px;
-      font-family: 'JetBrains Mono', 'Fira Code', monospace;
-      font-size: 14px;
-      line-height: 1.5;
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      color: var(--text-primary);
-      resize: vertical;
-
-      &:focus {
-        outline: none;
-        border-color: var(--accent);
+      ::ng-deep .mat-button-toggle-group {
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        overflow: hidden;
       }
 
-      &::placeholder {
+      ::ng-deep .mat-button-toggle {
+        background: var(--bg-surface);
+
+        &.mat-button-toggle-checked {
+          background: var(--accent);
+
+          .mat-button-toggle-label-content {
+            color: white;
+          }
+        }
+      }
+
+      .editor-hint {
+        font-size: 11px;
         color: var(--text-muted);
       }
     }
 
-    .editor-hint {
-      position: absolute;
-      bottom: 8px;
-      right: 16px;
-      font-size: 11px;
-      color: var(--text-muted);
+    .query-editor {
+      height: 200px;
+      margin-bottom: 16px;
     }
 
     .query-examples {
@@ -471,9 +478,10 @@ import { SaveQueryDialogComponent } from './save-query-dialog.component';
   `]
 })
 export class HuntingConsoleComponent implements OnInit {
-  @ViewChild('queryInput') queryInput!: ElementRef<HTMLTextAreaElement>;
+  @ViewChild('monacoEditor') monacoEditor!: MonacoEditorComponent;
 
   query = '';
+  queryLanguage: 'esql' | 'kql' = 'esql';
   savedQueries = signal<SavedQuery[]>([]);
   results = signal<SearchResult[]>([]);
   displayedColumns = signal<string[]>([]);
@@ -532,7 +540,17 @@ export class HuntingConsoleComponent implements OnInit {
 
   useExample(query: string): void {
     this.query = query;
-    this.queryInput.nativeElement.focus();
+    if (this.monacoEditor) {
+      this.monacoEditor.setValue(query);
+      this.monacoEditor.focus();
+    }
+  }
+
+  onLanguageChange(): void {
+    // Clear query when switching languages if incompatible syntax
+    if (this.monacoEditor) {
+      this.monacoEditor.focus();
+    }
   }
 
   executeQuery(): void {
@@ -542,12 +560,17 @@ export class HuntingConsoleComponent implements OnInit {
     this.hasError.set(false);
     this.selectedResult.set(null);
 
-    const startTime = Date.now();
+    const searchFn = this.queryLanguage === 'kql'
+      ? this.searchService.kql(this.query, {
+          from_: this.currentPage() * this.pageSize,
+          size: this.pageSize
+        })
+      : this.searchService.esql(this.query, {
+          from: this.currentPage() * this.pageSize,
+          size: this.pageSize
+        });
 
-    this.searchService.esql(this.query, {
-      from: this.currentPage() * this.pageSize,
-      size: this.pageSize
-    }).subscribe({
+    searchFn.subscribe({
       next: (response) => {
         this.results.set(response.hits);
         this.totalResults.set(response.total);
@@ -564,7 +587,7 @@ export class HuntingConsoleComponent implements OnInit {
       },
       error: (error) => {
         this.hasError.set(true);
-        this.errorMessage.set(error.error?.detail || 'Query execution failed');
+        this.errorMessage.set(error.message || error.error?.detail || 'Query execution failed');
         this.hasResults.set(false);
         this.isExecuting.set(false);
       }

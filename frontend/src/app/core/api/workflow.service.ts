@@ -34,7 +34,10 @@ export class WorkflowService {
   }
 
   trigger(workflowId: string, parameters: Record<string, unknown>): Observable<WorkflowExecution> {
-    return this.http.post<WorkflowExecution>(`${this.apiUrl}/${workflowId}/execute`, { parameters });
+    return this.http.post<WorkflowExecution>(`${this.apiUrl}/trigger`, {
+      workflow_id: workflowId,
+      parameters
+    });
   }
 
   getExecutions(params?: {
@@ -75,6 +78,6 @@ export class WorkflowService {
   }
 
   reject(approvalId: string, reason?: string): Observable<WorkflowExecution> {
-    return this.http.post<WorkflowExecution>(`${this.apiUrl}/approvals/${approvalId}/reject`, { reason });
+    return this.http.post<WorkflowExecution>(`${this.apiUrl}/approvals/${approvalId}/deny`, { comment: reason });
   }
 }

@@ -1,9 +1,10 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal, computed, OnDestroy, inject, Injector, runInInjectionContext } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, tap, catchError, throwError } from 'rxjs';
-import { environment } from '../../../environments/environment';
+import { Observable, tap, catchError, throwError, BehaviorSubject, filter, take, switchMap, of } from 'rxjs';
 import { User, TokenResponse, LoginRequest } from '../../shared/models';
+import { AppConfigService } from '../config/app-config.service';
+import { RbacService } from '../api/rbac.service';
 
 const TOKEN_KEY = 'eleanor_token';
 const TOKEN_EXPIRY_KEY = 'eleanor_token_expiry';
@@ -12,14 +13,25 @@ const USER_KEY = 'eleanor_user';
 @Injectable({
   providedIn: 'root'
 })
-export class AuthService {
-  private apiUrl = environment.apiUrl;
+export class AuthService implements OnDestroy {
+  private readonly config = inject(AppConfigService);
+  private readonly injector = inject(Injector);
+  private get apiUrl(): string { return this.config.apiUrl; }
+  private get refreshThreshold(): number { return this.config.auth.tokenRefreshThreshold; }
 
   private tokenSignal = signal<string | null>(this.getStoredToken());
   private userSignal = signal<User | null>(this.getStoredUser());
 
+  // For coordinating refresh across multiple concurrent requests
+  private isRefreshing = false;
+  private refreshTokenSubject = new BehaviorSubject<string | null>(null);
+
+  // Timer for proactive refresh
+  private refreshTimer: ReturnType<typeof setTimeout> | null = null;
+
   readonly token = this.tokenSignal.asReadonly();
   readonly user = this.userSignal.asReadonly();
+  readonly currentUser$ = new BehaviorSubject<User | null>(this.getStoredUser());
   readonly isAuthenticated = computed(() => !!this.tokenSignal() && !this.isTokenExpired());
   readonly isAdmin = computed(() => this.userSignal()?.is_admin ?? false);
 
@@ -30,9 +42,18 @@ export class AuthService {
     this.checkTokenOnInit();
   }
 
+  ngOnDestroy(): void {
+    this.cancelRefreshTimer();
+  }
+
   private checkTokenOnInit(): void {
-    if (this.tokenSignal() && this.isTokenExpired()) {
-      this.clearAuth();
+    if (this.tokenSignal()) {
+      if (this.isTokenExpired()) {
+        this.clearAuth();
+      } else {
+        // Schedule proactive refresh
+        this.scheduleTokenRefresh();
+      }
     }
   }
 
@@ -84,6 +105,7 @@ export class AuthService {
     localStorage.setItem(TOKEN_KEY, token);
     localStorage.setItem(TOKEN_EXPIRY_KEY, expiryTime.toString());
     this.tokenSignal.set(token);
+    this.scheduleTokenRefresh();
   }
 
   loadCurrentUser(): void {
@@ -91,6 +113,9 @@ export class AuthService {
       tap(user => {
         localStorage.setItem(USER_KEY, JSON.stringify(user));
         this.userSignal.set(user);
+        this.currentUser$.next(user);
+        // Load user permissions
+        this.loadPermissions();
       }),
       catchError(error => {
         console.error('Failed to load user:', error);
@@ -99,16 +124,101 @@ export class AuthService {
     ).subscribe();
   }
 
+  private loadPermissions(): void {
+    // Lazy inject RbacService to avoid circular dependency
+    runInInjectionContext(this.injector, () => {
+      const rbacService = inject(RbacService);
+      rbacService.getMyPermissions().subscribe({
+        error: (err) => console.error('Failed to load permissions:', err)
+      });
+    });
+  }
+
+  private clearPermissions(): void {
+    runInInjectionContext(this.injector, () => {
+      const rbacService = inject(RbacService);
+      rbacService.clearPermissions();
+    });
+  }
+
   refreshToken(): Observable<TokenResponse> {
     return this.http.post<TokenResponse>(`${this.apiUrl}/auth/refresh`, {}).pipe(
       tap(response => {
         this.setToken(response.access_token, response.expires_in);
+        this.scheduleTokenRefresh();
       }),
       catchError(error => {
         this.logout();
         return throwError(() => error);
       })
     );
+  }
+
+  /**
+   * Handle token refresh for concurrent requests.
+   * Returns existing refresh observable if refresh is in progress.
+   */
+  handleTokenRefresh(): Observable<string> {
+    if (!this.isRefreshing) {
+      this.isRefreshing = true;
+      this.refreshTokenSubject.next(null);
+
+      return this.refreshToken().pipe(
+        switchMap(response => {
+          this.isRefreshing = false;
+          this.refreshTokenSubject.next(response.access_token);
+          return of(response.access_token);
+        }),
+        catchError(error => {
+          this.isRefreshing = false;
+          return throwError(() => error);
+        })
+      );
+    }
+
+    // Wait for the in-progress refresh to complete
+    return this.refreshTokenSubject.pipe(
+      filter(token => token !== null),
+      take(1),
+      switchMap(token => of(token!))
+    );
+  }
+
+  /**
+   * Schedule proactive token refresh before expiry.
+   */
+  private scheduleTokenRefresh(): void {
+    this.cancelRefreshTimer();
+
+    const expiryTime = this.getTokenExpiryTime();
+    if (!expiryTime) return;
+
+    const now = Date.now();
+    const timeUntilExpiry = expiryTime - now;
+    const refreshTime = timeUntilExpiry - this.refreshThreshold;
+
+    if (refreshTime <= 0) {
+      // Token expires soon, refresh immediately
+      this.handleTokenRefresh().subscribe();
+    } else {
+      // Schedule refresh
+      this.refreshTimer = setTimeout(() => {
+        this.handleTokenRefresh().subscribe();
+      }, refreshTime);
+    }
+  }
+
+  private cancelRefreshTimer(): void {
+    if (this.refreshTimer) {
+      clearTimeout(this.refreshTimer);
+      this.refreshTimer = null;
+    }
+  }
+
+  private getTokenExpiryTime(): number | null {
+    if (typeof localStorage === 'undefined') return null;
+    const expiry = localStorage.getItem(TOKEN_EXPIRY_KEY);
+    return expiry ? parseInt(expiry, 10) : null;
   }
 
   logout(): void {
@@ -125,11 +235,14 @@ export class AuthService {
   }
 
   private clearAuth(): void {
+    this.cancelRefreshTimer();
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(TOKEN_EXPIRY_KEY);
     localStorage.removeItem(USER_KEY);
     this.tokenSignal.set(null);
     this.userSignal.set(null);
+    this.currentUser$.next(null);
+    this.clearPermissions();
   }
 
   getToken(): string | null {

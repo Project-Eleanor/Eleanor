@@ -1,0 +1,10 @@
+{
+  "apiUrl": "/api/v1",
+  "features": {
+    "webSocket": true,
+    "threatIntel": true,
+    "analytics": true,
+    "automation": true,
+    "mitreAttack": true
+  }
+}

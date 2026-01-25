@@ -13,6 +13,7 @@ from app.database import Base
 
 if TYPE_CHECKING:
     from app.models.case import Case
+    from app.models.rbac import Role
 
 
 class AuthProvider(str, enum.Enum):
@@ -57,6 +58,46 @@ class User(Base):
     created_cases: Mapped[list["Case"]] = relationship(
         "Case", back_populates="created_by_user", foreign_keys="Case.created_by"
     )
+    role_objects: Mapped[list["Role"]] = relationship(
+        "Role",
+        secondary="user_roles",
+        back_populates="users"
+    )
 
     def __repr__(self) -> str:
         return f"<User {self.username}>"
+
+    def has_permission(self, permission: str) -> bool:
+        """Check if user has a specific permission."""
+        # Admins have all permissions
+        if self.is_admin:
+            return True
+
+        # Check role-based permissions
+        for role in self.role_objects:
+            for perm in role.permissions:
+                # Wildcard permission
+                if perm.name == "*":
+                    return True
+                # Exact match
+                if perm.name == permission:
+                    return True
+                # Scope wildcard (e.g., "cases:*" matches "cases:read")
+                if perm.name.endswith(":*"):
+                    scope = perm.name[:-2]
+                    if permission.startswith(f"{scope}:"):
+                        return True
+
+        return False
+
+    def get_permissions(self) -> set[str]:
+        """Get all permissions for this user."""
+        if self.is_admin:
+            return {"*"}
+
+        permissions = set()
+        for role in self.role_objects:
+            for perm in role.permissions:
+                permissions.add(perm.name)
+
+        return permissions

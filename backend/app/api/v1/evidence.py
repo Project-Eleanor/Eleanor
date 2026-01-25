@@ -7,9 +7,10 @@ from typing import Annotated
 from uuid import UUID
 
 import aiofiles
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -68,6 +69,28 @@ class CustodyEventResponse(BaseModel):
         from_attributes = True
 
 
+class EvidenceUpdate(BaseModel):
+    """Evidence update request."""
+
+    evidence_type: EvidenceType | None = None
+    status: EvidenceStatus | None = None
+    description: str | None = None
+    source_host: str | None = None
+    collected_at: datetime | None = None
+    collected_by: str | None = None
+    metadata: dict | None = None
+
+
+class EvidenceListResponse(BaseModel):
+    """Paginated evidence list response."""
+
+    items: list[EvidenceResponse]
+    total: int
+    page: int
+    page_size: int
+    pages: int
+
+
 async def compute_hashes(file_path: str) -> dict[str, str]:
     """Compute SHA256, SHA1, and MD5 hashes of a file."""
     sha256 = hashlib.sha256()
@@ -107,6 +130,194 @@ async def log_custody_event(
     )
     db.add(event)
     return event
+
+
+@router.get("", response_model=EvidenceListResponse)
+async def list_evidence(
+    request: Request,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    case_id: UUID | None = Query(None, description="Filter by case ID"),
+    evidence_type: EvidenceType | None = Query(None, description="Filter by evidence type"),
+    status_filter: EvidenceStatus | None = Query(None, alias="status", description="Filter by status"),
+    search: str | None = Query(None, description="Search in filename/description"),
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(50, ge=1, le=200, description="Items per page"),
+) -> EvidenceListResponse:
+    """List evidence with filtering and pagination."""
+    query = select(Evidence).options(selectinload(Evidence.uploader))
+
+    # Apply filters
+    if case_id:
+        query = query.where(Evidence.case_id == case_id)
+    if evidence_type:
+        query = query.where(Evidence.evidence_type == evidence_type)
+    if status_filter:
+        query = query.where(Evidence.status == status_filter)
+    if search:
+        search_filter = f"%{search}%"
+        query = query.where(
+            (Evidence.filename.ilike(search_filter))
+            | (Evidence.original_filename.ilike(search_filter))
+            | (Evidence.description.ilike(search_filter))
+        )
+
+    # Count total
+    count_query = select(func.count()).select_from(query.subquery())
+    total_result = await db.execute(count_query)
+    total = total_result.scalar() or 0
+
+    # Pagination
+    offset = (page - 1) * page_size
+    query = query.offset(offset).limit(page_size).order_by(Evidence.uploaded_at.desc())
+
+    result = await db.execute(query)
+    evidence_list = result.scalars().all()
+
+    items = [
+        EvidenceResponse(
+            id=e.id,
+            case_id=e.case_id,
+            filename=e.filename,
+            original_filename=e.original_filename,
+            file_size=e.file_size,
+            sha256=e.sha256,
+            sha1=e.sha1,
+            md5=e.md5,
+            mime_type=e.mime_type,
+            evidence_type=e.evidence_type,
+            status=e.status,
+            source_host=e.source_host,
+            collected_at=e.collected_at,
+            collected_by=e.collected_by,
+            uploaded_by=e.uploaded_by,
+            uploader_name=e.uploader.display_name if e.uploader else None,
+            uploaded_at=e.uploaded_at,
+            description=e.description,
+            metadata=e.metadata,
+        )
+        for e in evidence_list
+    ]
+
+    pages = (total + page_size - 1) // page_size if page_size else 1
+
+    return EvidenceListResponse(
+        items=items,
+        total=total,
+        page=page,
+        page_size=page_size,
+        pages=pages,
+    )
+
+
+@router.patch("/{evidence_id}", response_model=EvidenceResponse)
+async def update_evidence(
+    evidence_id: UUID,
+    updates: EvidenceUpdate,
+    request: Request,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> EvidenceResponse:
+    """Update evidence metadata."""
+    query = (
+        select(Evidence)
+        .options(selectinload(Evidence.uploader))
+        .where(Evidence.id == evidence_id)
+    )
+    result = await db.execute(query)
+    evidence = result.scalar_one_or_none()
+
+    if not evidence:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Evidence not found",
+        )
+
+    # Apply updates
+    update_data = updates.model_dump(exclude_unset=True)
+    changes = {}
+    for field, value in update_data.items():
+        if value is not None:
+            old_value = getattr(evidence, field)
+            setattr(evidence, field, value)
+            changes[field] = {"old": str(old_value), "new": str(value)}
+
+    if changes:
+        # Log update event
+        await log_custody_event(
+            db=db,
+            evidence_id=evidence.id,
+            action=CustodyAction.MODIFIED,
+            user=current_user,
+            request=request,
+            details={"changes": changes},
+        )
+
+    await db.commit()
+    await db.refresh(evidence)
+
+    return EvidenceResponse(
+        id=evidence.id,
+        case_id=evidence.case_id,
+        filename=evidence.filename,
+        original_filename=evidence.original_filename,
+        file_size=evidence.file_size,
+        sha256=evidence.sha256,
+        sha1=evidence.sha1,
+        md5=evidence.md5,
+        mime_type=evidence.mime_type,
+        evidence_type=evidence.evidence_type,
+        status=evidence.status,
+        source_host=evidence.source_host,
+        collected_at=evidence.collected_at,
+        collected_by=evidence.collected_by,
+        uploaded_by=evidence.uploaded_by,
+        uploader_name=evidence.uploader.display_name if evidence.uploader else None,
+        uploaded_at=evidence.uploaded_at,
+        description=evidence.description,
+        metadata=evidence.metadata,
+    )
+
+
+@router.get("/{evidence_id}/download")
+async def download_evidence(
+    evidence_id: UUID,
+    request: Request,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> FileResponse:
+    """Download evidence file."""
+    query = select(Evidence).where(Evidence.id == evidence_id)
+    result = await db.execute(query)
+    evidence = result.scalar_one_or_none()
+
+    if not evidence:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Evidence not found",
+        )
+
+    if not evidence.file_path or not os.path.exists(evidence.file_path):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Evidence file not found on disk",
+        )
+
+    # Log download event
+    await log_custody_event(
+        db=db,
+        evidence_id=evidence.id,
+        action=CustodyAction.DOWNLOADED,
+        user=current_user,
+        request=request,
+    )
+    await db.commit()
+
+    return FileResponse(
+        path=evidence.file_path,
+        filename=evidence.original_filename or evidence.filename,
+        media_type=evidence.mime_type or "application/octet-stream",
+    )
 
 
 @router.post("/upload", response_model=EvidenceResponse, status_code=status.HTTP_201_CREATED)

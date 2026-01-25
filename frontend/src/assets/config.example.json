@@ -1,0 +1,36 @@
+{
+  "_comment": "Runtime configuration for Eleanor Frontend. Copy to config.json and modify as needed.",
+
+  "apiUrl": "/api/v1",
+  "wsUrl": "wss://eleanor.example.com/api/v1/ws",
+
+  "features": {
+    "webSocket": true,
+    "threatIntel": true,
+    "analytics": true,
+    "automation": true,
+    "mitreAttack": true
+  },
+
+  "timeouts": {
+    "api": 30000,
+    "search": 120000,
+    "upload": 600000
+  },
+
+  "refreshIntervals": {
+    "dashboard": 60000,
+    "incidents": 30000,
+    "integrations": 120000
+  },
+
+  "auth": {
+    "tokenRefreshThreshold": 300000,
+    "sessionTimeout": 3600000
+  },
+
+  "logging": {
+    "level": "warn",
+    "sendToServer": true
+  }
+}

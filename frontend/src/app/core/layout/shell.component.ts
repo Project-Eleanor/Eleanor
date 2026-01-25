@@ -13,6 +13,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { filter } from 'rxjs/operators';
 import { AuthService } from '../auth/auth.service';
 import { IntegrationService } from '../api/integration.service';
+import { NotificationBellComponent } from '../../shared/components/notification-bell/notification-bell.component';
 
 interface NavItem {
   label: string;
@@ -40,7 +41,8 @@ interface NavGroup {
     MatMenuModule,
     MatBadgeModule,
     MatTooltipModule,
-    MatDividerModule
+    MatDividerModule,
+    NotificationBellComponent
   ],
   template: `
     <div class="shell-container">
@@ -48,7 +50,7 @@ interface NavGroup {
       <aside class="sidebar" [class.collapsed]="sidebarCollapsed()">
         <div class="sidebar-header">
           <div class="logo" [class.collapsed]="sidebarCollapsed()">
-            <mat-icon class="logo-icon">security</mat-icon>
+            <img src="assets/logo.jpg" alt="Eleanor" class="logo-img">
             @if (!sidebarCollapsed()) {
               <span class="logo-text">Eleanor</span>
             }
@@ -109,28 +111,7 @@ interface NavGroup {
             </div>
 
             <!-- Notifications -->
-            <button mat-icon-button [matMenuTriggerFor]="notificationMenu">
-              <mat-icon matBadge="3" matBadgeColor="accent">notifications</mat-icon>
-            </button>
-            <mat-menu #notificationMenu="matMenu" class="notification-menu">
-              <div class="notification-header">
-                <span>Notifications</span>
-                <button mat-button color="accent">Mark all read</button>
-              </div>
-              <mat-divider></mat-divider>
-              <button mat-menu-item>
-                <mat-icon class="text-warning">warning</mat-icon>
-                <span>New critical case assigned</span>
-              </button>
-              <button mat-menu-item>
-                <mat-icon class="text-success">check_circle</mat-icon>
-                <span>Collection completed</span>
-              </button>
-              <button mat-menu-item>
-                <mat-icon class="text-info">info</mat-icon>
-                <span>Workflow awaiting approval</span>
-              </button>
-            </mat-menu>
+            <app-notification-bell></app-notification-bell>
 
             <!-- User Menu -->
             <button mat-icon-button [matMenuTriggerFor]="userMenu" class="user-button">
@@ -210,11 +191,11 @@ interface NavGroup {
       }
     }
 
-    .logo-icon {
-      font-size: 28px;
-      width: 28px;
-      height: 28px;
-      color: var(--accent);
+    .logo-img {
+      width: 32px;
+      height: 32px;
+      object-fit: contain;
+      border-radius: 4px;
     }
 
     .logo-text {
@@ -389,14 +370,6 @@ interface NavGroup {
     }
 
     /* Menu Styles */
-    .notification-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 16px;
-      font-weight: 500;
-    }
-
     .user-info {
       display: flex;
       flex-direction: column;

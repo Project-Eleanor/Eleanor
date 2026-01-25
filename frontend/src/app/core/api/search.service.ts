@@ -28,10 +28,10 @@ export class SearchService {
     });
   }
 
-  kql(query: string, index?: string): Observable<SearchResponse> {
+  kql(query: string, params?: { indices?: string[]; from_?: number; size?: number }): Observable<SearchResponse> {
     return this.http.post<SearchResponse>(`${this.apiUrl}/kql`, {
       query,
-      index
+      ...params
     });
   }
 
@@ -54,4 +54,30 @@ export class SearchService {
   deleteSavedQuery(id: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/saved/${id}`);
   }
+
+  /**
+   * List available Elasticsearch indices.
+   */
+  getIndices(): Observable<IndexInfo[]> {
+    return this.http.get<IndexInfo[]>(`${this.apiUrl}/indices`);
+  }
+
+  /**
+   * Get field mappings for an index.
+   */
+  getSchema(index: string): Observable<IndexSchema> {
+    return this.http.get<IndexSchema>(`${this.apiUrl}/schema/${encodeURIComponent(index)}`);
+  }
+}
+
+export interface IndexInfo {
+  index: string;
+  docs_count: string;
+  store_size: string;
+  health: string;
+}
+
+export interface IndexSchema {
+  index: string;
+  mappings: Record<string, unknown>;
 }

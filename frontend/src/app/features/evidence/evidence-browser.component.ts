@@ -16,8 +16,22 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDividerModule } from '@angular/material/divider';
+import { HttpClient } from '@angular/common/http';
 import { EvidenceService } from '../../core/api/evidence.service';
 import { Evidence, EvidenceType } from '../../shared/models';
+import { environment } from '../../../environments/environment';
+
+interface CustodyEvent {
+  id: string;
+  evidence_id: string;
+  action: string;
+  actor_id: string | null;
+  actor_name: string | null;
+  ip_address: string | null;
+  user_agent: string | null;
+  details: Record<string, unknown>;
+  created_at: string;
+}
 
 @Component({
   selector: 'app-evidence-browser',
@@ -65,12 +79,15 @@ import { Evidence, EvidenceType } from '../../shared/models';
             <mat-label>Type</mat-label>
             <mat-select [(ngModel)]="typeFilter" (selectionChange)="applyFilters()">
               <mat-option [value]="null">All Types</mat-option>
-              <mat-option value="file">Files</mat-option>
-              <mat-option value="image">Images</mat-option>
-              <mat-option value="log">Logs</mat-option>
+              <mat-option value="disk_image">Disk Images</mat-option>
               <mat-option value="memory">Memory Dumps</mat-option>
-              <mat-option value="network">Network Captures</mat-option>
+              <mat-option value="logs">Logs</mat-option>
+              <mat-option value="triage">Triage</mat-option>
+              <mat-option value="pcap">Network Captures</mat-option>
               <mat-option value="artifact">Artifacts</mat-option>
+              <mat-option value="document">Documents</mat-option>
+              <mat-option value="malware">Malware Samples</mat-option>
+              <mat-option value="other">Other</mat-option>
             </mat-select>
           </mat-form-field>
 
@@ -131,8 +148,8 @@ import { Evidence, EvidenceType } from '../../shared/models';
             <ng-container matColumnDef="hash">
               <th mat-header-cell *matHeaderCellDef>SHA256</th>
               <td mat-cell *matCellDef="let row">
-                <span class="hash" [matTooltip]="row.file_hash_sha256">
-                  {{ row.file_hash_sha256?.substring(0, 16) }}...
+                <span class="hash" [matTooltip]="row.sha256">
+                  {{ row.sha256?.substring(0, 16) }}...
                 </span>
               </td>
             </ng-container>
@@ -141,7 +158,7 @@ import { Evidence, EvidenceType } from '../../shared/models';
             <ng-container matColumnDef="created">
               <th mat-header-cell *matHeaderCellDef>Uploaded</th>
               <td mat-cell *matCellDef="let row">
-                {{ row.created_at | date:'short' }}
+                {{ row.uploaded_at | date:'short' }}
               </td>
             </ng-container>
 
@@ -227,33 +244,34 @@ import { Evidence, EvidenceType } from '../../shared/models';
               <div class="hash-list">
                 <div class="hash-item">
                   <span class="label">MD5</span>
-                  <code>{{ selectedEvidence()!.file_hash_md5 || 'N/A' }}</code>
+                  <code>{{ selectedEvidence()!.md5 || 'N/A' }}</code>
+                </div>
+                <div class="hash-item">
+                  <span class="label">SHA1</span>
+                  <code>{{ selectedEvidence()!.sha1 || 'N/A' }}</code>
                 </div>
                 <div class="hash-item">
                   <span class="label">SHA256</span>
-                  <code>{{ selectedEvidence()!.file_hash_sha256 || 'N/A' }}</code>
+                  <code>{{ selectedEvidence()!.sha256 || 'N/A' }}</code>
                 </div>
               </div>
             </div>
 
             <div class="detail-section">
               <h4>Chain of Custody</h4>
-              @if (selectedEvidence()!.chain_of_custody.length === 0) {
+              @if (custodyEvents().length === 0) {
                 <p class="empty">No custody entries</p>
               } @else {
                 <div class="custody-timeline">
-                  @for (entry of selectedEvidence()!.chain_of_custody; track entry.timestamp) {
+                  @for (entry of custodyEvents(); track entry.id) {
                     <div class="custody-entry">
                       <div class="custody-marker"></div>
                       <div class="custody-content">
                         <div class="custody-header">
-                          <span class="action">{{ entry.action }}</span>
-                          <span class="time">{{ entry.timestamp | date:'medium' }}</span>
+                          <span class="action">{{ entry.action | titlecase }}</span>
+                          <span class="time">{{ entry.created_at | date:'medium' }}</span>
                         </div>
-                        <div class="custody-user">{{ entry.user }}</div>
-                        @if (entry.notes) {
-                          <div class="custody-notes">{{ entry.notes }}</div>
-                        }
+                        <div class="custody-user">{{ entry.actor_name || 'System' }}</div>
                       </div>
                     </div>
                   }
@@ -363,9 +381,11 @@ import { Evidence, EvidenceType } from '../../shared/models';
       font-size: 12px;
 
       &.status-pending { background: var(--text-muted); color: white; }
+      &.status-uploading { background: var(--info); color: white; }
       &.status-processing { background: var(--warning); color: black; }
-      &.status-analyzed { background: var(--success); color: black; }
-      &.status-archived { background: var(--info); color: white; }
+      &.status-ready { background: var(--success); color: black; }
+      &.status-failed { background: var(--danger); color: white; }
+      &.status-quarantined { background: #7c3aed; color: white; }
     }
 
     .hash {
@@ -542,9 +562,11 @@ export class EvidenceBrowserComponent implements OnInit {
   typeFilter: EvidenceType | null = null;
 
   selectedEvidence = signal<Evidence | null>(null);
+  custodyEvents = signal<CustodyEvent[]>([]);
 
   constructor(
     private evidenceService: EvidenceService,
+    private http: HttpClient,
     private router: Router,
     private snackBar: MatSnackBar
   ) {}
@@ -590,10 +612,20 @@ export class EvidenceBrowserComponent implements OnInit {
 
   viewDetails(item: Evidence): void {
     this.selectedEvidence.set(item);
+    this.loadCustodyEvents(item.id);
+  }
+
+  loadCustodyEvents(evidenceId: string): void {
+    this.http.get<CustodyEvent[]>(`${environment.apiUrl}/evidence/${evidenceId}/custody`)
+      .subscribe({
+        next: (events) => this.custodyEvents.set(events),
+        error: () => this.custodyEvents.set([])
+      });
   }
 
   closeDetails(): void {
     this.selectedEvidence.set(null);
+    this.custodyEvents.set([]);
   }
 
   uploadEvidence(): void {
@@ -606,7 +638,7 @@ export class EvidenceBrowserComponent implements OnInit {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = item.original_filename;
+        a.download = item.original_filename || item.filename;
         a.click();
         URL.revokeObjectURL(url);
       }
@@ -616,7 +648,7 @@ export class EvidenceBrowserComponent implements OnInit {
   verifyIntegrity(item: Evidence): void {
     this.evidenceService.verify(item.id).subscribe({
       next: (result) => {
-        const message = result.valid ? 'Integrity verified' : 'Integrity check failed';
+        const message = result.integrity_valid ? 'Integrity verified' : 'Integrity check failed';
         this.snackBar.open(message, 'Dismiss', { duration: 3000 });
       }
     });
@@ -632,20 +664,21 @@ export class EvidenceBrowserComponent implements OnInit {
 
   getFileIcon(type: EvidenceType, mimeType: string | null): string {
     const icons: Record<EvidenceType, string> = {
-      file: 'insert_drive_file',
-      image: 'image',
-      log: 'description',
+      disk_image: 'storage',
       memory: 'memory',
-      network: 'lan',
-      registry: 'settings',
+      logs: 'description',
+      triage: 'fact_check',
+      pcap: 'lan',
       artifact: 'folder_special',
+      document: 'article',
+      malware: 'bug_report',
       other: 'help'
     };
     return icons[type] || 'insert_drive_file';
   }
 
-  formatFileSize(bytes: number): string {
-    if (bytes === 0) return '0 B';
+  formatFileSize(bytes: number | null): string {
+    if (bytes === null || bytes === 0) return '0 B';
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));

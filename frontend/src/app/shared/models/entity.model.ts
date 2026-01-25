@@ -1,5 +1,26 @@
 export type EntityType = 'host' | 'user' | 'ip' | 'domain' | 'file' | 'process' | 'url' | 'email';
 
+/**
+ * Entity profile response from backend.
+ * This is the aggregated profile data returned by /entities/hosts/{hostname},
+ * /entities/users/{username}, and /entities/ips/{ip_address}.
+ */
+export interface EntityProfile {
+  entity_type: string;
+  identifier: string;
+  first_seen: string | null;
+  last_seen: string | null;
+  event_count: number;
+  related_cases: string[];
+  summary: {
+    event_types?: Record<string, number>;
+    users?: string[];
+    hosts?: string[];
+    top_processes?: string[];
+    ports?: number[];
+  };
+}
+
 export interface Entity {
   id: string;
   entity_type: EntityType;
@@ -76,11 +97,15 @@ export interface IPProfile {
   related_connections: Connection[];
 }
 
+/**
+ * Entity event from backend /entities/{type}/{id}/events endpoint.
+ */
 export interface EntityEvent {
+  id: string;
   timestamp: string;
-  event_type: string;
-  description: string;
-  source: string;
+  event_type: string | null;
+  message: string | null;
+  case_id: string | null;
 }
 
 export interface Software {
