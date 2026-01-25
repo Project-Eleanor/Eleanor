@@ -80,4 +80,41 @@ export class WorkflowService {
   reject(approvalId: string, reason?: string): Observable<WorkflowExecution> {
     return this.http.post<WorkflowExecution>(`${this.apiUrl}/approvals/${approvalId}/deny`, { comment: reason });
   }
+
+  // Quick response actions
+  isolateHost(target: string, caseId?: string, reason?: string): Observable<WorkflowExecution> {
+    return this.http.post<WorkflowExecution>(`${this.apiUrl}/actions/isolate-host`, {
+      target,
+      case_id: caseId,
+      reason
+    });
+  }
+
+  blockIp(target: string, caseId?: string, reason?: string): Observable<WorkflowExecution> {
+    return this.http.post<WorkflowExecution>(`${this.apiUrl}/actions/block-ip`, {
+      target,
+      case_id: caseId,
+      reason
+    });
+  }
+
+  disableUser(target: string, caseId?: string, reason?: string): Observable<WorkflowExecution> {
+    return this.http.post<WorkflowExecution>(`${this.apiUrl}/actions/disable-user`, {
+      target,
+      case_id: caseId,
+      reason
+    });
+  }
+
+  collectArtifacts(target: string, caseId?: string): Observable<WorkflowExecution> {
+    return this.trigger('collect-artifacts', { target, case_id: caseId });
+  }
+
+  triggerScan(target: string, caseId?: string): Observable<WorkflowExecution> {
+    return this.trigger('security-scan', { target, case_id: caseId });
+  }
+
+  sendAlert(message: string, severity: string, caseId?: string): Observable<WorkflowExecution> {
+    return this.trigger('send-alert', { message, severity, case_id: caseId });
+  }
 }

@@ -4,6 +4,7 @@ from fastapi import APIRouter
 
 from app.api.v1 import (
     admin,
+    alerts,
     analytics,
     auth,
     cases,
@@ -36,6 +37,7 @@ router.include_router(admin.router, prefix="/admin", tags=["Admin"])
 
 # Analytics and connectors
 router.include_router(analytics.router, prefix="/analytics", tags=["Analytics"])
+router.include_router(alerts.router, prefix="/alerts", tags=["Alerts"])
 router.include_router(connectors.router, prefix="/connectors", tags=["Data Connectors"])
 
 # Integration endpoints

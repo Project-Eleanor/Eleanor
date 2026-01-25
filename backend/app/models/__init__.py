@@ -1,5 +1,6 @@
 """SQLAlchemy models for Eleanor."""
 
+from app.models.alert import Alert, AlertSeverity, AlertStatus
 from app.models.analytics import DetectionRule, RuleExecution, RuleSeverity, RuleStatus, RuleType
 from app.models.audit import AuditLog
 from app.models.case import Case, CaseStatus, Severity
@@ -11,6 +12,9 @@ from app.models.user import User
 from app.models.workbook import SavedQuery, Workbook
 
 __all__ = [
+    "Alert",
+    "AlertSeverity",
+    "AlertStatus",
     "AuditLog",
     "Case",
     "CaseStatus",

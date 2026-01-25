@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
@@ -12,11 +12,13 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDividerModule } from '@angular/material/divider';
-import { HttpClient } from '@angular/common/http';
+import { MatDialogModule, MatDialog } from '@angular/material/dialog';
+import { HttpClient, HttpEventType } from '@angular/common/http';
 import { EvidenceService } from '../../core/api/evidence.service';
 import { Evidence, EvidenceType } from '../../shared/models';
 import { environment } from '../../../environments/environment';
@@ -50,20 +52,145 @@ interface CustodyEvent {
     MatSelectModule,
     MatChipsModule,
     MatProgressSpinnerModule,
+    MatProgressBarModule,
     MatMenuModule,
     MatTooltipModule,
     MatSnackBarModule,
-    MatDividerModule
+    MatDividerModule,
+    MatDialogModule
   ],
   template: `
     <div class="evidence-browser">
       <div class="page-header">
         <h1>Evidence</h1>
-        <button mat-flat-button color="accent" (click)="uploadEvidence()">
+        <button mat-flat-button color="accent" (click)="showUploadDialog()">
           <mat-icon>upload_file</mat-icon>
           Upload Evidence
         </button>
       </div>
+
+      <!-- Upload Dialog Overlay -->
+      @if (showUpload()) {
+        <div class="upload-overlay" (click)="closeUploadDialog()">
+          <div class="upload-dialog" (click)="$event.stopPropagation()">
+            <div class="dialog-header">
+              <h2>Upload Evidence</h2>
+              <button mat-icon-button (click)="closeUploadDialog()">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+
+            <div class="dialog-content">
+              <!-- Case Selection -->
+              <mat-form-field appearance="outline" class="case-select">
+                <mat-label>Associate with Case</mat-label>
+                <mat-select [(ngModel)]="selectedCaseId">
+                  <mat-option [value]="null">No case (standalone)</mat-option>
+                  @for (caseItem of availableCases(); track caseItem.id) {
+                    <mat-option [value]="caseItem.id">{{ caseItem.name }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <!-- Evidence Type -->
+              <mat-form-field appearance="outline" class="type-select">
+                <mat-label>Evidence Type</mat-label>
+                <mat-select [(ngModel)]="uploadEvidenceType">
+                  <mat-option value="disk_image">Disk Image</mat-option>
+                  <mat-option value="memory">Memory Dump</mat-option>
+                  <mat-option value="logs">Logs</mat-option>
+                  <mat-option value="triage">Triage Package</mat-option>
+                  <mat-option value="pcap">Network Capture</mat-option>
+                  <mat-option value="artifact">Artifact</mat-option>
+                  <mat-option value="document">Document</mat-option>
+                  <mat-option value="malware">Malware Sample</mat-option>
+                  <mat-option value="other">Other</mat-option>
+                </mat-select>
+              </mat-form-field>
+
+              <!-- Drag-Drop Zone -->
+              <div class="drop-zone"
+                   [class.drag-over]="isDragOver()"
+                   [class.uploading]="isUploading()"
+                   (dragover)="onDragOver($event)"
+                   (dragleave)="onDragLeave($event)"
+                   (drop)="onDrop($event)"
+                   (click)="fileInput.click()">
+
+                <input #fileInput type="file" hidden
+                       (change)="onFileSelected($event)"
+                       multiple
+                       accept="*/*">
+
+                @if (isUploading()) {
+                  <div class="upload-progress">
+                    <mat-spinner diameter="48"></mat-spinner>
+                    <div class="progress-info">
+                      <span class="filename">{{ currentUploadFile()?.name }}</span>
+                      <mat-progress-bar mode="determinate" [value]="uploadProgress()"></mat-progress-bar>
+                      <span class="progress-text">{{ uploadProgress() }}%</span>
+                    </div>
+                  </div>
+                } @else {
+                  <mat-icon class="drop-icon">cloud_upload</mat-icon>
+                  <p class="drop-text">Drag and drop files here</p>
+                  <p class="drop-hint">or click to browse</p>
+                }
+              </div>
+
+              <!-- Upload Queue -->
+              @if (uploadQueue().length > 0) {
+                <div class="upload-queue">
+                  <h4>Files to upload ({{ uploadQueue().length }})</h4>
+                  @for (file of uploadQueue(); track file.name) {
+                    <div class="queue-item">
+                      <mat-icon>insert_drive_file</mat-icon>
+                      <span class="file-name">{{ file.name }}</span>
+                      <span class="file-size">{{ formatFileSize(file.size) }}</span>
+                      <button mat-icon-button (click)="removeFromQueue(file)">
+                        <mat-icon>close</mat-icon>
+                      </button>
+                    </div>
+                  }
+                </div>
+              }
+
+              <!-- Completed Uploads -->
+              @if (completedUploads().length > 0) {
+                <div class="completed-uploads">
+                  <h4>Completed ({{ completedUploads().length }})</h4>
+                  @for (upload of completedUploads(); track upload.id) {
+                    <div class="completed-item">
+                      <mat-icon class="success-icon">check_circle</mat-icon>
+                      <div class="completed-info">
+                        <span class="file-name">{{ upload.original_filename }}</span>
+                        <div class="hash-info">
+                          <span class="hash-label">MD5:</span>
+                          <code>{{ upload.md5 }}</code>
+                        </div>
+                        <div class="hash-info">
+                          <span class="hash-label">SHA256:</span>
+                          <code>{{ upload.sha256?.substring(0, 32) }}...</code>
+                        </div>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+
+            <div class="dialog-actions">
+              <button mat-stroked-button (click)="closeUploadDialog()">Cancel</button>
+              <button mat-flat-button color="accent"
+                      [disabled]="uploadQueue().length === 0 || isUploading()"
+                      (click)="startUpload()">
+                <mat-icon>upload</mat-icon>
+                Upload {{ uploadQueue().length }} file(s)
+              </button>
+            </div>
+          </div>
+        </div>
+      }
 
       <!-- Filters -->
       <mat-card class="filter-card">
@@ -547,9 +674,244 @@ interface CustodyEvent {
       color: var(--text-muted);
       font-style: italic;
     }
+
+    /* Upload Dialog Styles */
+    .upload-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+
+    .upload-dialog {
+      background: var(--bg-card);
+      border-radius: 12px;
+      width: 600px;
+      max-width: 90vw;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+
+    .dialog-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border-color);
+
+      h2 {
+        margin: 0;
+        font-size: 18px;
+      }
+    }
+
+    .dialog-content {
+      padding: 24px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .case-select, .type-select {
+      width: 100%;
+      margin-bottom: 16px;
+    }
+
+    .drop-zone {
+      border: 2px dashed var(--border-color);
+      border-radius: 8px;
+      padding: 48px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        border-color: var(--accent);
+        background: rgba(var(--accent-rgb), 0.05);
+      }
+
+      &.drag-over {
+        border-color: var(--accent);
+        background: rgba(var(--accent-rgb), 0.1);
+        border-style: solid;
+      }
+
+      &.uploading {
+        cursor: default;
+        border-style: solid;
+        border-color: var(--info);
+      }
+    }
+
+    .drop-icon {
+      font-size: 64px;
+      width: 64px;
+      height: 64px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    .drop-text {
+      font-size: 16px;
+      margin: 0 0 8px;
+      color: var(--text-primary);
+    }
+
+    .drop-hint {
+      font-size: 13px;
+      margin: 0;
+      color: var(--text-muted);
+    }
+
+    .upload-progress {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .progress-info {
+      width: 100%;
+      text-align: center;
+
+      .filename {
+        font-weight: 500;
+        margin-bottom: 8px;
+        display: block;
+      }
+
+      .progress-text {
+        font-size: 13px;
+        color: var(--text-secondary);
+        margin-top: 8px;
+        display: block;
+      }
+    }
+
+    .upload-queue {
+      margin-top: 24px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 16px;
+
+      h4 {
+        margin: 0 0 12px;
+        font-size: 13px;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+      }
+    }
+
+    .queue-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border-color);
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      mat-icon {
+        color: var(--text-muted);
+      }
+
+      .file-name {
+        flex: 1;
+        font-size: 13px;
+      }
+
+      .file-size {
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+    }
+
+    .completed-uploads {
+      margin-top: 24px;
+      border: 1px solid var(--success);
+      border-radius: 8px;
+      padding: 16px;
+      background: rgba(var(--success-rgb), 0.05);
+
+      h4 {
+        margin: 0 0 12px;
+        font-size: 13px;
+        color: var(--success);
+        text-transform: uppercase;
+      }
+    }
+
+    .completed-item {
+      display: flex;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border-color);
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      .success-icon {
+        color: var(--success);
+      }
+    }
+
+    .completed-info {
+      flex: 1;
+
+      .file-name {
+        font-weight: 500;
+        display: block;
+        margin-bottom: 8px;
+      }
+
+      .hash-info {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 4px;
+
+        .hash-label {
+          font-size: 11px;
+          color: var(--text-muted);
+          width: 50px;
+        }
+
+        code {
+          font-size: 11px;
+          background: var(--bg-surface);
+          padding: 2px 6px;
+          border-radius: 4px;
+        }
+      }
+    }
+
+    .dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      padding: 16px 24px;
+      border-top: 1px solid var(--border-color);
+    }
   `]
 })
+interface CaseItem {
+  id: string;
+  name: string;
+}
+
 export class EvidenceBrowserComponent implements OnInit {
+  @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
+
   displayedColumns = ['icon', 'filename', 'type', 'status', 'hash', 'created', 'actions'];
 
   evidence = signal<Evidence[]>([]);
@@ -564,11 +926,24 @@ export class EvidenceBrowserComponent implements OnInit {
   selectedEvidence = signal<Evidence | null>(null);
   custodyEvents = signal<CustodyEvent[]>([]);
 
+  // Upload state
+  showUpload = signal(false);
+  isDragOver = signal(false);
+  isUploading = signal(false);
+  uploadProgress = signal(0);
+  currentUploadFile = signal<File | null>(null);
+  uploadQueue = signal<File[]>([]);
+  completedUploads = signal<Evidence[]>([]);
+  availableCases = signal<CaseItem[]>([]);
+  selectedCaseId: string | null = null;
+  uploadEvidenceType: EvidenceType = 'other';
+
   constructor(
     private evidenceService: EvidenceService,
     private http: HttpClient,
     private router: Router,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private dialog: MatDialog
   ) {}
 
   ngOnInit(): void {
@@ -628,8 +1003,129 @@ export class EvidenceBrowserComponent implements OnInit {
     this.custodyEvents.set([]);
   }
 
-  uploadEvidence(): void {
-    this.snackBar.open('Upload feature coming soon', 'Dismiss', { duration: 3000 });
+  // Upload methods
+  showUploadDialog(): void {
+    this.showUpload.set(true);
+    this.loadCases();
+    this.resetUploadState();
+  }
+
+  closeUploadDialog(): void {
+    if (this.isUploading()) {
+      return; // Don't close while uploading
+    }
+    this.showUpload.set(false);
+    this.resetUploadState();
+    // Refresh evidence list if uploads were completed
+    if (this.completedUploads().length > 0) {
+      this.loadEvidence();
+    }
+  }
+
+  private resetUploadState(): void {
+    this.uploadQueue.set([]);
+    this.completedUploads.set([]);
+    this.isDragOver.set(false);
+    this.isUploading.set(false);
+    this.uploadProgress.set(0);
+    this.currentUploadFile.set(null);
+  }
+
+  private loadCases(): void {
+    this.http.get<{ items: CaseItem[] }>(`${environment.apiUrl}/cases?page_size=100`)
+      .subscribe({
+        next: (response) => this.availableCases.set(response.items),
+        error: () => this.availableCases.set([])
+      });
+  }
+
+  onDragOver(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragOver.set(true);
+  }
+
+  onDragLeave(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragOver.set(false);
+  }
+
+  onDrop(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragOver.set(false);
+
+    if (event.dataTransfer?.files) {
+      this.addFilesToQueue(Array.from(event.dataTransfer.files));
+    }
+  }
+
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files) {
+      this.addFilesToQueue(Array.from(input.files));
+      input.value = ''; // Reset for re-selection
+    }
+  }
+
+  private addFilesToQueue(files: File[]): void {
+    const currentQueue = this.uploadQueue();
+    const newFiles = files.filter(f => !currentQueue.some(q => q.name === f.name && q.size === f.size));
+    this.uploadQueue.set([...currentQueue, ...newFiles]);
+  }
+
+  removeFromQueue(file: File): void {
+    this.uploadQueue.update(queue => queue.filter(f => f !== file));
+  }
+
+  async startUpload(): Promise<void> {
+    const queue = this.uploadQueue();
+    if (queue.length === 0 || this.isUploading()) return;
+
+    this.isUploading.set(true);
+
+    for (const file of queue) {
+      this.currentUploadFile.set(file);
+      this.uploadProgress.set(0);
+
+      try {
+        const uploaded = await this.uploadFile(file);
+        this.completedUploads.update(completed => [...completed, uploaded]);
+        this.uploadQueue.update(q => q.filter(f => f !== file));
+      } catch (error) {
+        this.snackBar.open(`Failed to upload ${file.name}`, 'Dismiss', { duration: 5000 });
+      }
+    }
+
+    this.isUploading.set(false);
+    this.currentUploadFile.set(null);
+    this.snackBar.open(`Uploaded ${this.completedUploads().length} file(s)`, 'Dismiss', { duration: 3000 });
+  }
+
+  private uploadFile(file: File): Promise<Evidence> {
+    return new Promise((resolve, reject) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('evidence_type', this.uploadEvidenceType);
+      if (this.selectedCaseId) {
+        formData.append('case_id', this.selectedCaseId);
+      }
+
+      this.http.post<Evidence>(`${environment.apiUrl}/evidence/upload`, formData, {
+        reportProgress: true,
+        observe: 'events'
+      }).subscribe({
+        next: (event) => {
+          if (event.type === HttpEventType.UploadProgress && event.total) {
+            this.uploadProgress.set(Math.round(100 * event.loaded / event.total));
+          } else if (event.type === HttpEventType.Response) {
+            resolve(event.body as Evidence);
+          }
+        },
+        error: (error) => reject(error)
+      });
+    });
   }
 
   downloadEvidence(item: Evidence): void {

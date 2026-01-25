@@ -8,7 +8,9 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { AuthService } from '../../core/auth/auth.service';
+import { ChangePasswordDialogComponent } from './change-password-dialog.component';
 
 @Component({
   selector: 'app-settings',
@@ -22,7 +24,8 @@ import { AuthService } from '../../core/auth/auth.service';
     MatFormFieldModule,
     MatInputModule,
     MatSlideToggleModule,
-    MatDividerModule
+    MatDividerModule,
+    MatDialogModule
   ],
   template: `
     <div class="settings">
@@ -60,7 +63,7 @@ import { AuthService } from '../../core/auth/auth.service';
           </div>
         </mat-card-content>
         <mat-card-actions>
-          <button mat-stroked-button>Change Password</button>
+          <button mat-stroked-button (click)="openChangePasswordDialog()">Change Password</button>
         </mat-card-actions>
       </mat-card>
 
@@ -234,5 +237,14 @@ export class SettingsComponent {
   user = this.authService.user;
   buildDate = new Date().toISOString().split('T')[0];
 
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private dialog: MatDialog
+  ) {}
+
+  openChangePasswordDialog(): void {
+    this.dialog.open(ChangePasswordDialogComponent, {
+      width: '450px'
+    });
+  }
 }

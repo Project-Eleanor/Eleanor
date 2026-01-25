@@ -20,6 +20,8 @@ from app.models.analytics import (
     RuleType,
 )
 from app.models.user import User
+from app.services.detection_engine import get_detection_engine
+from app.services.alert_generator import get_alert_generator
 
 router = APIRouter()
 
@@ -601,15 +603,23 @@ async def run_rule(
         status="running",
     )
     db.add(execution)
+    await db.flush()
 
-    # Update rule last_run_at
-    rule.last_run_at = datetime.utcnow()
+    # Execute the rule using the detection engine
+    detection_engine = await get_detection_engine()
+    exec_result = await detection_engine.execute_rule(rule, execution, db)
 
-    await db.commit()
+    # If threshold exceeded, create alerts
+    if exec_result.get("threshold_exceeded") and exec_result.get("hits"):
+        alert_generator = get_alert_generator()
+        alerts = await alert_generator.create_alerts_from_rule_execution(
+            rule, exec_result, db
+        )
+        execution.incidents_created = len(alerts)
+        await db.commit()
+
+    # Refresh to get updated values
     await db.refresh(execution)
-
-    # TODO: Actually run the rule query against Elasticsearch
-    # This would be done asynchronously in a background task
 
     return ExecutionResponse(
         id=execution.id,

@@ -18,6 +18,7 @@ import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { SearchService } from '../../core/api/search.service';
+import { EnrichmentService, EnrichmentResult } from '../../core/api/enrichment.service';
 import { SavedQuery, SearchResult } from '../../shared/models';
 import { SaveQueryDialogComponent } from './save-query-dialog.component';
 import { MonacoEditorComponent } from '../../shared/components/monaco-editor/monaco-editor.component';
@@ -206,14 +207,77 @@ import { MonacoEditorComponent } from '../../shared/components/monaco-editor/mon
             }
           </div>
           <div class="panel-actions">
-            <button mat-stroked-button (click)="enrichValue()">
-              <mat-icon>security</mat-icon>
+            <button mat-stroked-button (click)="enrichValue()" [disabled]="isEnriching()">
+              @if (isEnriching()) {
+                <mat-spinner diameter="18"></mat-spinner>
+              } @else {
+                <mat-icon>security</mat-icon>
+              }
               Enrich
             </button>
             <button mat-stroked-button (click)="pivotSearch()">
               <mat-icon>search</mat-icon>
               Pivot
             </button>
+          </div>
+        </div>
+      }
+
+      <!-- Enrichment Results Panel -->
+      @if (showEnrichmentPanel()) {
+        <div class="enrichment-panel">
+          <div class="panel-header">
+            <h3>Enrichment Results</h3>
+            <button mat-icon-button (click)="closeEnrichmentPanel()">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+          <div class="panel-content">
+            @if (isEnriching()) {
+              <div class="loading-enrichment">
+                <mat-spinner diameter="32"></mat-spinner>
+                <p>Enriching indicators...</p>
+              </div>
+            } @else if (enrichmentResults().length === 0) {
+              <p class="no-results">No enrichment data available</p>
+            } @else {
+              @for (result of enrichmentResults(); track result.indicator) {
+                <div class="enrichment-item">
+                  <div class="enrichment-header">
+                    <div class="indicator-info">
+                      <mat-chip class="type-chip">{{ result.indicator_type }}</mat-chip>
+                      <code class="indicator-value">{{ result.indicator }}</code>
+                    </div>
+                    @if (result.summary.risk_score !== null) {
+                      <div class="risk-score" [class]="'risk-' + getRiskColor(result.summary.risk_score)">
+                        {{ result.summary.risk_score }}
+                      </div>
+                    }
+                  </div>
+
+                  <div class="enrichment-summary">
+                    @if (result.summary.is_malicious) {
+                      <span class="malicious-badge">
+                        <mat-icon>warning</mat-icon>
+                        Malicious
+                      </span>
+                    }
+                    @if (result.summary.category) {
+                      <span class="category">{{ result.summary.category }}</span>
+                    }
+                    @for (tag of result.summary.tags.slice(0, 5); track tag) {
+                      <mat-chip class="tag-chip">{{ tag }}</mat-chip>
+                    }
+                  </div>
+
+                  @if (result.sources.length > 0) {
+                    <div class="enrichment-sources">
+                      <span class="sources-label">Sources: {{ result.sources.map(s => s.name).join(', ') }}</span>
+                    </div>
+                  }
+                </div>
+              }
+            }
           </div>
         </div>
       }
@@ -475,6 +539,139 @@ import { MonacoEditorComponent } from '../../shared/components/monaco-editor/mon
       padding: 16px;
       border-top: 1px solid var(--border-color);
     }
+
+    /* Enrichment Panel */
+    .enrichment-panel {
+      position: fixed;
+      top: 0;
+      right: 450px;
+      width: 400px;
+      height: 100vh;
+      background: var(--bg-card);
+      border-left: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      z-index: 1001;
+      box-shadow: -4px 0 16px rgba(0, 0, 0, 0.3);
+    }
+
+    .loading-enrichment {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 48px;
+      color: var(--text-secondary);
+
+      p {
+        margin-top: 16px;
+      }
+    }
+
+    .no-results {
+      color: var(--text-muted);
+      text-align: center;
+      padding: 24px;
+      font-style: italic;
+    }
+
+    .enrichment-item {
+      padding: 16px;
+      border-bottom: 1px solid var(--border-color);
+
+      &:last-child {
+        border-bottom: none;
+      }
+    }
+
+    .enrichment-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+
+    .indicator-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .type-chip {
+      font-size: 10px;
+      min-height: 20px !important;
+      padding: 0 8px !important;
+    }
+
+    .indicator-value {
+      font-size: 12px;
+      background: var(--bg-surface);
+      padding: 4px 8px;
+      border-radius: 4px;
+      word-break: break-all;
+    }
+
+    .risk-score {
+      font-size: 14px;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 12px;
+
+      &.risk-critical { background: var(--danger); color: white; }
+      &.risk-high { background: #f97316; color: white; }
+      &.risk-medium { background: var(--warning); color: black; }
+      &.risk-low { background: var(--info); color: white; }
+      &.risk-safe { background: var(--success); color: black; }
+      &.risk-unknown { background: var(--text-muted); color: white; }
+    }
+
+    .enrichment-summary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .malicious-badge {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--danger);
+      color: white;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+
+      mat-icon {
+        font-size: 14px;
+        width: 14px;
+        height: 14px;
+      }
+    }
+
+    .category {
+      font-size: 12px;
+      color: var(--text-secondary);
+      background: var(--bg-surface);
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+
+    .tag-chip {
+      font-size: 10px;
+      min-height: 20px !important;
+      padding: 0 6px !important;
+    }
+
+    .enrichment-sources {
+      margin-top: 8px;
+
+      .sources-label {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+    }
   `]
 })
 export class HuntingConsoleComponent implements OnInit {
@@ -496,6 +693,11 @@ export class HuntingConsoleComponent implements OnInit {
   errorMessage = signal('');
   selectedResult = signal<SearchResult | null>(null);
 
+  // Enrichment state
+  isEnriching = signal(false);
+  enrichmentResults = signal<EnrichmentResult[]>([]);
+  showEnrichmentPanel = signal(false);
+
   queryExamples = [
     { label: 'Process Events', query: 'FROM logs-* | WHERE event.category == "process"' },
     { label: 'Network Connections', query: 'FROM logs-* | WHERE event.category == "network"' },
@@ -506,6 +708,7 @@ export class HuntingConsoleComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private searchService: SearchService,
+    private enrichmentService: EnrichmentService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar
   ) {}
@@ -666,10 +869,135 @@ export class HuntingConsoleComponent implements OnInit {
   }
 
   enrichValue(): void {
-    this.snackBar.open('Enrichment feature coming soon', 'Dismiss', { duration: 3000 });
+    const selected = this.selectedResult();
+    if (!selected) return;
+
+    // Extract enrichable values from the selected result
+    const indicators = this.extractIndicators(selected.source);
+    if (indicators.length === 0) {
+      this.snackBar.open('No enrichable indicators found', 'Dismiss', { duration: 3000 });
+      return;
+    }
+
+    this.isEnriching.set(true);
+    this.showEnrichmentPanel.set(true);
+
+    this.enrichmentService.enrichBatch(indicators).subscribe({
+      next: (results) => {
+        this.enrichmentResults.set(results);
+        this.isEnriching.set(false);
+        this.snackBar.open(`Enriched ${results.length} indicator(s)`, 'Dismiss', { duration: 3000 });
+      },
+      error: (error) => {
+        this.isEnriching.set(false);
+        const message = error.error?.detail || 'Enrichment failed';
+        this.snackBar.open(message, 'Dismiss', { duration: 5000 });
+      }
+    });
+  }
+
+  private extractIndicators(source: Record<string, unknown>): { value: string; type: string }[] {
+    const indicators: { value: string; type: string }[] = [];
+    const ipPattern = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+    const hashPattern = /^[a-fA-F0-9]{32}$|^[a-fA-F0-9]{40}$|^[a-fA-F0-9]{64}$/;
+    const domainPattern = /^(?!-)([a-zA-Z0-9-]{1,63}(?<!-)\.)+[a-zA-Z]{2,}$/;
+
+    const extractFromValue = (key: string, value: unknown) => {
+      if (typeof value !== 'string' || !value) return;
+
+      const lowerKey = key.toLowerCase();
+
+      // Check for IPs
+      if (lowerKey.includes('ip') || ipPattern.test(value)) {
+        if (ipPattern.test(value) && !value.startsWith('10.') && !value.startsWith('192.168.') && !value.startsWith('127.')) {
+          indicators.push({ value, type: 'ip' });
+        }
+      }
+
+      // Check for hashes
+      if (lowerKey.includes('hash') || lowerKey.includes('md5') || lowerKey.includes('sha')) {
+        if (hashPattern.test(value)) {
+          const type = value.length === 32 ? 'md5' : value.length === 40 ? 'sha1' : 'sha256';
+          indicators.push({ value: value.toLowerCase(), type });
+        }
+      }
+
+      // Check for domains/URLs
+      if (lowerKey.includes('domain') || lowerKey.includes('url') || lowerKey.includes('host')) {
+        if (domainPattern.test(value) && !value.includes(' ')) {
+          indicators.push({ value: value.toLowerCase(), type: 'domain' });
+        }
+      }
+    };
+
+    // Recursively extract from nested objects
+    const processObject = (obj: Record<string, unknown>, prefix = '') => {
+      for (const [key, value] of Object.entries(obj)) {
+        if (typeof value === 'object' && value !== null) {
+          processObject(value as Record<string, unknown>, `${prefix}${key}.`);
+        } else {
+          extractFromValue(`${prefix}${key}`, value);
+        }
+      }
+    };
+
+    processObject(source);
+
+    // Deduplicate
+    const seen = new Set<string>();
+    return indicators.filter(i => {
+      const key = `${i.type}:${i.value}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
+  closeEnrichmentPanel(): void {
+    this.showEnrichmentPanel.set(false);
+    this.enrichmentResults.set([]);
+  }
+
+  getRiskColor(score: number | null): string {
+    if (score === null) return 'unknown';
+    if (score >= 80) return 'critical';
+    if (score >= 60) return 'high';
+    if (score >= 40) return 'medium';
+    if (score >= 20) return 'low';
+    return 'safe';
   }
 
   pivotSearch(): void {
-    this.snackBar.open('Pivot search coming soon', 'Dismiss', { duration: 3000 });
+    const selected = this.selectedResult();
+    if (!selected) return;
+
+    // Extract a key field for pivoting
+    const source = selected.source;
+    const pivotFields = ['source.ip', 'destination.ip', 'user.name', 'process.hash.sha256', 'host.name'];
+
+    for (const field of pivotFields) {
+      const parts = field.split('.');
+      let value: unknown = source;
+      for (const part of parts) {
+        if (value && typeof value === 'object') {
+          value = (value as Record<string, unknown>)[part];
+        } else {
+          value = undefined;
+          break;
+        }
+      }
+
+      if (value && typeof value === 'string') {
+        // Build pivot query
+        const pivotQuery = `FROM logs-* | WHERE ${field} == "${value}"`;
+        this.query = pivotQuery;
+        this.executeQuery();
+        this.closeDetail();
+        this.snackBar.open(`Pivoted search on ${field}`, 'Dismiss', { duration: 3000 });
+        return;
+      }
+    }
+
+    this.snackBar.open('No suitable field found for pivot search', 'Dismiss', { duration: 3000 });
   }
 }

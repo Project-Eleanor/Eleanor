@@ -14,6 +14,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { WorkflowService } from '../../core/api/workflow.service';
 import { Workflow, WorkflowExecution, ApprovalRequest } from '../../shared/models';
 import { TriggerWorkflowDialogComponent } from './trigger-workflow-dialog.component';
+import { QuickActionDialogComponent, QuickActionDialogResult } from './quick-action-dialog.component';
 
 @Component({
   selector: 'app-response-actions',
@@ -443,12 +444,12 @@ export class ResponseActionsComponent implements OnInit {
   executionColumns = ['workflow', 'status', 'started', 'started_by', 'actions'];
 
   quickActions = [
-    { id: 'isolate', label: 'Isolate Host', icon: 'block', danger: true },
-    { id: 'block-ip', label: 'Block IP', icon: 'shield', danger: true },
-    { id: 'disable-user', label: 'Disable User', icon: 'person_off', danger: true },
-    { id: 'collect', label: 'Collect Artifacts', icon: 'download', danger: false },
-    { id: 'scan', label: 'Trigger Scan', icon: 'search', danger: false },
-    { id: 'notify', label: 'Send Alert', icon: 'notifications', danger: false }
+    { id: 'isolate', label: 'Isolate Host', icon: 'block', danger: true, targetType: 'host' as const, targetPlaceholder: 'Hostname' },
+    { id: 'block-ip', label: 'Block IP', icon: 'shield', danger: true, targetType: 'ip' as const, targetPlaceholder: 'IP Address' },
+    { id: 'disable-user', label: 'Disable User', icon: 'person_off', danger: true, targetType: 'user' as const, targetPlaceholder: 'Username' },
+    { id: 'collect', label: 'Collect Artifacts', icon: 'download', danger: false, targetType: 'host' as const, targetPlaceholder: 'Hostname' },
+    { id: 'scan', label: 'Trigger Scan', icon: 'search', danger: false, targetType: 'host' as const, targetPlaceholder: 'Hostname' },
+    { id: 'notify', label: 'Send Alert', icon: 'notifications', danger: false, targetType: 'message' as const, targetPlaceholder: 'Alert Message' }
   ];
 
   constructor(
@@ -504,8 +505,56 @@ export class ResponseActionsComponent implements OnInit {
     });
   }
 
-  triggerQuickAction(action: { id: string; label: string }): void {
-    this.snackBar.open(`${action.label} action coming soon`, 'Dismiss', { duration: 3000 });
+  triggerQuickAction(action: typeof this.quickActions[0]): void {
+    const dialogRef = this.dialog.open(QuickActionDialogComponent, {
+      width: '500px',
+      data: { action }
+    });
+
+    dialogRef.afterClosed().subscribe((result: QuickActionDialogResult | undefined) => {
+      if (!result) return;
+
+      this.executeQuickAction(action.id, result);
+    });
+  }
+
+  private executeQuickAction(actionId: string, params: QuickActionDialogResult): void {
+    let action$;
+
+    switch (actionId) {
+      case 'isolate':
+        action$ = this.workflowService.isolateHost(params.target, undefined, params.reason);
+        break;
+      case 'block-ip':
+        action$ = this.workflowService.blockIp(params.target, undefined, params.reason);
+        break;
+      case 'disable-user':
+        action$ = this.workflowService.disableUser(params.target, undefined, params.reason);
+        break;
+      case 'collect':
+        action$ = this.workflowService.collectArtifacts(params.target);
+        break;
+      case 'scan':
+        action$ = this.workflowService.triggerScan(params.target);
+        break;
+      case 'notify':
+        action$ = this.workflowService.sendAlert(params.target, params.severity || 'medium');
+        break;
+      default:
+        this.snackBar.open(`Unknown action: ${actionId}`, 'Dismiss', { duration: 3000 });
+        return;
+    }
+
+    action$.subscribe({
+      next: (execution) => {
+        this.snackBar.open(`Action started: ${execution.workflow_name || actionId}`, 'Dismiss', { duration: 3000 });
+        this.loadExecutions();
+      },
+      error: (error) => {
+        const message = error.error?.detail || error.message || 'Action failed';
+        this.snackBar.open(message, 'Dismiss', { duration: 5000 });
+      }
+    });
   }
 
   cancelExecution(execution: WorkflowExecution): void {
