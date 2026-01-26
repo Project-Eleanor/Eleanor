@@ -58,13 +58,13 @@ Eleanor is an open-source, self-hosted **Digital Forensics and Incident Response
 | **Automated Response** | SOAR workflows via Shuffle with approval gates |
 | **Forensic Reports** | Professional report generation with templates (PDF, DOCX, HTML) |
 
-### v0.3.0 Highlights
+### v0.4.0 Highlights
 
-- **Data Connector Management** — Configure and monitor data sources with health indicators
-- **Workbook Editor** — Drag-drop tile authoring for investigation dashboards
-- **Artifact Timeline** — Cross-source correlation with category filtering
-- **Graph Analytics** — Path finding, attack chain visualization, subgraph export
-- **Kubernetes Support** — Production-ready manifests with auto-scaling (HPA)
+- **Multi-tenancy** — Organization-level isolation with RLS and tenant-scoped indices
+- **Visual Rule Builder** — Drag-drop correlation rules with 4 detection patterns
+- **Response Playbooks** — Automated workflows with approval gates and SOAR integration
+- **Real-time Dashboard** — Live SOC monitoring with WebSocket event streaming
+- **MITRE ATT&CK Navigator** — Coverage analysis, gap identification, and layer export
 
 ## Architecture
 
@@ -204,13 +204,13 @@ Eleanor integrates these battle-tested open-source tools:
 
 See our [Project Roadmap](https://github.com/Project-Eleanor/Eleanor/projects/1) for planned features.
 
-### Upcoming in v0.4.0
+### Upcoming in v0.5.0
 
-- [ ] Correlation Rule Builder
-- [ ] Real-time Event Dashboard
-- [ ] Response Playbook Engine
-- [ ] MITRE ATT&CK Navigator Integration
-- [ ] Multi-tenancy Support
+- [ ] AI-Assisted Investigation — LLM-powered query suggestions and anomaly explanations
+- [ ] Evidence Chain of Custody — Cryptographic verification with blockchain anchoring
+- [ ] Federated Search — Cross-instance threat hunting with privacy controls
+- [ ] Mobile Forensics — iOS/Android artifact parsing and timeline integration
+- [ ] Compliance Reporting — Automated audit reports for SOC2, HIPAA, PCI-DSS
 
 ## Contributing
 
