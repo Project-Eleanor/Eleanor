@@ -412,9 +412,9 @@ class Hunt:
 
     hunt_id: str
     name: str
-    description: Optional[str] = None
     artifact_name: str
     state: str  # paused, running, stopped, completed
+    description: Optional[str] = None
     created_at: Optional[datetime] = None
     started_at: Optional[datetime] = None
     expires_at: Optional[datetime] = None
