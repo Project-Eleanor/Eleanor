@@ -18,7 +18,7 @@ import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { SearchService } from '../../core/api/search.service';
-import { EnrichmentService, EnrichmentResult } from '../../core/api/enrichment.service';
+import { EnrichmentService, EnrichmentResult, EnrichmentSource } from '../../core/api/enrichment.service';
 import { SavedQuery, SearchResult } from '../../shared/models';
 import { SaveQueryDialogComponent } from './save-query-dialog.component';
 import { MonacoEditorComponent } from '../../shared/components/monaco-editor/monaco-editor.component';
@@ -272,7 +272,7 @@ import { MonacoEditorComponent } from '../../shared/components/monaco-editor/mon
 
                   @if (result.sources.length > 0) {
                     <div class="enrichment-sources">
-                      <span class="sources-label">Sources: {{ result.sources.map(s => s.name).join(', ') }}</span>
+                      <span class="sources-label">Sources: {{ getSourceNames(result.sources) }}</span>
                     </div>
                   }
                 </div>
@@ -999,5 +999,9 @@ export class HuntingConsoleComponent implements OnInit {
     }
 
     this.snackBar.open('No suitable field found for pivot search', 'Dismiss', { duration: 3000 });
+  }
+
+  getSourceNames(sources: EnrichmentSource[]): string {
+    return sources.map(s => s.name).join(', ');
   }
 }

@@ -35,6 +35,11 @@ interface CustodyEvent {
   created_at: string;
 }
 
+interface CaseItem {
+  id: string;
+  name: string;
+}
+
 @Component({
   selector: 'app-evidence-browser',
   standalone: true,
@@ -904,11 +909,6 @@ interface CustodyEvent {
     }
   `]
 })
-interface CaseItem {
-  id: string;
-  name: string;
-}
-
 export class EvidenceBrowserComponent implements OnInit {
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 
