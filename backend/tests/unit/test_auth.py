@@ -119,26 +119,12 @@ class TestLoginEndpoint:
         assert response.status_code == 401
 
     @pytest.mark.asyncio
-    async def test_login_inactive_user(self, client, test_session):
+    async def test_login_inactive_user(self, client, inactive_user):
         """Test login with inactive user."""
-        from passlib.context import CryptContext
-
-        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-        inactive_user = User(
-            id=uuid4(),
-            username="inactive",
-            email="inactive@example.com",
-            auth_provider=AuthProvider.SAM,
-            password_hash=pwd_context.hash("password123"),
-            is_active=False,
-        )
-        test_session.add(inactive_user)
-        await test_session.commit()
-
+        # inactive_user is pre-populated in mock_session with password "testpassword123"
         response = await client.post(
             "/api/v1/auth/login",
-            data={"username": "inactive", "password": "password123"},
+            data={"username": "inactive", "password": "testpassword123"},
         )
 
         assert response.status_code == 400

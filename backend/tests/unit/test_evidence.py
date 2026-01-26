@@ -31,9 +31,9 @@ class TestListEvidence:
         assert data["total"] == 0
 
     @pytest.mark.asyncio
-    async def test_list_evidence_with_data(self, authenticated_client, test_evidence):
+    async def test_list_evidence_with_data(self, authenticated_client_with_evidence, test_evidence):
         """Test listing evidence with existing data."""
-        response = await authenticated_client.get("/api/v1/evidence")
+        response = await authenticated_client_with_evidence.get("/api/v1/evidence")
 
         assert response.status_code == 200
         data = response.json()
@@ -41,9 +41,9 @@ class TestListEvidence:
         assert len(data["items"]) >= 1
 
     @pytest.mark.asyncio
-    async def test_list_evidence_filter_by_case(self, authenticated_client, test_evidence, test_case):
+    async def test_list_evidence_filter_by_case(self, authenticated_client_with_evidence, test_evidence, test_case):
         """Test filtering evidence by case ID."""
-        response = await authenticated_client.get(
+        response = await authenticated_client_with_evidence.get(
             f"/api/v1/evidence?case_id={test_case.id}"
         )
 
@@ -53,9 +53,9 @@ class TestListEvidence:
             assert item["case_id"] == str(test_case.id)
 
     @pytest.mark.asyncio
-    async def test_list_evidence_filter_by_type(self, authenticated_client, test_evidence):
+    async def test_list_evidence_filter_by_type(self, authenticated_client_with_evidence, test_evidence):
         """Test filtering evidence by type."""
-        response = await authenticated_client.get(
+        response = await authenticated_client_with_evidence.get(
             f"/api/v1/evidence?evidence_type={test_evidence.evidence_type.value}"
         )
 
@@ -65,9 +65,9 @@ class TestListEvidence:
             assert item["evidence_type"] == test_evidence.evidence_type.value
 
     @pytest.mark.asyncio
-    async def test_list_evidence_search(self, authenticated_client, test_evidence):
+    async def test_list_evidence_search(self, authenticated_client_with_evidence, test_evidence):
         """Test searching evidence by filename."""
-        response = await authenticated_client.get(
+        response = await authenticated_client_with_evidence.get(
             f"/api/v1/evidence?search={test_evidence.filename}"
         )
 
@@ -87,9 +87,9 @@ class TestGetEvidence:
     """Tests for getting individual evidence."""
 
     @pytest.mark.asyncio
-    async def test_get_evidence_success(self, authenticated_client, test_evidence):
+    async def test_get_evidence_success(self, authenticated_client_with_evidence, test_evidence):
         """Test getting evidence by ID."""
-        response = await authenticated_client.get(f"/api/v1/evidence/{test_evidence.id}")
+        response = await authenticated_client_with_evidence.get(f"/api/v1/evidence/{test_evidence.id}")
 
         assert response.status_code == 200
         data = response.json()
@@ -106,10 +106,10 @@ class TestGetEvidence:
         assert response.status_code == 404
 
     @pytest.mark.asyncio
-    async def test_get_evidence_logs_access(self, authenticated_client, test_evidence, test_session):
+    async def test_get_evidence_logs_access(self, authenticated_client_with_evidence, test_evidence, test_session):
         """Test that accessing evidence logs a custody event."""
         # Access the evidence
-        response = await authenticated_client.get(f"/api/v1/evidence/{test_evidence.id}")
+        response = await authenticated_client_with_evidence.get(f"/api/v1/evidence/{test_evidence.id}")
         assert response.status_code == 200
 
         # Check for custody event
@@ -129,9 +129,9 @@ class TestUpdateEvidence:
     """Tests for evidence update endpoint."""
 
     @pytest.mark.asyncio
-    async def test_update_evidence_type(self, authenticated_client, test_evidence):
+    async def test_update_evidence_type(self, authenticated_client_with_evidence, test_evidence):
         """Test updating evidence type."""
-        response = await authenticated_client.patch(
+        response = await authenticated_client_with_evidence.patch(
             f"/api/v1/evidence/{test_evidence.id}",
             json={"evidence_type": "logs"},
         )
@@ -141,10 +141,10 @@ class TestUpdateEvidence:
         assert data["evidence_type"] == "logs"
 
     @pytest.mark.asyncio
-    async def test_update_evidence_description(self, authenticated_client, test_evidence):
+    async def test_update_evidence_description(self, authenticated_client_with_evidence, test_evidence):
         """Test updating evidence description."""
         new_description = "Updated description for testing"
-        response = await authenticated_client.patch(
+        response = await authenticated_client_with_evidence.patch(
             f"/api/v1/evidence/{test_evidence.id}",
             json={"description": new_description},
         )
@@ -154,9 +154,9 @@ class TestUpdateEvidence:
         assert data["description"] == new_description
 
     @pytest.mark.asyncio
-    async def test_update_evidence_status(self, authenticated_client, test_evidence):
+    async def test_update_evidence_status(self, authenticated_client_with_evidence, test_evidence):
         """Test updating evidence status."""
-        response = await authenticated_client.patch(
+        response = await authenticated_client_with_evidence.patch(
             f"/api/v1/evidence/{test_evidence.id}",
             json={"status": "quarantined"},
         )
@@ -181,14 +181,14 @@ class TestDeleteEvidence:
     """Tests for evidence deletion endpoint."""
 
     @pytest.mark.asyncio
-    async def test_delete_evidence_success(self, authenticated_client, test_evidence):
+    async def test_delete_evidence_success(self, authenticated_client_with_evidence, test_evidence):
         """Test successful evidence deletion."""
-        response = await authenticated_client.delete(f"/api/v1/evidence/{test_evidence.id}")
+        response = await authenticated_client_with_evidence.delete(f"/api/v1/evidence/{test_evidence.id}")
 
         assert response.status_code == 204
 
         # Verify evidence is deleted
-        get_response = await authenticated_client.get(f"/api/v1/evidence/{test_evidence.id}")
+        get_response = await authenticated_client_with_evidence.get(f"/api/v1/evidence/{test_evidence.id}")
         assert get_response.status_code == 404
 
     @pytest.mark.asyncio
@@ -204,9 +204,20 @@ class TestCustodyChain:
     """Tests for chain of custody tracking."""
 
     @pytest.mark.asyncio
-    async def test_get_custody_chain(self, authenticated_client, test_evidence, test_custody_event):
+    async def test_get_custody_chain(self, authenticated_client_with_evidence, test_evidence, test_session, test_user):
         """Test getting custody chain for evidence."""
-        response = await authenticated_client.get(
+        # Add a custody event to the session
+        event = CustodyEvent(
+            id=uuid4(),
+            evidence_id=test_evidence.id,
+            action=CustodyAction.ACCESSED,
+            actor_id=test_user.id,
+            actor_name=test_user.display_name,
+        )
+        test_session.add(event)
+        await test_session.commit()
+
+        response = await authenticated_client_with_evidence.get(
             f"/api/v1/evidence/{test_evidence.id}/custody"
         )
 
@@ -216,14 +227,14 @@ class TestCustodyChain:
         assert len(data) >= 1
 
         # Verify event data
-        event = data[0]
-        assert "action" in event
-        assert "actor_name" in event
-        assert "created_at" in event
+        ev = data[0]
+        assert "action" in ev
+        assert "actor_name" in ev
+        assert "created_at" in ev
 
     @pytest.mark.asyncio
     async def test_custody_chain_ordered_chronologically(
-        self, authenticated_client, test_evidence, test_session, test_user
+        self, authenticated_client_with_evidence, test_evidence, test_session, test_user
     ):
         """Test that custody chain is ordered chronologically."""
         # Add multiple custody events
@@ -238,16 +249,16 @@ class TestCustodyChain:
             test_session.add(event)
         await test_session.commit()
 
-        response = await authenticated_client.get(
+        response = await authenticated_client_with_evidence.get(
             f"/api/v1/evidence/{test_evidence.id}/custody"
         )
 
         assert response.status_code == 200
         data = response.json()
-        assert len(data) >= 3  # Upload + 2 new events
+        assert len(data) >= 2  # 2 events we added
 
         # Verify chronological order
-        timestamps = [event["created_at"] for event in data]
+        timestamps = [ev["created_at"] for ev in data]
         assert timestamps == sorted(timestamps)
 
 
@@ -255,9 +266,9 @@ class TestEvidenceHashes:
     """Tests for evidence hash verification."""
 
     @pytest.mark.asyncio
-    async def test_evidence_has_all_hashes(self, authenticated_client, test_evidence):
+    async def test_evidence_has_all_hashes(self, authenticated_client_with_evidence, test_evidence):
         """Test that evidence has SHA256, SHA1, and MD5 hashes."""
-        response = await authenticated_client.get(f"/api/v1/evidence/{test_evidence.id}")
+        response = await authenticated_client_with_evidence.get(f"/api/v1/evidence/{test_evidence.id}")
 
         assert response.status_code == 200
         data = response.json()
@@ -274,7 +285,7 @@ class TestEvidenceTypes:
     """Tests for different evidence types."""
 
     @pytest.mark.asyncio
-    async def test_evidence_types_valid(self, authenticated_client, test_evidence):
+    async def test_evidence_types_valid(self, authenticated_client_with_evidence, test_evidence):
         """Test that all evidence types are valid."""
         valid_types = [
             "disk_image", "memory", "logs", "triage", "pcap",
@@ -282,7 +293,7 @@ class TestEvidenceTypes:
         ]
 
         for etype in valid_types:
-            response = await authenticated_client.patch(
+            response = await authenticated_client_with_evidence.patch(
                 f"/api/v1/evidence/{test_evidence.id}",
                 json={"evidence_type": etype},
             )
@@ -294,7 +305,7 @@ class TestEvidenceMetadata:
     """Tests for evidence metadata handling."""
 
     @pytest.mark.asyncio
-    async def test_update_evidence_metadata(self, authenticated_client, test_evidence):
+    async def test_update_evidence_metadata(self, authenticated_client_with_evidence, test_evidence):
         """Test updating evidence metadata."""
         new_metadata = {
             "analysis_notes": "Suspicious binary",
@@ -302,7 +313,7 @@ class TestEvidenceMetadata:
             "sandbox_score": 85,
         }
 
-        response = await authenticated_client.patch(
+        response = await authenticated_client_with_evidence.patch(
             f"/api/v1/evidence/{test_evidence.id}",
             json={"metadata": new_metadata},
         )

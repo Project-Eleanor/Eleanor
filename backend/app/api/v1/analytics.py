@@ -174,8 +174,8 @@ class RuleResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     last_run_at: datetime | None
-    hit_count: int
-    false_positive_count: int
+    hit_count: int | None = 0
+    false_positive_count: int | None = 0
 
     class Config:
         from_attributes = True
@@ -196,14 +196,14 @@ class ExecutionResponse(BaseModel):
 
     id: UUID
     rule_id: UUID
-    started_at: datetime
-    completed_at: datetime | None
-    duration_ms: int | None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    duration_ms: int | None = None
     status: str
-    hits_count: int
-    events_scanned: int
-    error_message: str | None
-    incidents_created: int
+    hits_count: int | None = 0
+    events_scanned: int | None = 0
+    error_message: str | None = None
+    incidents_created: int | None = 0
 
     class Config:
         from_attributes = True

@@ -26,6 +26,7 @@ from httpx import ASGITransport, AsyncClient
 
 from app.config import Settings, get_settings
 from app.database import get_db, get_elasticsearch, get_redis
+from app.models.user import AuthProvider
 
 
 # =============================================================================
@@ -95,7 +96,7 @@ class MockUser:
         self.password_hash = password_hash or self._hash_password("testpassword123")
         self.created_at = datetime.now(timezone.utc)
         self.updated_at = datetime.now(timezone.utc)
-        self.auth_provider = "sam"
+        self.auth_provider = AuthProvider.SAM
         self.last_login = None
         self.external_id = None
 
@@ -182,6 +183,74 @@ class MockCase:
         self.created_by_user = None
 
 
+class MockDetectionRule:
+    """Mock detection rule object for testing."""
+
+    __tablename__ = "detection_rules"
+
+    def __init__(
+        self,
+        id=None,
+        name="Test Rule",
+        description="Test detection rule",
+        rule_type="query",
+        severity="medium",
+        status="enabled",
+        query="* | LIMIT 10",
+        query_language="kql",
+        indices=None,
+        schedule_interval=None,
+        lookback_period=None,
+        threshold_count=None,
+        threshold_field=None,
+        mitre_tactics=None,
+        mitre_techniques=None,
+        tags=None,
+        category=None,
+        data_sources=None,
+        auto_create_incident=False,
+        playbook_id=None,
+        correlation_config=None,
+        custom_fields=None,
+        references=None,
+        created_by=None,
+        tenant_id=None,
+    ):
+        self.id = id or uuid4()
+        self.name = name
+        self.description = description
+        self.rule_type = rule_type
+        self.severity = severity
+        self.status = status
+        self.query = query
+        self.query_language = query_language
+        self.indices = indices or []
+        self.schedule_interval = schedule_interval
+        self.lookback_period = lookback_period
+        self.threshold_count = threshold_count
+        self.threshold_field = threshold_field
+        self.mitre_tactics = mitre_tactics or []
+        self.mitre_techniques = mitre_techniques or []
+        self.tags = tags or []
+        self.category = category
+        self.data_sources = data_sources or []
+        self.auto_create_incident = auto_create_incident
+        self.playbook_id = playbook_id
+        self.correlation_config = correlation_config
+        self.custom_fields = custom_fields or {}
+        self.references = references or []
+        self.created_by = created_by
+        self.tenant_id = tenant_id
+        self.created_at = datetime.now(timezone.utc)
+        self.updated_at = datetime.now(timezone.utc)
+        self.last_run_at = None
+        self.hit_count = 0
+        self.false_positive_count = 0
+        self.executions = []
+        self.creator = None
+        self.tenant = None
+
+
 class MockEvidence:
     """Mock evidence object for testing."""
 
@@ -201,6 +270,8 @@ class MockEvidence:
         evidence_type="other",
         status="ready",
     ):
+        from app.models.evidence import EvidenceType, EvidenceStatus
+
         self.id = id or uuid4()
         self.case_id = case_id or uuid4()
         self.filename = filename
@@ -211,8 +282,15 @@ class MockEvidence:
         self.sha1 = sha1
         self.md5 = md5
         self.mime_type = "application/octet-stream"
-        self.evidence_type = evidence_type
-        self.status = status
+        # Convert string to enum if needed
+        if isinstance(evidence_type, str):
+            self.evidence_type = EvidenceType(evidence_type)
+        else:
+            self.evidence_type = evidence_type
+        if isinstance(status, str):
+            self.status = EvidenceStatus(status)
+        else:
+            self.status = status
         self.source_host = "test-host"
         self.collected_at = datetime.now(timezone.utc)
         self.collected_by = "Test Collector"
@@ -220,6 +298,10 @@ class MockEvidence:
         self.uploaded_at = datetime.now(timezone.utc)
         self.description = "Test evidence"
         self.evidence_metadata = {}
+        # Relationships
+        self.uploader = None
+        self.case = None
+        self.custody_events = []
 
 
 # =============================================================================
@@ -258,6 +340,10 @@ class MockResult:
     def scalar(self):
         return self._items[0] if self._items else 0
 
+    def all(self):
+        """Return all items as tuples (for GROUP BY queries)."""
+        return self._items
+
 
 class MockSessionFactory:
     """Factory for creating mock sessions with pre-configured data."""
@@ -268,6 +354,7 @@ class MockSessionFactory:
         self.evidence = {}
         self.detection_rules = {}
         self.saved_queries = {}
+        self.custody_events = {}
         self.added_items = []
         self.case_counter = 0
 
@@ -289,9 +376,55 @@ class MockSessionFactory:
     def add_saved_query(self, query):
         self.saved_queries[str(query.id)] = query
 
+    def add_custody_event(self, event):
+        self.custody_events[str(event.id)] = event
+
+    def _extract_pagination(self, stmt):
+        """Extract limit and offset from SQLAlchemy statement."""
+        limit = None
+        offset = None
+        try:
+            # Try to get limit and offset from the statement
+            if hasattr(stmt, '_limit_clause') and stmt._limit_clause is not None:
+                limit = stmt._limit_clause.value if hasattr(stmt._limit_clause, 'value') else int(stmt._limit_clause)
+            if hasattr(stmt, '_offset_clause') and stmt._offset_clause is not None:
+                offset = stmt._offset_clause.value if hasattr(stmt._offset_clause, 'value') else int(stmt._offset_clause)
+        except Exception:
+            pass
+        return limit, offset
+
+    def _apply_pagination(self, items, limit, offset):
+        """Apply pagination to a list of items."""
+        if offset:
+            items = items[offset:]
+        if limit:
+            items = items[:limit]
+        return items
+
     async def execute(self, stmt):
         """Mock execute that returns appropriate results based on query."""
         stmt_str = str(stmt).lower()
+        limit, offset = self._extract_pagination(stmt)
+
+        # GROUP BY queries - return tuples for aggregation
+        is_group_by = "group by" in stmt_str
+        if is_group_by and ("detection_rules" in stmt_str or "detectionrule" in stmt_str):
+            # For GROUP BY status/severity queries, return mock enum/count tuples
+            from collections import Counter
+            if "status" in stmt_str:
+                status_counts = Counter(r.status for r in self.detection_rules.values())
+                # Create enum-like mock objects for the grouping
+                class MockEnum:
+                    def __init__(self, value):
+                        self.value = value
+                return MockResult([(MockEnum(status), count) for status, count in status_counts.items()])
+            if "severity" in stmt_str:
+                severity_counts = Counter(r.severity for r in self.detection_rules.values())
+                class MockEnum:
+                    def __init__(self, value):
+                        self.value = value
+                return MockResult([(MockEnum(sev), count) for sev, count in severity_counts.items()])
+            return MockResult([])
 
         # Count queries - check for count(*) or count( patterns
         is_count_query = "count(*)" in stmt_str or "count(" in stmt_str
@@ -307,8 +440,31 @@ class MockSessionFactory:
                 return MockResult([len(self.saved_queries)])
             return MockResult([0])
 
+        # SUM queries for detection rules
+        if "sum(" in stmt_str and ("detection_rules" in stmt_str or "detectionrule" in stmt_str):
+            total = sum(getattr(r, 'hit_count', 0) or 0 for r in self.detection_rules.values())
+            return MockResult([total])
+
         # User queries
         if "users" in stmt_str:
+            # Try to extract bind parameters from the statement
+            try:
+                # SQLAlchemy statements may have compile() method
+                compiled = stmt.compile()
+                params = compiled.params
+                # Check for username or id in params
+                for key, value in params.items():
+                    if value and str(value).lower() in [u.username.lower() for u in set(self.users.values())]:
+                        for user in set(self.users.values()):
+                            if user.username.lower() == str(value).lower():
+                                return MockResult([user])
+                    if value and str(value).lower() in [str(u.id).lower() for u in set(self.users.values())]:
+                        for user in set(self.users.values()):
+                            if str(user.id).lower() == str(value).lower():
+                                return MockResult([user])
+            except Exception:
+                pass
+            # Fall back to checking query string
             for username, user in self.users.items():
                 if username.lower() in stmt_str or str(user.id).lower() in stmt_str:
                     return MockResult([user])
@@ -319,28 +475,54 @@ class MockSessionFactory:
             for key, case in self.cases.items():
                 if key.lower() in stmt_str:
                     return MockResult([case])
-            return MockResult(list(set(self.cases.values())))
+            items = list(set(self.cases.values()))
+            items = self._apply_pagination(items, limit, offset)
+            return MockResult(items)
+
+        # Custody events queries (must be before evidence check since contains "evidence")
+        if "custody_events" in stmt_str or "custodyevent" in stmt_str:
+            # Filter by evidence_id if present in parameters
+            try:
+                compiled = stmt.compile()
+                params = compiled.params
+                for key, value in params.items():
+                    if value:
+                        # Return custody events for this evidence_id
+                        matching_events = [
+                            e for e in self.custody_events.values()
+                            if str(getattr(e, 'evidence_id', '')) == str(value)
+                        ]
+                        return MockResult(matching_events)
+            except Exception:
+                pass
+            return MockResult(list(self.custody_events.values()))
 
         # Evidence queries
         if "evidence" in stmt_str:
             for key, ev in self.evidence.items():
                 if key.lower() in stmt_str:
                     return MockResult([ev])
-            return MockResult(list(self.evidence.values()))
+            items = list(self.evidence.values())
+            items = self._apply_pagination(items, limit, offset)
+            return MockResult(items)
 
         # Detection rules queries
         if "detection_rules" in stmt_str or "detectionrule" in stmt_str:
             for key, rule in self.detection_rules.items():
                 if key.lower() in stmt_str:
                     return MockResult([rule])
-            return MockResult(list(self.detection_rules.values()))
+            items = list(self.detection_rules.values())
+            items = self._apply_pagination(items, limit, offset)
+            return MockResult(items)
 
         # Saved queries
         if "saved_queries" in stmt_str or "savedquery" in stmt_str:
             for key, sq in self.saved_queries.items():
                 if key.lower() in stmt_str:
                     return MockResult([sq])
-            return MockResult(list(self.saved_queries.values()))
+            items = list(self.saved_queries.values())
+            items = self._apply_pagination(items, limit, offset)
+            return MockResult(items)
 
         # Default empty result
         return MockResult([])
@@ -360,6 +542,8 @@ class MockSessionFactory:
                 self.add_rule(obj)
             elif tablename == 'saved_queries':
                 self.add_saved_query(obj)
+            elif tablename == 'custody_events':
+                self.add_custody_event(obj)
         self.added_items = []
 
     async def refresh(self, obj):
@@ -396,13 +580,15 @@ class MockSessionFactory:
             obj.created_at = now
         if hasattr(obj, 'updated_at') and obj.updated_at is None:
             obj.updated_at = now
-        # Set default status for cases
-        if hasattr(obj, 'status') and obj.status is None:
+        # Set default status for cases (only for mock objects)
+        tablename = getattr(obj, '__tablename__', None) or getattr(type(obj), '__tablename__', None)
+        if tablename == 'cases' and hasattr(obj, 'status') and obj.status is None:
             from app.models.case import CaseStatus
             obj.status = CaseStatus.NEW
-        # Initialize evidence list
-        if hasattr(obj, 'evidence') and not isinstance(getattr(obj, 'evidence', None), list):
-            obj.evidence = []
+        # Initialize evidence list (only for mock Case objects, not SQLAlchemy models)
+        if tablename == 'cases' and isinstance(obj, MockCase):
+            if hasattr(obj, 'evidence') and not isinstance(getattr(obj, 'evidence', None), list):
+                obj.evidence = []
         self.added_items.append(obj)
 
     async def delete(self, obj):
@@ -427,6 +613,10 @@ class MockSessionFactory:
     async def close(self):
         pass
 
+    async def flush(self):
+        """Flush pending changes (same as commit for mock)."""
+        await self.commit()
+
     async def get(self, model, id):
         """Mock session.get() for direct ID lookups."""
         id_str = str(id)
@@ -449,10 +639,11 @@ def mock_session_factory():
 
 
 @pytest.fixture
-def mock_session(mock_session_factory, test_user, admin_user):
+def mock_session(mock_session_factory, test_user, admin_user, inactive_user):
     """Mock database session pre-populated with test data."""
     mock_session_factory.add_user(test_user)
     mock_session_factory.add_user(admin_user)
+    mock_session_factory.add_user(inactive_user)
     return mock_session_factory
 
 
@@ -482,6 +673,9 @@ def mock_session_with_evidence(mock_session_factory, test_user, admin_user, test
     mock_session_factory.add_user(admin_user)
     mock_session_factory.add_case(test_case)
     mock_session_factory.add_evidence(test_evidence)
+    # Add any custody events from the evidence
+    for event in test_evidence.custody_events:
+        mock_session_factory.add_custody_event(event)
     return mock_session_factory
 
 
@@ -666,15 +860,17 @@ async def authenticated_client(client, test_user) -> AsyncClient:
 
 
 @pytest_asyncio.fixture
-async def admin_client(client, admin_user) -> AsyncClient:
-    """Create authenticated admin test HTTP client."""
+async def admin_client(app, admin_user) -> AsyncGenerator[AsyncClient, None]:
+    """Create authenticated admin test HTTP client (separate from regular client)."""
     from app.api.v1.auth import create_access_token
 
     token = create_access_token(
         data={"sub": admin_user.username, "user_id": str(admin_user.id)}
     )
-    client.headers["Authorization"] = f"Bearer {token}"
-    return client
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as admin_cli:
+        admin_cli.headers["Authorization"] = f"Bearer {token}"
+        yield admin_cli
 
 
 # Clients with pre-populated data
@@ -768,6 +964,20 @@ def admin_user() -> MockUser:
     )
 
 
+@pytest.fixture
+def inactive_user() -> MockUser:
+    """Create inactive user for testing."""
+    return MockUser(
+        username="inactive",
+        email="inactive@example.com",
+        display_name="Inactive User",
+        is_active=False,
+        is_admin=False,
+        roles=["analyst"],
+        password_hash=None,  # Will use default "testpassword123"
+    )
+
+
 # =============================================================================
 # Case Fixtures
 # =============================================================================
@@ -831,6 +1041,26 @@ def test_evidence(test_case, test_user) -> MockEvidence:
     )
     evidence.uploaded_by = test_user.id
     return evidence
+
+
+@pytest.fixture
+def test_custody_event(test_evidence, test_user):
+    """Create test custody event."""
+    from app.models.evidence import CustodyAction, CustodyEvent
+
+    event = CustodyEvent(
+        id=uuid4(),
+        evidence_id=test_evidence.id,
+        action=CustodyAction.UPLOADED,
+        actor_id=test_user.id,
+        actor_name=test_user.display_name,
+        ip_address="127.0.0.1",
+        user_agent="test-agent",
+        details={"source": "test"},
+    )
+    # Add to mock evidence's custody_events list
+    test_evidence.custody_events.append(event)
+    return event
 
 
 # =============================================================================

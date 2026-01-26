@@ -62,8 +62,8 @@ class CustodyEventResponse(BaseModel):
     actor_name: str | None
     ip_address: str | None
     user_agent: str | None
-    details: dict
-    created_at: datetime
+    details: dict | None = {}
+    created_at: datetime | None = None
 
     class Config:
         from_attributes = True
@@ -194,7 +194,7 @@ async def list_evidence(
             uploader_name=e.uploader.display_name if e.uploader else None,
             uploaded_at=e.uploaded_at,
             description=e.description,
-            metadata=e.metadata,
+            metadata=e.evidence_metadata,
         )
         for e in evidence_list
     ]
@@ -233,13 +233,16 @@ async def update_evidence(
             detail="Evidence not found",
         )
 
-    # Apply updates
+    # Apply updates - map schema field names to model attribute names
+    field_mapping = {"metadata": "evidence_metadata"}
     update_data = updates.model_dump(exclude_unset=True)
     changes = {}
     for field, value in update_data.items():
         if value is not None:
-            old_value = getattr(evidence, field)
-            setattr(evidence, field, value)
+            # Map schema field name to model attribute name if different
+            model_field = field_mapping.get(field, field)
+            old_value = getattr(evidence, model_field)
+            setattr(evidence, model_field, value)
             changes[field] = {"old": str(old_value), "new": str(value)}
 
     if changes:
@@ -275,7 +278,7 @@ async def update_evidence(
         uploader_name=evidence.uploader.display_name if evidence.uploader else None,
         uploaded_at=evidence.uploaded_at,
         description=evidence.description,
-        metadata=evidence.metadata,
+        metadata=evidence.evidence_metadata,
     )
 
 
@@ -430,7 +433,7 @@ async def upload_evidence(
         uploader_name=current_user.display_name,
         uploaded_at=evidence.uploaded_at,
         description=evidence.description,
-        metadata=evidence.metadata,
+        metadata=evidence.evidence_metadata,
     )
 
 
@@ -485,7 +488,7 @@ async def get_evidence(
         uploader_name=evidence.uploader.display_name if evidence.uploader else None,
         uploaded_at=evidence.uploaded_at,
         description=evidence.description,
-        metadata=evidence.metadata,
+        metadata=evidence.evidence_metadata,
     )
 
 
