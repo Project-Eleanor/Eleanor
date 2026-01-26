@@ -1,245 +1,129 @@
-# Eleanor
+<p align="center">
+  <img src="docs/images/eleanor-logo.png" alt="Eleanor Logo" width="200"/>
+</p>
 
-**Hunt. Collect. Analyze. Respond.**
+<h1 align="center">Eleanor</h1>
 
-Eleanor is an open-source, self-hosted Digital Forensics and Incident Response platform that provides a unified Sentinel-style interface for the complete investigation lifecycle. Rather than building everything from scratch, Eleanor integrates best-of-breed open-source tools under a single dashboard, eliminating context-switching during investigations.
+<p align="center">
+  <strong>Hunt. Collect. Analyze. Respond.</strong>
+</p>
 
-**Named after the unicorn 1967 Shelby GT500 from Gone in 60 Seconds** - the all-in-one DFIR solution the community has long sought.
+<p align="center">
+  <a href="#features">Features</a> •
+  <a href="#quick-start">Quick Start</a> •
+  <a href="#documentation">Documentation</a> •
+  <a href="#contributing">Contributing</a> •
+  <a href="#license">License</a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/Project-Eleanor/Eleanor/releases">
+    <img src="https://img.shields.io/github/v/release/Project-Eleanor/Eleanor?include_prereleases&style=flat-square" alt="Release">
+  </a>
+  <a href="https://github.com/Project-Eleanor/Eleanor/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/Project-Eleanor/Eleanor?style=flat-square" alt="License">
+  </a>
+  <a href="https://github.com/Project-Eleanor/Eleanor/actions/workflows/ci.yml">
+    <img src="https://img.shields.io/github/actions/workflow/status/Project-Eleanor/Eleanor/ci.yml?branch=main&style=flat-square&label=CI" alt="CI Status">
+  </a>
+  <a href="https://github.com/Project-Eleanor/Eleanor/issues">
+    <img src="https://img.shields.io/github/issues/Project-Eleanor/Eleanor?style=flat-square" alt="Issues">
+  </a>
+  <a href="https://github.com/Project-Eleanor/Eleanor/pulls">
+    <img src="https://img.shields.io/github/issues-pr/Project-Eleanor/Eleanor?style=flat-square" alt="Pull Requests">
+  </a>
+</p>
+
+---
+
+Eleanor is an open-source, self-hosted **Digital Forensics and Incident Response (DFIR)** platform that provides a unified Sentinel-style interface for the complete investigation lifecycle. Rather than building everything from scratch, Eleanor integrates best-of-breed open-source tools under a single dashboard, eliminating context-switching during investigations.
+
+> **Named after the unicorn 1967 Shelby GT500 from *Gone in 60 Seconds*** — the all-in-one DFIR solution the community has long sought.
 
 **Philosophy:** Investigation-first, not alert-first. Deep forensic investigation from hunt through response.
 
----
-
-## Version & Status
-
-| | |
-|--|--|
-| **Version** | 0.1.0-prealpha |
-| **Status** | Phase 3 Complete - Frontend & Parsing Pipeline Ready |
-| **Server** | vm-eleanor (10.150.150.50) |
-
----
-
 ## Features
 
-- **Case Management**: Full lifecycle case tracking via IRIS integration
-- **Threat Hunting**: ES|QL query interface with saved queries and workbooks
-- **Evidence Browser**: Chain of custody tracking with file hashing
-- **Entity Profiles**: Aggregated views of hosts, users, and IPs with OpenCTI enrichment
-- **Timeline Visualization**: Interactive timeline reconstruction via Timesketch
-- **Endpoint Collection**: Live response and artifact collection via Velociraptor
-- **SOAR Integration**: Automated response workflows via Shuffle
-- **Flexible Authentication**: OIDC, LDAP/AD, and local accounts
+### Core Capabilities
 
----
+| Feature | Description |
+|---------|-------------|
+| **Threat Hunting** | ES|QL/KQL query interface with Monaco editor, saved queries, and workbooks |
+| **Case Management** | Full lifecycle tracking with IRIS integration, assets, IOCs, and notes |
+| **Evidence Processing** | 34+ parsers for EVTX, Registry, MFT, Browser artifacts, Memory, and more |
+| **Entity Profiling** | Aggregated views of hosts, users, IPs with threat intelligence enrichment |
+| **Timeline Analysis** | Interactive D3 timeline reconstruction with correlation markers |
+| **Investigation Graphs** | Cytoscape-powered relationship visualization with path analysis |
+| **Endpoint Collection** | Live response and artifact collection via Velociraptor |
+| **Automated Response** | SOAR workflows via Shuffle with approval gates |
+| **Forensic Reports** | Professional report generation with templates (PDF, DOCX, HTML) |
 
-## Current Deployment
+### v0.3.0 Highlights
 
-### Running Services
-
-| Service | Port | URL | Credentials |
-|---------|------|-----|-------------|
-| **Eleanor API** | 8000 | http://vm-eleanor:8000 | admin / admin123 |
-| **IRIS** | 8443 | https://vm-eleanor:8443 | administrator / iris_admin_password |
-| **Velociraptor** | 8889 | https://vm-eleanor:8889 | eleanor / eleanor |
-| **OpenCTI** | 8080 | http://vm-eleanor:8080 | admin@eleanor.local / opencti_admin_password |
-| **Shuffle** | 3001 | http://vm-eleanor:3001 | admin / shuffle_admin_password |
-| **Timesketch** | 5000 | http://vm-eleanor:5000 | eleanor / eleanor |
-| **Elasticsearch** | 9200 | http://vm-eleanor:9200 | - |
-| **PostgreSQL** | 5432 | Internal | - |
-| **Redis** | 6379 | Internal | - |
-
-### Container Summary (23 containers)
-
-| Stack | Containers | Status |
-|-------|------------|--------|
-| Eleanor Core | 5 (postgres, elasticsearch, redis, celery-worker, celery-beat) | All healthy |
-| IRIS | 5 (app, worker, nginx, db, rabbitmq) | Running |
-| Velociraptor | 1 | Running |
-| OpenCTI | 4 (platform, worker, rabbitmq, minio) | Running |
-| Shuffle | 3 (backend, frontend, orborus) | Running |
-| Timesketch | 5 (web, worker, nginx, postgres, redis) | Running |
-
----
+- **Data Connector Management** — Configure and monitor data sources with health indicators
+- **Workbook Editor** — Drag-drop tile authoring for investigation dashboards
+- **Artifact Timeline** — Cross-source correlation with category filtering
+- **Graph Analytics** — Path finding, attack chain visualization, subgraph export
+- **Kubernetes Support** — Production-ready manifests with auto-scaling (HPA)
 
 ## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                         ELEANOR UNIFIED DASHBOARD                           │
-│                        (Angular + React Components)                         │
-│                                                                             │
+│                            (Angular 17+ SPA)                                │
 │  ┌──────────┬──────────┬──────────┬──────────┬──────────┬──────────────┐   │
-│  │ Incidents│ Hunting  │ Entities │ Timeline │ Evidence │  Response    │   │
-│  │  Queue   │ Console  │  Pages   │   View   │ Browser  │  Actions     │   │
+│  │ Incidents│ Hunting  │ Entities │ Timeline │ Evidence │  Workbooks   │   │
+│  │  Queue   │ Console  │ Profiles │   View   │ Browser  │  & Reports   │   │
 │  └──────────┴──────────┴──────────┴──────────┴──────────┴──────────────┘   │
 └─────────────────────────────────────────────────────────────────────────────┘
                                       │
                                       ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                         ELEANOR ORCHESTRATION API                           │
-│                              (FastAPI) ✅ DONE                              │
-│                                                                             │
+│                              (FastAPI + Celery)                             │
 │  ┌─────────────┬─────────────┬─────────────┬─────────────┬──────────────┐  │
-│  │   Search    │   Entity    │  Workflow   │  Dashboard  │    Auth      │  │
-│  │   Engine    │  Enrichment │   Trigger   │   State     │   Layer      │  │
-│  │  (ES|QL)    │  (OpenCTI)  │  (Shuffle)  │ (Workbooks) │(OIDC/LDAP)   │  │
+│  │   Search    │   Entity    │  Evidence   │  Workflow   │    Auth      │  │
+│  │   Engine    │  Enrichment │  Parsing    │   Engine    │  (JWT/OIDC)  │  │
 │  └─────────────┴─────────────┴─────────────┴─────────────┴──────────────┘  │
 └─────────────────────────────────────────────────────────────────────────────┘
                                       │
           ┌───────────────────────────┼───────────────────────────┐
           ▼                           ▼                           ▼
 ┌─────────────────────┐   ┌─────────────────────┐   ┌─────────────────────┐
-│    IRIS Adapter     │   │ Velociraptor Adapter│   │  Timesketch Adapter │
-│  (Case Management)  │   │    (Collection)     │   │  (Timeline Engine)  │
-│  - Cases            │   │  - Endpoints        │   │  - Sketches         │
-│  - Assets           │   │  - Hunts            │   │  - Events           │
-│  - IOCs             │   │  - Artifacts        │   │  - Annotations      │
-│  - Notes            │   │  - Live Response    │   │  - Saved Views      │
+│    IRIS Adapter     │   │ Velociraptor Adapter│   │   OpenCTI Adapter   │
+│  (Case Management)  │   │    (Collection)     │   │  (Threat Intel)     │
 └─────────────────────┘   └─────────────────────┘   └─────────────────────┘
           │                           │                           │
-          ▼                           ▼                           ▼
-┌─────────────────────┐   ┌─────────────────────┐   ┌─────────────────────┐
-│  Shuffle Adapter    │   │  OpenCTI Adapter    │   │   Dissect Workers   │
-│  (SOAR Engine)      │   │  (Threat Intel)     │   │  (Artifact Parsing) │
-│  - Workflows        │   │  - Enrichment       │   │  - Registry         │
-│  - Approvals        │   │  - Risk Scores      │   │  - Event Logs       │
-│  - Integrations     │   │  - Threat Actors    │   │  - Browser Data     │
-│  - Notifications    │   │  - Campaigns        │   │  - Custom Parsers   │
-└─────────────────────┘   └─────────────────────┘   └─────────────────────┘
-                                      │
+          └───────────────────────────┼───────────────────────────┘
                                       ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                        SHARED DATA LAYER                                    │
-│  ┌─────────────────────┐              ┌─────────────────────┐              │
-│  │   Elasticsearch     │              │      Redis          │              │
-│  │  - All event data   │              │  - Job queues       │              │
-│  │  - Parsed artifacts │              │  - Session cache    │              │
-│  │  - Timesketch data  │              │  - Enrichment cache │              │
-│  └─────────────────────┘              └─────────────────────┘              │
-│  ┌─────────────────────┐              ┌─────────────────────┐              │
-│  │   PostgreSQL        │              │   File Storage      │              │
-│  │  - Eleanor config   │              │  - Evidence files   │              │
-│  │  - User preferences │              │  - Parsed output    │              │
-│  │  - Workbooks/Saved  │              │  - Artifact cache   │              │
-│  └─────────────────────┘              └─────────────────────┘              │
+│                           SHARED DATA LAYER                                 │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐             │
+│  │  Elasticsearch  │  │   PostgreSQL    │  │     Redis       │             │
+│  │  (Events/Search)│  │ (Config/Users)  │  │  (Cache/Queue)  │             │
+│  └─────────────────┘  └─────────────────┘  └─────────────────┘             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
-
----
-
-## Integrated Components
-
-| Component | Role | Integration Method |
-|-----------|------|-------------------|
-| **Elasticsearch** | Central data store for all events | Direct |
-| **Velociraptor** | Endpoint visibility, collection, response | REST API adapter |
-| **IRIS** | Case management backend | REST API adapter |
-| **Timesketch** | Timeline analysis engine | REST API + shared ES |
-| **Shuffle** | SOAR / workflow automation | REST API adapter |
-| **OpenCTI** | Threat intelligence enrichment | GraphQL API adapter |
-
----
-
-## Implementation Plan
-
-### Phase 1: Backend Foundation ✅ COMPLETE
-- FastAPI application with 30+ API endpoints
-- PostgreSQL for config/users/workbooks
-- Elasticsearch for events/search
-- JWT authentication (SAM working, OIDC/LDAP configured)
-- Case/Evidence/Entity/Search APIs
-
-### Phase 2: Tool Integrations ✅ COMPLETE
-- Docker Compose deployment for all tools
-- Adapter base classes implemented
-- All 5 tool adapters created:
-  - Velociraptor (Collection)
-  - IRIS (Case Management)
-  - OpenCTI (Threat Intelligence)
-  - Shuffle (SOAR)
-  - Timesketch (Timeline Analysis)
-- API endpoints for integrations, enrichment, collection, workflows
-
-### Phase 3: Frontend & Parsing Pipeline ✅ COMPLETE
-- Angular 17 project with 14 feature modules
-- Core layout with Sentinel-style dark theme
-- Hunting Console with Monaco ES|QL/KQL editor
-- Cytoscape investigation graphs
-- D3 timeline visualization
-- Workbooks system with 6 tile types
-- Async parsing pipeline:
-  - Celery workers for distributed processing
-  - 34 evidence parsers (EVTX, Registry, Browser, MFT, Memory, etc.)
-  - Dissect & Volatility3 integration
-- Detection engine with correlation rules
-
-### Phase 4: OVA Distribution ✅ COMPLETE
-- Pre-configured Ubuntu 22.04 OVA
-- All components as Docker containers
-- Web-based setup wizard
-- Auto-provisioning of integrations
-- Backup/restore scripts
-
-### Phase 5: Testing & Polish (IN PROGRESS)
-- Basic API smoke tests
-- Parser unit tests
-- End-to-end workflow validation
-
----
-
-## Project Structure
-
-```
-eleanor/
-├── backend/
-│   └── app/
-│       ├── adapters/           # Tool integration adapters
-│       │   ├── base.py         # Abstract adapter interfaces
-│       │   ├── registry.py     # Adapter discovery & management
-│       │   ├── velociraptor/   # Velociraptor adapter
-│       │   ├── iris/           # IRIS adapter
-│       │   ├── opencti/        # OpenCTI adapter
-│       │   ├── shuffle/        # Shuffle adapter
-│       │   └── timesketch/     # Timesketch adapter
-│       ├── api/v1/             # API endpoints
-│       │   ├── integrations.py # Integration status
-│       │   ├── enrichment.py   # Entity enrichment
-│       │   ├── collection.py   # Velociraptor collection
-│       │   └── workflows.py    # Shuffle workflows
-│       ├── config.py           # Application settings
-│       └── main.py             # FastAPI application
-├── docker/
-│   ├── iris/                   # IRIS deployment
-│   ├── velociraptor/           # Velociraptor deployment
-│   └── timesketch/             # Timesketch deployment
-├── config/
-│   ├── timesketch/             # Timesketch config
-│   └── velociraptor/           # Velociraptor config
-├── docker-compose.yml          # Core services
-├── docker-compose.tools.yml    # Integrated tools
-└── .env.example                # Environment template
-```
-
----
 
 ## Quick Start
 
 ### Prerequisites
-- Docker & Docker Compose
-- 32GB+ RAM recommended
-- 500GB+ storage
 
-### Deployment
+- Docker Engine 24.0+ & Docker Compose v2
+- 32GB+ RAM (64GB recommended for production)
+- 500GB+ SSD storage
+
+### Deploy with Docker Compose
 
 ```bash
 # Clone the repository
-git clone https://github.com/YOUR_ORG/eleanor.git
-cd eleanor
+git clone https://github.com/Project-Eleanor/Eleanor.git
+cd Eleanor
 
-# Copy and configure environment
+# Copy environment template
 cp .env.example .env
-# Edit .env with your settings
+# Edit .env with your settings (change default passwords!)
 
 # Start core services
 docker compose up -d
@@ -247,73 +131,151 @@ docker compose up -d
 # Start integrated tools
 docker compose -f docker-compose.tools.yml up -d
 
-# Start individual tool stacks
-docker compose -f docker/iris/docker-compose.iris.yml up -d
-docker compose -f docker/velociraptor/docker-compose.velociraptor.yml up -d
-docker compose -f docker/timesketch/docker-compose.timesketch.yml up -d
+# Check status
+docker compose ps
 ```
 
-### Create Users
+### Deploy with Kubernetes
 
 ```bash
-# Timesketch
-docker exec eleanor-timesketch-web tsctl create-user admin --password admin
+cd deploy/kubernetes
 
-# Velociraptor
-docker exec eleanor-velociraptor velociraptor \
-  --config /velociraptor/config/server.config.yaml \
-  user add admin admin --role administrator
+# Development environment
+./deploy.sh development deploy
+
+# Production environment (update secrets first!)
+vim overlays/production/secrets.yaml
+./deploy.sh production deploy
 ```
 
----
+### Access the Platform
 
-## Resource Requirements
+| Service | URL | Default Credentials |
+|---------|-----|---------------------|
+| Eleanor UI | http://localhost:4200 | admin / admin123 |
+| Eleanor API | http://localhost:8000/docs | — |
+| IRIS | https://localhost:8443 | administrator / iris_admin |
+| Velociraptor | https://localhost:8889 | admin / admin |
 
-| Deployment | RAM | CPU | Storage | Endpoints |
-|------------|-----|-----|---------|-----------|
-| Minimum | 32GB | 8 cores | 500GB SSD | Small lab |
-| Recommended | 64GB | 16 cores | 1TB SSD | 100s of endpoints |
-| Enterprise | 128GB+ | 32+ cores | Multi-TB | 1000s of endpoints |
+## Documentation
 
----
+| Document | Description |
+|----------|-------------|
+| [Quick Start Guide](docs/QUICKSTART.md) | Get up and running in minutes |
+| [Architecture Overview](docs/ARCHITECTURE.md) | System design and components |
+| [API Reference](docs/API_REFERENCE.md) | Complete API documentation |
+| [Parser Development](docs/PARSER_DEVELOPMENT.md) | Creating custom evidence parsers |
+| [Kubernetes Deployment](deploy/kubernetes/README.md) | Production K8s deployment |
+| [Contributing Guide](CONTRIBUTING.md) | How to contribute to Eleanor |
 
-## API Documentation
+## Integrated Components
 
-Once running, access the API documentation at:
-- Swagger UI: http://vm-eleanor:8000/docs
-- ReDoc: http://vm-eleanor:8000/redoc
+Eleanor integrates these battle-tested open-source tools:
 
----
+| Component | Role | Integration |
+|-----------|------|-------------|
+| [DFIR-IRIS](https://github.com/dfir-iris/iris-web) | Case Management | REST API |
+| [Velociraptor](https://github.com/Velocidex/velociraptor) | Endpoint Collection | REST API |
+| [OpenCTI](https://github.com/OpenCTI-Platform/opencti) | Threat Intelligence | GraphQL |
+| [Shuffle](https://github.com/Shuffle/Shuffle) | SOAR Automation | REST API |
+| [Timesketch](https://github.com/google/timesketch) | Timeline Analysis | REST API |
+| [Dissect](https://github.com/fox-it/dissect) | Artifact Parsing | Native |
 
 ## Technology Stack
 
-| Component | Technology |
-|-----------|------------|
-| Frontend | Angular 17+ with React visualization components |
-| Backend | Python FastAPI |
-| Database | PostgreSQL (structured data) + Elasticsearch (events) |
-| Auth | OIDC, LDAP/AD, Local (SAM) |
-| Container | Docker & Docker Compose |
+| Layer | Technologies |
+|-------|-------------|
+| **Frontend** | Angular 17, Material Design, Cytoscape.js, D3.js, Monaco Editor |
+| **Backend** | Python 3.11, FastAPI, Celery, SQLAlchemy |
+| **Database** | PostgreSQL 15, Elasticsearch 8.x, Redis 7 |
+| **Infrastructure** | Docker, Kubernetes, Nginx |
+| **Parsing** | Dissect, Volatility3, python-evtx |
 
----
+## System Requirements
+
+| Deployment | RAM | CPU | Storage | Use Case |
+|------------|-----|-----|---------|----------|
+| Development | 16GB | 4 cores | 100GB | Local testing |
+| Small Lab | 32GB | 8 cores | 500GB | Small team |
+| Production | 64GB | 16 cores | 1TB+ | Enterprise |
+| Enterprise | 128GB+ | 32+ cores | Multi-TB | Large scale |
+
+## Roadmap
+
+See our [Project Roadmap](https://github.com/Project-Eleanor/Eleanor/projects/1) for planned features.
+
+### Upcoming in v0.4.0
+
+- [ ] Correlation Rule Builder
+- [ ] Real-time Event Dashboard
+- [ ] Response Playbook Engine
+- [ ] MITRE ATT&CK Navigator Integration
+- [ ] Multi-tenancy Support
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
----
+### Ways to Contribute
+
+- Report bugs and request features via [Issues](https://github.com/Project-Eleanor/Eleanor/issues)
+- Submit pull requests for bug fixes and features
+- Improve documentation
+- Write evidence parsers
+- Share detection rules and workbooks
+
+### Development Setup
+
+```bash
+# Backend
+cd backend
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+
+# Frontend
+cd frontend
+npm install
+ng serve
+```
+
+## Security
+
+If you discover a security vulnerability, please see our [Security Policy](SECURITY.md) for responsible disclosure guidelines.
 
 ## License
 
-Apache License 2.0 - see [LICENSE](LICENSE) for details.
+Eleanor is licensed under the [Apache License 2.0](LICENSE).
 
----
+```
+Copyright 2024-2026 Project Eleanor Contributors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+```
 
 ## Acknowledgments
 
-Eleanor integrates the following open-source projects:
-- [DFIR-IRIS](https://github.com/dfir-iris/iris-web) - Case Management
-- [Velociraptor](https://github.com/Velocidex/velociraptor) - Endpoint Collection
-- [OpenCTI](https://github.com/OpenCTI-Platform/opencti) - Threat Intelligence
-- [Shuffle](https://github.com/Shuffle/Shuffle) - SOAR Automation
-- [Timesketch](https://github.com/google/timesketch) - Timeline Analysis
+Eleanor stands on the shoulders of giants. Special thanks to:
+
+- The [DFIR-IRIS](https://github.com/dfir-iris/iris-web) team
+- The [Velociraptor](https://github.com/Velocidex/velociraptor) community
+- The [OpenCTI](https://github.com/OpenCTI-Platform/opencti) project
+- The [Dissect](https://github.com/fox-it/dissect) developers at Fox-IT
+- All open-source DFIR tool maintainers
+
+---
+
+<p align="center">
+  <sub>Built with dedication for the DFIR community</sub>
+</p>

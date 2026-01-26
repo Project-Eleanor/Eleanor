@@ -1,153 +1,297 @@
 # Contributing to Eleanor
 
-Thank you for your interest in contributing to Eleanor! This document provides guidelines and information for contributors.
+First off, thank you for considering contributing to Eleanor! It's people like you that make Eleanor such a great tool for the DFIR community.
+
+## Table of Contents
+
+- [Code of Conduct](#code-of-conduct)
+- [Getting Started](#getting-started)
+- [How Can I Contribute?](#how-can-i-contribute)
+- [Development Setup](#development-setup)
+- [Style Guidelines](#style-guidelines)
+- [Commit Messages](#commit-messages)
+- [Pull Request Process](#pull-request-process)
+- [Community](#community)
 
 ## Code of Conduct
 
-Be respectful, inclusive, and considerate. We're building a tool to help defenders protect organizations - let's maintain that positive spirit in our community.
+This project and everyone participating in it is governed by our [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to security@project-eleanor.dev.
 
 ## Getting Started
 
-### Development Environment
+### Finding Something to Work On
 
-1. **Fork and clone** the repository
-2. **Install prerequisites**:
-   - Docker and Docker Compose
-   - Python 3.12+
-   - Node.js 20+
-   - Angular CLI (`npm install -g @angular/cli`)
+- Check out our [Good First Issues](https://github.com/Project-Eleanor/Eleanor/labels/good%20first%20issue) for beginner-friendly tasks
+- Look at [Help Wanted](https://github.com/Project-Eleanor/Eleanor/labels/help%20wanted) issues for more challenging contributions
+- Browse the [Roadmap](https://github.com/Project-Eleanor/Eleanor/projects/1) to see planned features
 
-3. **Start infrastructure**:
-   ```bash
-   docker compose up -d postgres elasticsearch redis
-   ```
+### Before You Start
 
-4. **Backend setup**:
-   ```bash
-   cd backend
-   python3 -m venv venv
-   source venv/bin/activate
-   pip install -e ".[dev]"
-   alembic upgrade head
-   uvicorn app.main:app --reload
-   ```
+1. **Search existing issues** to avoid duplicating work
+2. **Open an issue first** for significant changes to discuss the approach
+3. **Fork the repository** and create your branch from `main`
 
-5. **Frontend setup**:
-   ```bash
-   cd frontend
-   npm install
-   ng serve
-   ```
+## How Can I Contribute?
 
-### Project Structure
+### Reporting Bugs
 
+Before creating bug reports, please check existing issues. When you create a bug report, include as many details as possible:
+
+- **Use a clear and descriptive title**
+- **Describe the exact steps to reproduce the problem**
+- **Provide specific examples** (config snippets, log outputs)
+- **Describe the behavior you observed and what you expected**
+- **Include screenshots or recordings** if applicable
+- **Include your environment details** (OS, Docker version, browser)
+
+### Suggesting Enhancements
+
+Enhancement suggestions are tracked as GitHub issues. When creating an enhancement suggestion:
+
+- **Use a clear and descriptive title**
+- **Provide a detailed description** of the proposed functionality
+- **Explain why this enhancement would be useful** to Eleanor users
+- **List any similar features** in other DFIR tools for reference
+
+### Code Contributions
+
+#### Types of Contributions We Welcome
+
+- **Bug fixes** — Fix issues and improve stability
+- **Features** — Implement new functionality from the roadmap
+- **Evidence parsers** — Add support for new artifact types
+- **Detection rules** — Contribute correlation rules and signatures
+- **Documentation** — Improve docs, add examples, fix typos
+- **Tests** — Increase test coverage
+- **Workbooks & Dashboards** — Share useful investigation templates
+
+#### What We're NOT Looking For
+
+- Major architectural changes without prior discussion
+- Features that significantly increase complexity without clear benefit
+- Changes that break backward compatibility without strong justification
+
+## Development Setup
+
+### Prerequisites
+
+- Python 3.11+
+- Node.js 20+
+- Docker & Docker Compose
+- Git
+
+### Backend Setup
+
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
+
+# Run tests
+pytest
+
+# Start development server
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
-eleanor/
-├── backend/          # FastAPI backend
-│   ├── app/
-│   │   ├── api/      # API endpoints
-│   │   ├── core/     # Business logic
-│   │   ├── auth/     # Authentication providers
-│   │   ├── adapters/ # External integrations
-│   │   └── models/   # Database models
-│   └── tests/
-├── frontend/         # Angular frontend
-│   └── src/app/
-│       ├── core/     # Services, guards, interceptors
-│       ├── shared/   # Shared components
-│       ├── layout/   # App shell, navigation
-│       └── features/ # Feature modules
-└── docs/             # Documentation
+
+### Frontend Setup
+
+```bash
+cd frontend
+npm install
+
+# Run tests
+npm test
+
+# Start development server
+ng serve --host 0.0.0.0
 ```
 
-## Development Guidelines
+### Running with Docker
 
-### Backend (Python)
+```bash
+# Start all services
+docker compose up -d
 
-- **Style**: Follow PEP 8, use Black for formatting
-- **Type hints**: Use type annotations for all functions
-- **Tests**: Write tests for new features using pytest
-- **Docstrings**: Use Google-style docstrings
+# View logs
+docker compose logs -f
+
+# Run backend tests in container
+docker compose exec backend pytest
+```
+
+## Style Guidelines
+
+### Python (Backend)
+
+We follow [PEP 8](https://pep8.org/) with these additions:
+
+- **Line length**: 100 characters maximum
+- **Imports**: Use `isort` for sorting, grouped by standard/third-party/local
+- **Type hints**: Required for all public functions
+- **Docstrings**: Google style for modules, classes, and functions
 
 ```python
-def process_evidence(file_path: str, case_id: UUID) -> Evidence:
-    """Process and hash evidence file.
+def process_evidence(
+    evidence_id: str,
+    parser_type: str,
+    options: dict[str, Any] | None = None
+) -> ParseResult:
+    """Process evidence file with the specified parser.
 
     Args:
-        file_path: Path to the evidence file
-        case_id: UUID of the associated case
+        evidence_id: Unique identifier for the evidence file.
+        parser_type: Type of parser to use (e.g., 'evtx', 'registry').
+        options: Optional parser-specific configuration.
 
     Returns:
-        Evidence object with computed hashes
+        ParseResult containing parsed artifacts and metadata.
 
     Raises:
-        FileNotFoundError: If file doesn't exist
-        PermissionError: If file isn't readable
+        ParserNotFoundError: If the specified parser type doesn't exist.
+        EvidenceNotFoundError: If the evidence file cannot be located.
     """
 ```
 
-### Frontend (Angular/TypeScript)
+**Tools**: `black`, `isort`, `flake8`, `mypy`
 
-- **Style**: Follow Angular style guide
-- **Components**: Use standalone components where possible
-- **State**: Use signals for reactive state
-- **Tests**: Write unit tests with Jasmine/Karma
+### TypeScript (Frontend)
 
-### Commit Messages
+We follow the [Angular Style Guide](https://angular.io/guide/styleguide):
 
-Use conventional commits:
+- **Component selector prefix**: `app-`
+- **File naming**: `feature-name.component.ts`, `feature-name.service.ts`
+- **Standalone components**: Preferred for new components
+- **Signals**: Use for reactive state management
+
+```typescript
+@Component({
+  selector: 'app-evidence-viewer',
+  standalone: true,
+  imports: [CommonModule, MatButtonModule],
+  template: `...`
+})
+export class EvidenceViewerComponent {
+  // Signals for reactive state
+  evidence = signal<Evidence | null>(null);
+  loading = signal(false);
+
+  // Computed values
+  hasEvidence = computed(() => this.evidence() !== null);
+}
+```
+
+**Tools**: `eslint`, `prettier`
+
+### SQL & Database
+
+- Use lowercase for SQL keywords (consistency with SQLAlchemy)
+- Include meaningful index names
+- Add comments for complex queries
+
+### Git Workflow
+
+1. Create a feature branch: `git checkout -b feature/my-feature`
+2. Make your changes with clear, atomic commits
+3. Push to your fork: `git push origin feature/my-feature`
+4. Open a Pull Request
+
+## Commit Messages
+
+We follow [Conventional Commits](https://www.conventionalcommits.org/):
 
 ```
-feat: add timeline filtering by entity type
-fix: correct ES|QL query escaping
-docs: update API reference for evidence endpoints
-refactor: simplify case lifecycle state machine
-test: add integration tests for LDAP auth
+<type>(<scope>): <description>
+
+[optional body]
+
+[optional footer(s)]
 ```
 
-### Pull Requests
+### Types
 
-1. **Create a feature branch** from `main`
-2. **Make your changes** with appropriate tests
-3. **Run tests locally**: `pytest` (backend), `ng test` (frontend)
-4. **Submit PR** with clear description
-5. **Address review feedback**
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation only
+- `style`: Code style (formatting, semicolons, etc.)
+- `refactor`: Code change that neither fixes a bug nor adds a feature
+- `perf`: Performance improvement
+- `test`: Adding or correcting tests
+- `chore`: Maintenance tasks (deps, CI, etc.)
 
-### PR Checklist
+### Examples
 
-- [ ] Tests pass locally
-- [ ] New features have tests
+```
+feat(parsers): add Windows Prefetch parser
+
+Implements parser for Windows Prefetch files (.pf) to extract:
+- Executable name and path
+- Run count and timestamps
+- Referenced files and directories
+
+Closes #123
+```
+
+```
+fix(api): handle null timestamps in evidence upload
+
+Previously, evidence files without modification timestamps caused
+a 500 error. Now defaults to upload time if not available.
+
+Fixes #456
+```
+
+## Pull Request Process
+
+### Before Submitting
+
+- [ ] Code follows the style guidelines
+- [ ] Self-review of your code
+- [ ] Comments added for complex logic
 - [ ] Documentation updated if needed
-- [ ] No sensitive data in commits
-- [ ] Follows coding standards
+- [ ] Tests added/updated for changes
+- [ ] All tests pass locally
+- [ ] Commit messages follow conventions
 
-## Areas for Contribution
+### PR Description
 
-### Good First Issues
+Use the PR template and include:
 
-- Documentation improvements
-- UI/UX enhancements
-- Test coverage
-- Bug fixes
+- **Summary** of changes
+- **Related issue(s)** being addressed
+- **Type of change** (bug fix, feature, breaking change)
+- **Testing performed**
+- **Screenshots** for UI changes
 
-### Feature Development
+### Review Process
 
-- New adapters (EDR, SIEM integrations)
-- Visualization components
-- Automation/playbook features
-- Performance optimizations
+1. A maintainer will review your PR
+2. Address any requested changes
+3. Once approved, a maintainer will merge
+4. Your contribution will be included in the next release!
 
-### Security Research
+### After Merge
 
-- Security review and hardening
-- Penetration testing
-- Vulnerability disclosure (see SECURITY.md)
+- Delete your feature branch
+- Celebrate your contribution!
 
-## Questions?
+## Community
 
-- **GitHub Issues**: For bugs and feature requests
-- **Discussions**: For questions and ideas
+### Getting Help
 
-## License
+- **GitHub Discussions**: Ask questions, share ideas
+- **Discord**: Real-time chat with the community (coming soon)
+- **Documentation**: Check the [docs](docs/) folder
 
-By contributing, you agree that your contributions will be licensed under the Apache License 2.0.
+### Recognition
+
+Contributors are recognized in:
+- The [Contributors](https://github.com/Project-Eleanor/Eleanor/graphs/contributors) page
+- Release notes for significant contributions
+- The project README for major features
+
+---
+
+Thank you for contributing to Eleanor! Your efforts help make DFIR more accessible to everyone.
