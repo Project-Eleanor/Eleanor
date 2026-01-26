@@ -2,6 +2,10 @@
 
 Provides API endpoints for interacting with SOAR platforms like Shuffle
 for workflow automation, approvals, and response action orchestration.
+
+NOTE: Route ordering is important! Specific routes (/trigger, /executions,
+/approvals, /actions/*) must be defined BEFORE the dynamic /{workflow_id}
+route, otherwise FastAPI will match them as workflow_id values.
 """
 
 from typing import Any
@@ -89,7 +93,7 @@ class ResponseActionRequest(BaseModel):
 
 
 # =============================================================================
-# Endpoints - Workflow Management
+# Endpoints - Workflow Listing (root path)
 # =============================================================================
 
 
@@ -130,39 +134,9 @@ async def list_workflows(
     ]
 
 
-@router.get("/{workflow_id}", response_model=WorkflowInfo)
-async def get_workflow(
-    workflow_id: str,
-    current_user: User = Depends(get_current_user),
-) -> WorkflowInfo:
-    """Get details of a specific workflow."""
-    registry = get_registry()
-    soar_adapter = registry.get_soar()
-
-    if not soar_adapter:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="No SOAR adapter configured",
-        )
-
-    workflow = await soar_adapter.get_workflow(workflow_id)
-    if not workflow:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Workflow not found: {workflow_id}",
-        )
-
-    return WorkflowInfo(
-        workflow_id=workflow.workflow_id,
-        name=workflow.name,
-        description=workflow.description,
-        category=workflow.category,
-        triggers=workflow.triggers,
-        is_active=workflow.is_active,
-        parameters=workflow.parameters,
-        created_at=workflow.created_at.isoformat() if workflow.created_at else None,
-        updated_at=workflow.updated_at.isoformat() if workflow.updated_at else None,
-    )
+# =============================================================================
+# Endpoints - Trigger Workflow
+# =============================================================================
 
 
 @router.post("/trigger", response_model=WorkflowExecutionInfo)
@@ -504,4 +478,44 @@ async def trigger_user_disable(
         started_at=execution.started_at.isoformat() if execution.started_at else None,
         triggered_by=current_user.username if current_user else None,
         parameters=execution.parameters,
+    )
+
+
+# =============================================================================
+# Endpoints - Get Workflow by ID (MUST BE LAST - catches all unmatched paths)
+# =============================================================================
+
+
+@router.get("/{workflow_id}", response_model=WorkflowInfo)
+async def get_workflow(
+    workflow_id: str,
+    current_user: User = Depends(get_current_user),
+) -> WorkflowInfo:
+    """Get details of a specific workflow."""
+    registry = get_registry()
+    soar_adapter = registry.get_soar()
+
+    if not soar_adapter:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="No SOAR adapter configured",
+        )
+
+    workflow = await soar_adapter.get_workflow(workflow_id)
+    if not workflow:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Workflow not found: {workflow_id}",
+        )
+
+    return WorkflowInfo(
+        workflow_id=workflow.workflow_id,
+        name=workflow.name,
+        description=workflow.description,
+        category=workflow.category,
+        triggers=workflow.triggers,
+        is_active=workflow.is_active,
+        parameters=workflow.parameters,
+        created_at=workflow.created_at.isoformat() if workflow.created_at else None,
+        updated_at=workflow.updated_at.isoformat() if workflow.updated_at else None,
     )

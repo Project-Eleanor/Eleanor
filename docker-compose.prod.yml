@@ -1,0 +1,262 @@
+# =============================================================================
+# Eleanor Production Docker Compose Configuration
+# =============================================================================
+# This file overrides docker-compose.yml for production deployments
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# Or use profile: docker compose --profile prod up -d
+# =============================================================================
+
+version: '3.8'
+
+services:
+  # ===========================================================================
+  # PostgreSQL - Production Configuration
+  # ===========================================================================
+  postgres:
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: eleanor
+      POSTGRES_USER: eleanor
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      # Performance tuning
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    command:
+      - "postgres"
+      - "-c"
+      - "max_connections=200"
+      - "-c"
+      - "shared_buffers=256MB"
+      - "-c"
+      - "effective_cache_size=1GB"
+      - "-c"
+      - "maintenance_work_mem=128MB"
+      - "-c"
+      - "checkpoint_completion_target=0.9"
+      - "-c"
+      - "wal_buffers=16MB"
+      - "-c"
+      - "default_statistics_target=100"
+      - "-c"
+      - "random_page_cost=1.1"
+      - "-c"
+      - "effective_io_concurrency=200"
+      - "-c"
+      - "log_statement=ddl"
+      - "-c"
+      - "log_min_duration_statement=1000"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./deploy/docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    # Remove port exposure in production (internal only)
+    ports: []
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # ===========================================================================
+  # Elasticsearch - Production Configuration
+  # ===========================================================================
+  elasticsearch:
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=true
+      - xpack.security.enrollment.enabled=false
+      - "ES_JAVA_OPTS=${ES_JAVA_OPTS:--Xms2g -Xmx2g}"
+      - cluster.name=eleanor-cluster
+      - bootstrap.memory_lock=true
+      - ELASTIC_PASSWORD=${ELASTICSEARCH_PASSWORD:-changeme}
+      # Performance settings
+      - indices.query.bool.max_clause_count=4096
+      - search.max_buckets=100000
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    # Remove port exposure in production
+    ports: []
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "10"
+
+  # ===========================================================================
+  # Redis - Production Configuration
+  # ===========================================================================
+  redis:
+    restart: unless-stopped
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+    volumes:
+      - redis_data:/data
+    # Remove port exposure in production
+    ports: []
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  # ===========================================================================
+  # Backend API - Production Configuration
+  # ===========================================================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        - BUILD_ENV=production
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://eleanor:${POSTGRES_PASSWORD}@postgres:5432/eleanor
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - REDIS_URL=redis://redis:6379
+      - SECRET_KEY=${SECRET_KEY}
+      - DEBUG=false
+      - LOG_LEVEL=INFO
+      - WORKERS=4
+      - CORS_ORIGINS=${CORS_ORIGINS:-https://localhost}
+      # Integration settings
+      - VELOCIRAPTOR_ENABLED=${VELOCIRAPTOR_ENABLED:-false}
+      - VELOCIRAPTOR_URL=${VELOCIRAPTOR_URL:-}
+      - VELOCIRAPTOR_API_KEY=${VELOCIRAPTOR_API_KEY:-}
+      - IRIS_ENABLED=${IRIS_ENABLED:-false}
+      - IRIS_URL=${IRIS_URL:-}
+      - IRIS_API_KEY=${IRIS_API_KEY:-}
+      - OPENCTI_ENABLED=${OPENCTI_ENABLED:-false}
+      - OPENCTI_URL=${OPENCTI_URL:-}
+      - OPENCTI_API_KEY=${OPENCTI_API_KEY:-}
+      - SHUFFLE_ENABLED=${SHUFFLE_ENABLED:-false}
+      - SHUFFLE_URL=${SHUFFLE_URL:-}
+      - SHUFFLE_API_KEY=${SHUFFLE_API_KEY:-}
+      - TIMESKETCH_ENABLED=${TIMESKETCH_ENABLED:-false}
+      - TIMESKETCH_URL=${TIMESKETCH_URL:-}
+    volumes:
+      - evidence_storage:/app/evidence
+      - ./logs/backend:/app/logs
+    # Remove port exposure (behind nginx)
+    ports: []
+    depends_on:
+      postgres:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "10"
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
+
+  # ===========================================================================
+  # Frontend (Nginx) - Production Configuration
+  # ===========================================================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - BUILD_ENV=production
+        - API_URL=/api
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./certificates:/etc/nginx/ssl:ro
+      - ./deploy/nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./logs/nginx:/var/log/nginx
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "10"
+
+  # ===========================================================================
+  # Backup Service - Scheduled Backups
+  # ===========================================================================
+  backup:
+    image: alpine:3.19
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/backup/postgres:ro
+      - redis_data:/backup/redis:ro
+      - evidence_storage:/backup/evidence:ro
+      - ./backups:/backups
+      - ./scripts:/scripts:ro
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        apk add --no-cache postgresql-client tar gzip
+        while true; do
+          echo "Starting scheduled backup..."
+          /scripts/backup.sh --output /backups --compress
+          echo "Backup complete. Sleeping for 24h..."
+          sleep 86400
+        done
+    profiles:
+      - backup
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  postgres_data:
+    driver: local
+  elasticsearch_data:
+    driver: local
+  redis_data:
+    driver: local
+  evidence_storage:
+    driver: local
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  default:
+    name: eleanor-network
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

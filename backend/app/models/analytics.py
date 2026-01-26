@@ -6,10 +6,10 @@ from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String, Text, func
-from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+from app.models.compat import ArrayType, JSONBType, UUIDType
 
 if TYPE_CHECKING:
     from app.models.user import User
@@ -48,7 +48,7 @@ class DetectionRule(Base):
     __tablename__ = "detection_rules"
 
     id: Mapped[UUID] = mapped_column(
-        PG_UUID(as_uuid=True), primary_key=True, default=uuid4
+        UUIDType(), primary_key=True, default=uuid4
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -69,7 +69,7 @@ class DetectionRule(Base):
     query_language: Mapped[str] = mapped_column(
         String(20), nullable=False, default="kql"
     )  # kql, esql, lucene
-    indices: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
+    indices: Mapped[list[str]] = mapped_column(ArrayType(String), default=list)
 
     # Schedule (for scheduled rules)
     schedule_interval: Mapped[int | None] = mapped_column(
@@ -84,25 +84,25 @@ class DetectionRule(Base):
     threshold_field: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     # MITRE ATT&CK mapping
-    mitre_tactics: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
-    mitre_techniques: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
+    mitre_tactics: Mapped[list[str]] = mapped_column(ArrayType(String), default=list)
+    mitre_techniques: Mapped[list[str]] = mapped_column(ArrayType(String), default=list)
 
     # Tags and categorization
-    tags: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
+    tags: Mapped[list[str]] = mapped_column(ArrayType(String), default=list)
     category: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    data_sources: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
+    data_sources: Mapped[list[str]] = mapped_column(ArrayType(String), default=list)
 
     # Response actions
     auto_create_incident: Mapped[bool] = mapped_column(Boolean, default=False)
     playbook_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     # Metadata
-    custom_fields: Mapped[dict] = mapped_column(JSONB, default=dict)
-    references: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
+    custom_fields: Mapped[dict] = mapped_column(JSONBType(), default=dict)
+    references: Mapped[list[str]] = mapped_column(ArrayType(String), default=list)
 
     # Tracking
     created_by: Mapped[UUID | None] = mapped_column(
-        PG_UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+        UUIDType(), ForeignKey("users.id"), nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
@@ -134,10 +134,10 @@ class RuleExecution(Base):
     __tablename__ = "rule_executions"
 
     id: Mapped[UUID] = mapped_column(
-        PG_UUID(as_uuid=True), primary_key=True, default=uuid4
+        UUIDType(), primary_key=True, default=uuid4
     )
     rule_id: Mapped[UUID] = mapped_column(
-        PG_UUID(as_uuid=True),
+        UUIDType(),
         ForeignKey("detection_rules.id", ondelete="CASCADE"),
         nullable=False,
         index=True,

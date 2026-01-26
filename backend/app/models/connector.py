@@ -6,10 +6,10 @@ from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from sqlalchemy import BigInteger, Boolean, DateTime, Enum, ForeignKey, Integer, String, Text, func
-from sqlalchemy.dialects.postgresql import JSONB, UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+from app.models.compat import JSONBType, UUIDType
 
 if TYPE_CHECKING:
     from app.models.user import User
@@ -56,7 +56,7 @@ class DataConnector(Base):
     __tablename__ = "data_connectors"
 
     id: Mapped[UUID] = mapped_column(
-        PG_UUID(as_uuid=True), primary_key=True, default=uuid4
+        UUIDType(), primary_key=True, default=uuid4
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -73,7 +73,7 @@ class DataConnector(Base):
     )
 
     # Configuration (encrypted sensitive fields)
-    config: Mapped[dict] = mapped_column(JSONB, default=dict)
+    config: Mapped[dict] = mapped_column(JSONBType(), default=dict)
     # config contains type-specific settings:
     # - syslog: {host, port, protocol, format}
     # - windows_event: {hosts, channels, use_kerberos}
@@ -92,12 +92,12 @@ class DataConnector(Base):
     # Examples: windows_security, linux_syslog, cloud_audit, etc.
 
     # Parsing configuration
-    parser_config: Mapped[dict] = mapped_column(JSONB, default=dict)
+    parser_config: Mapped[dict] = mapped_column(JSONBType(), default=dict)
     # parser_config: {format, timestamp_field, custom_grok, field_mappings}
 
     # Filtering
-    include_filters: Mapped[dict] = mapped_column(JSONB, default=dict)
-    exclude_filters: Mapped[dict] = mapped_column(JSONB, default=dict)
+    include_filters: Mapped[dict] = mapped_column(JSONBType(), default=dict)
+    exclude_filters: Mapped[dict] = mapped_column(JSONBType(), default=dict)
 
     # Scheduling (for polling connectors)
     polling_interval: Mapped[int | None] = mapped_column(
@@ -123,11 +123,11 @@ class DataConnector(Base):
     )
 
     # Metadata
-    tags: Mapped[dict] = mapped_column(JSONB, default=dict)
+    tags: Mapped[dict] = mapped_column(JSONBType(), default=dict)
 
     # Tracking
     created_by: Mapped[UUID | None] = mapped_column(
-        PG_UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+        UUIDType(), ForeignKey("users.id"), nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
@@ -149,10 +149,10 @@ class ConnectorEvent(Base):
     __tablename__ = "connector_events"
 
     id: Mapped[UUID] = mapped_column(
-        PG_UUID(as_uuid=True), primary_key=True, default=uuid4
+        UUIDType(), primary_key=True, default=uuid4
     )
     connector_id: Mapped[UUID] = mapped_column(
-        PG_UUID(as_uuid=True),
+        UUIDType(),
         ForeignKey("data_connectors.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -163,7 +163,7 @@ class ConnectorEvent(Base):
     )  # started, stopped, error, config_changed, health_changed
 
     message: Mapped[str | None] = mapped_column(Text, nullable=True)
-    details: Mapped[dict] = mapped_column(JSONB, default=dict)
+    details: Mapped[dict] = mapped_column(JSONBType(), default=dict)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

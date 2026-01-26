@@ -192,7 +192,7 @@ async def list_cases(
             tags=case.tags,
             mitre_tactics=case.mitre_tactics,
             mitre_techniques=case.mitre_techniques,
-            metadata=case.metadata,
+            metadata=case.case_metadata,
             evidence_count=len(case.evidence) if hasattr(case, "evidence") else 0,
         )
         for case in cases
@@ -227,7 +227,7 @@ async def create_case(
         tags=case_data.tags,
         mitre_tactics=case_data.mitre_tactics,
         mitre_techniques=case_data.mitre_techniques,
-        metadata=case_data.metadata,
+        case_metadata=case_data.metadata,
     )
 
     db.add(case)
@@ -251,7 +251,7 @@ async def create_case(
         tags=case.tags,
         mitre_tactics=case.mitre_tactics,
         mitre_techniques=case.mitre_techniques,
-        metadata=case.metadata,
+        metadata=case.case_metadata,
     )
 
 
@@ -301,7 +301,7 @@ async def get_case(
         tags=case.tags,
         mitre_tactics=case.mitre_tactics,
         mitre_techniques=case.mitre_techniques,
-        metadata=case.metadata,
+        metadata=case.case_metadata,
         evidence_count=len(case.evidence),
     )
 
@@ -327,7 +327,11 @@ async def update_case(
     # Update fields
     update_data = case_data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
-        setattr(case, field, value)
+        # Map 'metadata' from the API to 'case_metadata' on the model
+        if field == "metadata":
+            setattr(case, "case_metadata", value)
+        else:
+            setattr(case, field, value)
 
     # Handle status transitions
     if case_data.status == CaseStatus.CLOSED and not case.closed_at:
@@ -354,7 +358,7 @@ async def update_case(
         tags=case.tags,
         mitre_tactics=case.mitre_tactics,
         mitre_techniques=case.mitre_techniques,
-        metadata=case.metadata,
+        metadata=case.case_metadata,
     )
 
 

@@ -5,10 +5,10 @@ from enum import Enum
 from uuid import UUID, uuid4
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text, func
-from sqlalchemy.dialects.postgresql import JSONB, UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+from app.models.compat import JSONBType, UUIDType
 
 
 class NotificationType(str, Enum):
@@ -61,9 +61,9 @@ class Notification(Base):
 
     __tablename__ = "notifications"
 
-    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
+    id: Mapped[UUID] = mapped_column(UUIDType(), primary_key=True, default=uuid4)
     user_id: Mapped[UUID] = mapped_column(
-        PGUUID(as_uuid=True),
+        UUIDType(),
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
         index=True
@@ -78,7 +78,7 @@ class Notification(Base):
     body: Mapped[str | None] = mapped_column(Text)
     link: Mapped[str | None] = mapped_column(String(500))  # URL to navigate to
     icon: Mapped[str | None] = mapped_column(String(50))  # Material icon name
-    data: Mapped[dict | None] = mapped_column(JSONB)  # Additional context data
+    data: Mapped[dict | None] = mapped_column(JSONBType())  # Additional context data
 
     # Status
     read: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
@@ -105,9 +105,9 @@ class NotificationPreference(Base):
 
     __tablename__ = "notification_preferences"
 
-    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
+    id: Mapped[UUID] = mapped_column(UUIDType(), primary_key=True, default=uuid4)
     user_id: Mapped[UUID] = mapped_column(
-        PGUUID(as_uuid=True),
+        UUIDType(),
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
         unique=True
@@ -119,7 +119,7 @@ class NotificationPreference(Base):
     in_app_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # Type preferences (JSON map of notification_type -> enabled)
-    type_preferences: Mapped[dict] = mapped_column(JSONB, default=dict)
+    type_preferences: Mapped[dict] = mapped_column(JSONBType(), default=dict)
 
     # Quiet hours
     quiet_hours_enabled: Mapped[bool] = mapped_column(Boolean, default=False)

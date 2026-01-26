@@ -6,10 +6,10 @@ from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from sqlalchemy import DateTime, Enum, ForeignKey, String, Text, func
-from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+from app.models.compat import ArrayType, JSONBType, UUIDType
 
 if TYPE_CHECKING:
     from app.models.evidence import Evidence
@@ -52,7 +52,7 @@ class Case(Base):
     __tablename__ = "cases"
 
     id: Mapped[UUID] = mapped_column(
-        PG_UUID(as_uuid=True), primary_key=True, default=uuid4
+        UUIDType(), primary_key=True, default=uuid4
     )
     case_number: Mapped[str] = mapped_column(
         String(50), unique=True, nullable=False, index=True
@@ -71,10 +71,10 @@ class Case(Base):
 
     # Foreign keys
     assignee_id: Mapped[UUID | None] = mapped_column(
-        PG_UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+        UUIDType(), ForeignKey("users.id"), nullable=True
     )
     created_by: Mapped[UUID | None] = mapped_column(
-        PG_UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+        UUIDType(), ForeignKey("users.id"), nullable=True
     )
 
     # Timestamps
@@ -89,12 +89,12 @@ class Case(Base):
     )
 
     # Tags and MITRE
-    tags: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
-    mitre_tactics: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
-    mitre_techniques: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
+    tags: Mapped[list[str]] = mapped_column(ArrayType(String), default=list)
+    mitre_tactics: Mapped[list[str]] = mapped_column(ArrayType(String), default=list)
+    mitre_techniques: Mapped[list[str]] = mapped_column(ArrayType(String), default=list)
 
-    # Additional metadata
-    metadata: Mapped[dict] = mapped_column(JSONB, default=dict)
+    # Additional metadata (named case_metadata to avoid conflict with SQLAlchemy Base.metadata)
+    case_metadata: Mapped[dict] = mapped_column(JSONBType(), default=dict)
 
     # Relationships
     assignee: Mapped["User | None"] = relationship(

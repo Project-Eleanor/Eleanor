@@ -6,10 +6,10 @@ from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from sqlalchemy import BigInteger, DateTime, Enum, ForeignKey, String, Text, func
-from sqlalchemy.dialects.postgresql import INET, JSONB, UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+from app.models.compat import INETType, JSONBType, UUIDType
 
 if TYPE_CHECKING:
     from app.models.case import Case
@@ -47,10 +47,10 @@ class Evidence(Base):
     __tablename__ = "evidence"
 
     id: Mapped[UUID] = mapped_column(
-        PG_UUID(as_uuid=True), primary_key=True, default=uuid4
+        UUIDType(), primary_key=True, default=uuid4
     )
     case_id: Mapped[UUID] = mapped_column(
-        PG_UUID(as_uuid=True),
+        UUIDType(),
         ForeignKey("cases.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -82,7 +82,7 @@ class Evidence(Base):
 
     # Upload information
     uploaded_by: Mapped[UUID | None] = mapped_column(
-        PG_UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+        UUIDType(), ForeignKey("users.id"), nullable=True
     )
     uploaded_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
@@ -90,7 +90,7 @@ class Evidence(Base):
 
     # Description and notes
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    metadata: Mapped[dict] = mapped_column(JSONB, default=dict)
+    evidence_metadata: Mapped[dict] = mapped_column(JSONBType(), default=dict)
 
     # Relationships
     case: Mapped["Case"] = relationship("Case", back_populates="evidence")
@@ -122,10 +122,10 @@ class CustodyEvent(Base):
     __tablename__ = "custody_events"
 
     id: Mapped[UUID] = mapped_column(
-        PG_UUID(as_uuid=True), primary_key=True, default=uuid4
+        UUIDType(), primary_key=True, default=uuid4
     )
     evidence_id: Mapped[UUID] = mapped_column(
-        PG_UUID(as_uuid=True),
+        UUIDType(),
         ForeignKey("evidence.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -134,12 +134,12 @@ class CustodyEvent(Base):
         Enum(CustodyAction), nullable=False
     )
     actor_id: Mapped[UUID | None] = mapped_column(
-        PG_UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+        UUIDType(), ForeignKey("users.id"), nullable=True
     )
     actor_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    ip_address: Mapped[str | None] = mapped_column(INET, nullable=True)
+    ip_address: Mapped[str | None] = mapped_column(INETType(), nullable=True)
     user_agent: Mapped[str | None] = mapped_column(Text, nullable=True)
-    details: Mapped[dict] = mapped_column(JSONB, default=dict)
+    details: Mapped[dict] = mapped_column(JSONBType(), default=dict)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

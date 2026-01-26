@@ -5,26 +5,26 @@ from enum import Enum
 from uuid import UUID, uuid4
 
 from sqlalchemy import DateTime, ForeignKey, String, Table, Column, UniqueConstraint, func
-from sqlalchemy.dialects.postgresql import ARRAY, UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+from app.models.compat import UUIDType
 
 
 # Many-to-many association table for Role-Permission
 role_permissions = Table(
     "role_permissions",
     Base.metadata,
-    Column("role_id", PGUUID(as_uuid=True), ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True),
-    Column("permission_id", PGUUID(as_uuid=True), ForeignKey("permissions.id", ondelete="CASCADE"), primary_key=True),
+    Column("role_id", UUIDType(), ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True),
+    Column("permission_id", UUIDType(), ForeignKey("permissions.id", ondelete="CASCADE"), primary_key=True),
 )
 
 # Many-to-many association table for User-Role
 user_roles = Table(
     "user_roles",
     Base.metadata,
-    Column("user_id", PGUUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
-    Column("role_id", PGUUID(as_uuid=True), ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True),
+    Column("user_id", UUIDType(), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
+    Column("role_id", UUIDType(), ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True),
 )
 
 
@@ -62,7 +62,7 @@ class Permission(Base):
 
     __tablename__ = "permissions"
 
-    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
+    id: Mapped[UUID] = mapped_column(UUIDType(), primary_key=True, default=uuid4)
     name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     description: Mapped[str | None] = mapped_column(String(500))
     scope: Mapped[PermissionScope] = mapped_column(String(50), nullable=False)
@@ -86,7 +86,7 @@ class Role(Base):
 
     __tablename__ = "roles"
 
-    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
+    id: Mapped[UUID] = mapped_column(UUIDType(), primary_key=True, default=uuid4)
     name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     description: Mapped[str | None] = mapped_column(String(500))
     is_system: Mapped[bool] = mapped_column(default=False)  # Built-in roles cannot be deleted
@@ -103,7 +103,7 @@ class Role(Base):
     users: Mapped[list["User"]] = relationship(
         "User",
         secondary=user_roles,
-        back_populates="roles"
+        back_populates="role_objects"
     )
 
 
