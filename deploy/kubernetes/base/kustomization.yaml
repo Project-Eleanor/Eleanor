@@ -1,0 +1,31 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: eleanor-base
+
+namespace: eleanor
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secrets.yaml
+  - storage.yaml
+  - postgres.yaml
+  - elasticsearch.yaml
+  - redis.yaml
+  - backend.yaml
+  - celery.yaml
+  - frontend.yaml
+  - ingress.yaml
+  - network-policies.yaml
+
+commonLabels:
+  app.kubernetes.io/managed-by: kustomize
+  app.kubernetes.io/version: "0.3.0"
+
+images:
+  - name: ghcr.io/project-eleanor/eleanor-backend
+    newTag: latest
+  - name: ghcr.io/project-eleanor/eleanor-frontend
+    newTag: latest

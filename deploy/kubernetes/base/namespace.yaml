@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: eleanor
+  labels:
+    app.kubernetes.io/name: eleanor
+    app.kubernetes.io/part-of: eleanor-dfir

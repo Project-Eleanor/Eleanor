@@ -1,0 +1,120 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: eleanor-production
+
+namespace: eleanor
+
+resources:
+  - ../../base
+
+# Production-specific patches
+patches:
+  # Increase replicas for production
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 3
+    target:
+      kind: Deployment
+      name: backend
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 4
+    target:
+      kind: Deployment
+      name: celery-worker
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 3
+    target:
+      kind: Deployment
+      name: frontend
+  # Increase HPA max replicas
+  - patch: |-
+      - op: replace
+        path: /spec/maxReplicas
+        value: 20
+    target:
+      kind: HorizontalPodAutoscaler
+      name: backend-hpa
+  - patch: |-
+      - op: replace
+        path: /spec/maxReplicas
+        value: 40
+    target:
+      kind: HorizontalPodAutoscaler
+      name: celery-worker-hpa
+  # Increase resource limits
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: 4Gi
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/cpu
+        value: 2000m
+    target:
+      kind: Deployment
+      name: backend
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: 8Gi
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/cpu
+        value: 4000m
+    target:
+      kind: Deployment
+      name: celery-worker
+  # Increase Elasticsearch resources
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: 8Gi
+      - op: replace
+        path: /spec/template/spec/containers/0/env/4/value
+        value: "-Xms4g -Xmx4g"
+    target:
+      kind: StatefulSet
+      name: elasticsearch
+  # Increase storage sizes
+  - patch: |-
+      - op: replace
+        path: /spec/resources/requests/storage
+        value: 50Gi
+    target:
+      kind: PersistentVolumeClaim
+      name: postgres-data
+  - patch: |-
+      - op: replace
+        path: /spec/resources/requests/storage
+        value: 500Gi
+    target:
+      kind: PersistentVolumeClaim
+      name: elasticsearch-data
+  - patch: |-
+      - op: replace
+        path: /spec/resources/requests/storage
+        value: 2Ti
+    target:
+      kind: PersistentVolumeClaim
+      name: evidence-storage
+
+# Production images
+images:
+  - name: ghcr.io/project-eleanor/eleanor-backend
+    newTag: v0.3.0
+  - name: ghcr.io/project-eleanor/eleanor-frontend
+    newTag: v0.3.0
+
+# Production labels
+commonLabels:
+  environment: production
+
+# Production annotations
+commonAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8000"
