@@ -30,6 +30,8 @@ export interface GraphData {
     total_nodes?: number;
     total_edges?: number;
     truncated?: boolean;
+    isolated?: boolean;
+    subgraph?: boolean;
   };
 }
 

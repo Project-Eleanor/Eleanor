@@ -18,10 +18,12 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
+import { MatTabsModule } from '@angular/material/tabs';
 import { HttpClient, HttpEventType } from '@angular/common/http';
 import { EvidenceService } from '../../core/api/evidence.service';
 import { Evidence, EvidenceType } from '../../shared/models';
 import { environment } from '../../../environments/environment';
+import { ParsedDataViewerComponent } from './parsed-data-viewer.component';
 
 interface CustodyEvent {
   id: string;
@@ -62,7 +64,9 @@ interface CaseItem {
     MatTooltipModule,
     MatSnackBarModule,
     MatDividerModule,
-    MatDialogModule
+    MatDialogModule,
+    MatTabsModule,
+    ParsedDataViewerComponent
   ],
   template: `
     <div class="evidence-browser">
@@ -340,77 +344,163 @@ interface CaseItem {
 
       <!-- Detail Panel -->
       @if (selectedEvidence()) {
-        <div class="detail-panel">
+        <div class="detail-panel" [class.expanded]="detailPanelExpanded()">
           <div class="panel-header">
-            <h3>Evidence Details</h3>
-            <button mat-icon-button (click)="closeDetails()">
-              <mat-icon>close</mat-icon>
-            </button>
+            <div class="panel-title">
+              <mat-icon class="type-icon" [class]="'type-' + selectedEvidence()!.evidence_type">
+                {{ getFileIcon(selectedEvidence()!.evidence_type, selectedEvidence()!.mime_type) }}
+              </mat-icon>
+              <h3>{{ selectedEvidence()!.original_filename }}</h3>
+            </div>
+            <div class="panel-actions">
+              <button mat-icon-button (click)="togglePanelSize()" [matTooltip]="detailPanelExpanded() ? 'Collapse' : 'Expand'">
+                <mat-icon>{{ detailPanelExpanded() ? 'chevron_right' : 'chevron_left' }}</mat-icon>
+              </button>
+              <button mat-icon-button (click)="closeDetails()">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
           </div>
 
-          <div class="panel-content">
-            <div class="detail-section">
-              <h4>File Information</h4>
-              <div class="detail-grid">
-                <div class="detail-item">
-                  <span class="label">Filename</span>
-                  <span class="value">{{ selectedEvidence()!.original_filename }}</span>
+          <mat-tab-group [animationDuration]="'200ms'">
+            <!-- Info Tab -->
+            <mat-tab>
+              <ng-template mat-tab-label>
+                <mat-icon>info</mat-icon>
+                <span class="tab-text">Info</span>
+              </ng-template>
+              <div class="panel-content">
+                <div class="detail-section">
+                  <h4>File Information</h4>
+                  <div class="detail-grid">
+                    <div class="detail-item">
+                      <span class="label">Filename</span>
+                      <span class="value">{{ selectedEvidence()!.original_filename }}</span>
+                    </div>
+                    <div class="detail-item">
+                      <span class="label">Size</span>
+                      <span class="value">{{ formatFileSize(selectedEvidence()!.file_size) }}</span>
+                    </div>
+                    <div class="detail-item">
+                      <span class="label">Type</span>
+                      <span class="value">{{ selectedEvidence()!.evidence_type }}</span>
+                    </div>
+                    <div class="detail-item">
+                      <span class="label">Status</span>
+                      <span class="value">
+                        <span class="status-badge" [class]="'status-' + selectedEvidence()!.status">
+                          {{ selectedEvidence()!.status | titlecase }}
+                        </span>
+                      </span>
+                    </div>
+                    <div class="detail-item">
+                      <span class="label">MIME Type</span>
+                      <span class="value">{{ selectedEvidence()!.mime_type || 'Unknown' }}</span>
+                    </div>
+                    <div class="detail-item">
+                      <span class="label">Uploaded</span>
+                      <span class="value">{{ selectedEvidence()!.uploaded_at | date:'medium' }}</span>
+                    </div>
+                  </div>
                 </div>
-                <div class="detail-item">
-                  <span class="label">Size</span>
-                  <span class="value">{{ formatFileSize(selectedEvidence()!.file_size) }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="label">Type</span>
-                  <span class="value">{{ selectedEvidence()!.evidence_type }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="label">MIME Type</span>
-                  <span class="value">{{ selectedEvidence()!.mime_type || 'Unknown' }}</span>
-                </div>
-              </div>
-            </div>
 
-            <div class="detail-section">
-              <h4>Hashes</h4>
-              <div class="hash-list">
-                <div class="hash-item">
-                  <span class="label">MD5</span>
-                  <code>{{ selectedEvidence()!.md5 || 'N/A' }}</code>
+                <div class="detail-section">
+                  <h4>Hashes</h4>
+                  <div class="hash-list">
+                    <div class="hash-item">
+                      <span class="label">MD5</span>
+                      <code>{{ selectedEvidence()!.md5 || 'N/A' }}</code>
+                    </div>
+                    <div class="hash-item">
+                      <span class="label">SHA1</span>
+                      <code>{{ selectedEvidence()!.sha1 || 'N/A' }}</code>
+                    </div>
+                    <div class="hash-item">
+                      <span class="label">SHA256</span>
+                      <code>{{ selectedEvidence()!.sha256 || 'N/A' }}</code>
+                    </div>
+                  </div>
                 </div>
-                <div class="hash-item">
-                  <span class="label">SHA1</span>
-                  <code>{{ selectedEvidence()!.sha1 || 'N/A' }}</code>
-                </div>
-                <div class="hash-item">
-                  <span class="label">SHA256</span>
-                  <code>{{ selectedEvidence()!.sha256 || 'N/A' }}</code>
-                </div>
-              </div>
-            </div>
 
-            <div class="detail-section">
-              <h4>Chain of Custody</h4>
-              @if (custodyEvents().length === 0) {
-                <p class="empty">No custody entries</p>
-              } @else {
-                <div class="custody-timeline">
-                  @for (entry of custodyEvents(); track entry.id) {
-                    <div class="custody-entry">
-                      <div class="custody-marker"></div>
-                      <div class="custody-content">
-                        <div class="custody-header">
-                          <span class="action">{{ entry.action | titlecase }}</span>
-                          <span class="time">{{ entry.created_at | date:'medium' }}</span>
+                <div class="detail-section">
+                  <h4>Chain of Custody</h4>
+                  @if (custodyEvents().length === 0) {
+                    <p class="empty">No custody entries</p>
+                  } @else {
+                    <div class="custody-timeline">
+                      @for (entry of custodyEvents(); track entry.id) {
+                        <div class="custody-entry">
+                          <div class="custody-marker"></div>
+                          <div class="custody-content">
+                            <div class="custody-header">
+                              <span class="action">{{ entry.action | titlecase }}</span>
+                              <span class="time">{{ entry.created_at | date:'medium' }}</span>
+                            </div>
+                            <div class="custody-user">{{ entry.actor_name || 'System' }}</div>
+                          </div>
                         </div>
-                        <div class="custody-user">{{ entry.actor_name || 'System' }}</div>
-                      </div>
+                      }
                     </div>
                   }
                 </div>
-              }
-            </div>
-          </div>
+              </div>
+            </mat-tab>
+
+            <!-- Parsed Data Tab -->
+            <mat-tab>
+              <ng-template mat-tab-label>
+                <mat-icon>data_object</mat-icon>
+                <span class="tab-text">Parsed Data</span>
+              </ng-template>
+              <div class="parsed-data-tab">
+                <app-parsed-data-viewer [evidence]="selectedEvidence()"></app-parsed-data-viewer>
+              </div>
+            </mat-tab>
+
+            <!-- Preview Tab -->
+            <mat-tab>
+              <ng-template mat-tab-label>
+                <mat-icon>preview</mat-icon>
+                <span class="tab-text">Preview</span>
+              </ng-template>
+              <div class="panel-content preview-tab">
+                @if (canPreview(selectedEvidence()!)) {
+                  @if (isTextFile(selectedEvidence()!)) {
+                    <div class="text-preview">
+                      @if (previewLoading()) {
+                        <mat-spinner diameter="24"></mat-spinner>
+                      } @else {
+                        <pre>{{ filePreview() }}</pre>
+                      }
+                    </div>
+                  } @else if (isImageFile(selectedEvidence()!)) {
+                    <div class="image-preview">
+                      <img [src]="getPreviewUrl(selectedEvidence()!)" alt="Preview">
+                    </div>
+                  } @else {
+                    <div class="hex-preview">
+                      <button mat-stroked-button (click)="loadHexPreview()">
+                        <mat-icon>code</mat-icon>
+                        Load Hex View
+                      </button>
+                      @if (hexPreview()) {
+                        <pre class="hex-dump">{{ hexPreview() }}</pre>
+                      }
+                    </div>
+                  }
+                } @else {
+                  <div class="no-preview">
+                    <mat-icon>visibility_off</mat-icon>
+                    <p>Preview not available for this file type</p>
+                    <button mat-stroked-button (click)="downloadEvidence(selectedEvidence()!)">
+                      <mat-icon>download</mat-icon>
+                      Download File
+                    </button>
+                  </div>
+                }
+              </div>
+            </mat-tab>
+          </mat-tab-group>
         </div>
       }
     </div>
@@ -534,7 +624,7 @@ interface CaseItem {
       position: fixed;
       top: 0;
       right: 0;
-      width: 450px;
+      width: 500px;
       height: 100vh;
       background: var(--bg-card);
       border-left: 1px solid var(--border-color);
@@ -542,24 +632,138 @@ interface CaseItem {
       flex-direction: column;
       z-index: 1000;
       box-shadow: -4px 0 16px rgba(0, 0, 0, 0.3);
+      transition: width 0.2s ease;
+    }
+
+    .detail-panel.expanded {
+      width: 800px;
     }
 
     .panel-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 16px;
+      padding: 12px 16px;
       border-bottom: 1px solid var(--border-color);
+      background: var(--bg-surface);
+    }
+
+    .panel-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+      min-width: 0;
+
+      .type-icon {
+        font-size: 24px;
+        width: 24px;
+        height: 24px;
+      }
 
       h3 {
         margin: 0;
+        font-size: 14px;
+        font-weight: 500;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
+    }
+
+    .panel-actions {
+      display: flex;
+      gap: 4px;
+    }
+
+    .tab-text {
+      margin-left: 8px;
+    }
+
+    mat-tab-group {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    ::ng-deep .mat-mdc-tab-body-wrapper {
+      flex: 1;
     }
 
     .panel-content {
       flex: 1;
       overflow-y: auto;
       padding: 16px;
+    }
+
+    .parsed-data-tab {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .preview-tab {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .text-preview {
+      flex: 1;
+      overflow: auto;
+      background: var(--bg-surface);
+      border-radius: 4px;
+      padding: 16px;
+
+      pre {
+        margin: 0;
+        font-size: 12px;
+        font-family: 'Fira Code', monospace;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+    }
+
+    .image-preview {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+
+      img {
+        max-width: 100%;
+        max-height: 400px;
+        border-radius: 4px;
+      }
+    }
+
+    .hex-preview {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+
+      .hex-dump {
+        background: var(--bg-surface);
+        padding: 16px;
+        border-radius: 4px;
+        font-family: 'Fira Code', monospace;
+        font-size: 11px;
+        overflow-x: auto;
+      }
+    }
+
+    .no-preview {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 48px;
+      gap: 16px;
+      color: var(--text-muted);
+
+      mat-icon {
+        font-size: 48px;
+        width: 48px;
+        height: 48px;
+      }
     }
 
     .detail-section {
@@ -925,6 +1129,10 @@ export class EvidenceBrowserComponent implements OnInit {
 
   selectedEvidence = signal<Evidence | null>(null);
   custodyEvents = signal<CustodyEvent[]>([]);
+  detailPanelExpanded = signal(false);
+  filePreview = signal<string>('');
+  hexPreview = signal<string>('');
+  previewLoading = signal(false);
 
   // Upload state
   showUpload = signal(false);
@@ -1001,6 +1209,68 @@ export class EvidenceBrowserComponent implements OnInit {
   closeDetails(): void {
     this.selectedEvidence.set(null);
     this.custodyEvents.set([]);
+    this.filePreview.set('');
+    this.hexPreview.set('');
+    this.detailPanelExpanded.set(false);
+  }
+
+  togglePanelSize(): void {
+    this.detailPanelExpanded.update(v => !v);
+  }
+
+  canPreview(evidence: Evidence): boolean {
+    return this.isTextFile(evidence) || this.isImageFile(evidence) || evidence.file_size !== null && evidence.file_size < 10 * 1024 * 1024;
+  }
+
+  isTextFile(evidence: Evidence): boolean {
+    const textTypes = ['text/', 'application/json', 'application/xml', 'application/javascript'];
+    const textExtensions = ['.txt', '.log', '.json', '.xml', '.csv', '.md', '.yaml', '.yml', '.ini', '.conf', '.cfg'];
+    const mime = evidence.mime_type || '';
+    const filename = evidence.original_filename || '';
+    return textTypes.some(t => mime.startsWith(t)) || textExtensions.some(e => filename.toLowerCase().endsWith(e));
+  }
+
+  isImageFile(evidence: Evidence): boolean {
+    const imageTypes = ['image/'];
+    const mime = evidence.mime_type || '';
+    return imageTypes.some(t => mime.startsWith(t));
+  }
+
+  getPreviewUrl(evidence: Evidence): string {
+    return `${environment.apiUrl}/evidence/${evidence.id}/preview`;
+  }
+
+  async loadFilePreview(evidence: Evidence): Promise<void> {
+    this.previewLoading.set(true);
+    try {
+      const response = await this.http.get(
+        `${environment.apiUrl}/evidence/${evidence.id}/preview`,
+        { responseType: 'text' }
+      ).toPromise();
+      this.filePreview.set(response || '');
+    } catch (error) {
+      this.filePreview.set('Failed to load preview');
+    } finally {
+      this.previewLoading.set(false);
+    }
+  }
+
+  async loadHexPreview(): Promise<void> {
+    const evidence = this.selectedEvidence();
+    if (!evidence) return;
+
+    this.previewLoading.set(true);
+    try {
+      const response = await this.http.get(
+        `${environment.apiUrl}/evidence/${evidence.id}/hex`,
+        { responseType: 'text' }
+      ).toPromise();
+      this.hexPreview.set(response || '');
+    } catch (error) {
+      this.hexPreview.set('Failed to load hex view');
+    } finally {
+      this.previewLoading.set(false);
+    }
   }
 
   // Upload methods

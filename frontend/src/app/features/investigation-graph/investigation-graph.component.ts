@@ -27,7 +27,10 @@ import {
   EntityType,
   NODE_COLORS,
   SavedGraph,
+  PathResult,
 } from '../../shared/models/graph.model';
+import { GraphToolbarComponent, ToolMode } from './graph-toolbar.component';
+import { GraphAnalyticsComponent } from './graph-analytics.component';
 
 @Component({
   selector: 'app-investigation-graph',
@@ -52,12 +55,14 @@ import {
     MatInputModule,
     MatListModule,
     CytoscapeGraphComponent,
+    GraphToolbarComponent,
+    GraphAnalyticsComponent,
   ],
   template: `
     <div class="graph-page">
-      <!-- Toolbar -->
-      <div class="toolbar">
-        <div class="toolbar-left">
+      <!-- Header -->
+      <div class="graph-header">
+        <div class="header-left">
           <button mat-icon-button (click)="goBack()" matTooltip="Back">
             <mat-icon>arrow_back</mat-icon>
           </button>
@@ -67,7 +72,7 @@ import {
           }
         </div>
 
-        <div class="toolbar-center">
+        <div class="header-center">
           <!-- Entity Type Filters -->
           <mat-chip-listbox
             [multiple]="true"
@@ -83,20 +88,7 @@ import {
           </mat-chip-listbox>
         </div>
 
-        <div class="toolbar-right">
-          <!-- Layout selector -->
-          <mat-select [(value)]="selectedLayout" (selectionChange)="onLayoutChange()">
-            <mat-option value="dagre">Hierarchical</mat-option>
-            <mat-option value="cola">Force-Directed</mat-option>
-            <mat-option value="cose">COSE</mat-option>
-            <mat-option value="circle">Circle</mat-option>
-            <mat-option value="concentric">Concentric</mat-option>
-          </mat-select>
-
-          <button mat-icon-button (click)="fitGraph()" matTooltip="Fit to View">
-            <mat-icon>fit_screen</mat-icon>
-          </button>
-
+        <div class="header-right">
           <button mat-icon-button (click)="rebuildGraph()" matTooltip="Refresh">
             <mat-icon>refresh</mat-icon>
           </button>
@@ -113,14 +105,31 @@ import {
               <mat-icon>folder_open</mat-icon>
               Load Saved Graph
             </button>
-            <mat-divider></mat-divider>
-            <button mat-menu-item (click)="exportPng()">
-              <mat-icon>image</mat-icon>
-              Export as PNG
-            </button>
           </mat-menu>
         </div>
       </div>
+
+      <!-- Enhanced Toolbar -->
+      <app-graph-toolbar
+        [selectedCount]="selectedNodes().length"
+        [showLabels]="showLabels"
+        [pathNodesSelected]="pathNodes().length"
+        (modeChange)="onToolModeChange($event)"
+        (changeLayout)="onLayoutChange($event)"
+        (zoomIn)="zoomIn()"
+        (zoomOut)="zoomOut()"
+        (fitToView)="fitGraph()"
+        (resetView)="resetView()"
+        (clearPath)="clearPathSelection()"
+        (showAnalytics)="showAnalyticsMode($event)"
+        (toggleAnalyticsPanel)="toggleAnalytics()"
+        (isolateSelection)="isolateSelectedNodes()"
+        (expandSelection)="expandSelectedNodes()"
+        (hideSelection)="hideSelectedNodes()"
+        (exportGraph)="exportGraphAs($event)"
+        (exportSubgraph)="exportSelectedSubgraph()"
+        (toggleLabels)="toggleLabels()"
+      ></app-graph-toolbar>
 
       <!-- Main Content -->
       <div class="main-content">
@@ -140,9 +149,21 @@ import {
             (nodeClick)="onNodeClick($event)"
             (nodeDoubleClick)="onNodeDoubleClick($event)"
             (edgeClick)="onEdgeClick($event)"
+            (selectionChange)="onSelectionChange($event)"
             #graphComponent
           ></app-cytoscape-graph>
         </div>
+
+        <!-- Analytics Panel -->
+        <app-graph-analytics
+          [isOpen]="showAnalyticsPanel()"
+          [graphData]="graphData()"
+          [caseId]="caseId()"
+          (close)="toggleAnalytics()"
+          (highlightPath)="onHighlightPath($event)"
+          (focusCluster)="onFocusCluster($event)"
+          (timelineUpdate)="onTimelineUpdate($event)"
+        ></app-graph-analytics>
 
         <!-- Detail Panel -->
         @if (selectedNode()) {
@@ -321,7 +342,7 @@ import {
       background: #121212;
     }
 
-    .toolbar {
+    .graph-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -330,19 +351,19 @@ import {
       border-bottom: 1px solid #333;
     }
 
-    .toolbar-left, .toolbar-right {
+    .header-left, .header-right {
       display: flex;
       align-items: center;
       gap: 8px;
     }
 
-    .toolbar-center {
+    .header-center {
       display: flex;
       align-items: center;
       gap: 16px;
     }
 
-    .toolbar h2 {
+    .graph-header h2 {
       margin: 0;
       font-size: 18px;
       font-weight: 500;
@@ -617,8 +638,13 @@ export class InvestigationGraphComponent implements OnInit {
   caseId = signal<string | null>(null);
   graphData = signal<GraphData | null>(null);
   selectedNode = signal<GraphNode | null>(null);
+  selectedNodes = signal<GraphNode[]>([]);
+  selectedEdges = signal<GraphEdge[]>([]);
   loading = signal(false);
   savedGraphs = signal<SavedGraph[]>([]);
+  showAnalyticsPanel = signal(false);
+  pathNodes = signal<string[]>([]);
+  toolMode: ToolMode = 'select';
 
   // Dialog state
   showSaveDialog = signal(false);
@@ -747,8 +773,210 @@ export class InvestigationGraphComponent implements OnInit {
     this.selectedNode.set(null);
   }
 
-  onLayoutChange(): void {
-    // Layout change handled by CytoscapeGraphComponent via input binding
+  onLayoutChange(layout?: LayoutType): void {
+    if (layout) {
+      this.selectedLayout = layout;
+    }
+    if (this.graphComponent) {
+      this.graphComponent.runLayout(this.selectedLayout);
+    }
+  }
+
+  onSelectionChange(selection: { nodes: GraphNode[]; edges: GraphEdge[] }): void {
+    this.selectedNodes.set(selection.nodes);
+    this.selectedEdges.set(selection.edges);
+
+    // Handle path mode selection
+    if (this.toolMode === 'path' && selection.nodes.length > 0) {
+      const currentPath = this.pathNodes();
+      if (currentPath.length < 2) {
+        this.pathNodes.set([...currentPath, selection.nodes[0].id]);
+      }
+    }
+  }
+
+  onToolModeChange(mode: ToolMode): void {
+    this.toolMode = mode;
+    if (mode !== 'path') {
+      this.clearPathSelection();
+    }
+  }
+
+  clearPathSelection(): void {
+    this.pathNodes.set([]);
+    if (this.graphComponent) {
+      this.graphComponent.clearHighlights();
+    }
+  }
+
+  toggleAnalytics(): void {
+    this.showAnalyticsPanel.update(v => !v);
+  }
+
+  showAnalyticsMode(mode: string): void {
+    this.showAnalyticsPanel.set(true);
+    // Trigger specific analytics view
+  }
+
+  onHighlightPath(path: PathResult): void {
+    if (this.graphComponent && path.found) {
+      this.graphComponent.highlightPath(path.path_nodes, path.path_edges);
+    }
+  }
+
+  onFocusCluster(cluster: any): void {
+    // Focus view on cluster nodes
+    if (this.graphComponent) {
+      this.graphComponent.fit();
+    }
+  }
+
+  onTimelineUpdate(position: number): void {
+    // Update graph based on timeline position
+    // This would filter/highlight nodes based on their timestamp
+  }
+
+  zoomIn(): void {
+    // Zoom in handled by cytoscape
+  }
+
+  zoomOut(): void {
+    // Zoom out handled by cytoscape
+  }
+
+  resetView(): void {
+    if (this.graphComponent) {
+      this.graphComponent.fit();
+      this.graphComponent.clearHighlights();
+    }
+  }
+
+  isolateSelectedNodes(): void {
+    // Isolate selected subgraph
+    const selected = this.selectedNodes();
+    if (selected.length === 0) return;
+
+    const selectedIds = new Set(selected.map(n => n.id));
+    const currentData = this.graphData();
+    if (!currentData) return;
+
+    // Filter edges that connect selected nodes
+    const filteredEdges = currentData.edges.filter(
+      e => selectedIds.has(e.source) && selectedIds.has(e.target)
+    );
+
+    this.graphData.set({
+      nodes: selected,
+      edges: filteredEdges,
+      metadata: { ...currentData.metadata, isolated: true }
+    });
+  }
+
+  async expandSelectedNodes(): Promise<void> {
+    const selected = this.selectedNodes();
+    for (const node of selected) {
+      await this.expandNode(node);
+    }
+  }
+
+  hideSelectedNodes(): void {
+    const selected = this.selectedNodes();
+    if (selected.length === 0) return;
+
+    const hiddenIds = new Set(selected.map(n => n.id));
+    const currentData = this.graphData();
+    if (!currentData) return;
+
+    const filteredNodes = currentData.nodes.filter(n => !hiddenIds.has(n.id));
+    const filteredEdges = currentData.edges.filter(
+      e => !hiddenIds.has(e.source) && !hiddenIds.has(e.target)
+    );
+
+    this.graphData.set({
+      nodes: filteredNodes,
+      edges: filteredEdges,
+      metadata: currentData.metadata
+    });
+
+    this.selectedNodes.set([]);
+  }
+
+  toggleLabels(): void {
+    this.showLabels = !this.showLabels;
+  }
+
+  exportGraphAs(format: string): void {
+    if (!this.graphComponent) return;
+
+    switch (format) {
+      case 'png':
+        this.exportPng();
+        break;
+      case 'svg':
+        this.exportSvg();
+        break;
+      case 'json':
+        this.exportJson();
+        break;
+    }
+  }
+
+  exportSvg(): void {
+    // SVG export would require additional cytoscape configuration
+    this.snackBar.open('SVG export coming soon', 'Close', { duration: 3000 });
+  }
+
+  exportJson(): void {
+    const data = this.graphData();
+    if (!data) return;
+
+    const jsonString = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `graph-${this.caseId() || 'export'}-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    this.snackBar.open('Graph exported as JSON', 'Close', { duration: 3000 });
+  }
+
+  exportSelectedSubgraph(): void {
+    const selected = this.selectedNodes();
+    if (selected.length === 0) {
+      this.snackBar.open('No nodes selected', 'Close', { duration: 3000 });
+      return;
+    }
+
+    const selectedIds = new Set(selected.map(n => n.id));
+    const currentData = this.graphData();
+    if (!currentData) return;
+
+    const filteredEdges = currentData.edges.filter(
+      e => selectedIds.has(e.source) && selectedIds.has(e.target)
+    );
+
+    const subgraph: GraphData = {
+      nodes: selected,
+      edges: filteredEdges,
+      metadata: { case_id: this.caseId() || undefined, subgraph: true }
+    };
+
+    const jsonString = JSON.stringify(subgraph, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `subgraph-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    this.snackBar.open('Subgraph exported', 'Close', { duration: 3000 });
   }
 
   fitGraph(): void {

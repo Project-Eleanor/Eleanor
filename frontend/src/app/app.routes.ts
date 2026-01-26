@@ -64,6 +64,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/investigation-graph/investigation-graph.component').then(m => m.InvestigationGraphComponent)
       },
       {
+        path: 'artifact-timeline',
+        loadComponent: () => import('./features/investigations/artifact-timeline.component').then(m => m.ArtifactTimelineComponent)
+      },
+      {
         path: 'workbooks',
         children: [
           {
@@ -71,12 +75,16 @@ export const routes: Routes = [
             loadComponent: () => import('./features/workbooks/workbook-list.component').then(m => m.WorkbookListComponent)
           },
           {
+            path: 'new',
+            loadComponent: () => import('./features/workbooks/workbook-editor.component').then(m => m.WorkbookEditorComponent)
+          },
+          {
             path: ':id',
             loadComponent: () => import('./features/workbooks/workbook-viewer.component').then(m => m.WorkbookViewerComponent)
           },
           {
             path: ':id/edit',
-            loadComponent: () => import('./features/workbooks/workbook-viewer.component').then(m => m.WorkbookViewerComponent)
+            loadComponent: () => import('./features/workbooks/workbook-editor.component').then(m => m.WorkbookEditorComponent)
           }
         ]
       },
@@ -103,6 +111,19 @@ export const routes: Routes = [
       {
         path: 'connectors',
         loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent)
+      },
+      {
+        path: 'reports',
+        children: [
+          {
+            path: 'new',
+            loadComponent: () => import('./features/reports/report-builder.component').then(m => m.ReportBuilderComponent)
+          },
+          {
+            path: ':id',
+            loadComponent: () => import('./features/reports/report-builder.component').then(m => m.ReportBuilderComponent)
+          }
+        ]
       },
       {
         path: 'settings',
