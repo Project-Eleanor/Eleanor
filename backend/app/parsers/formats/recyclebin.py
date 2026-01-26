@@ -4,7 +4,7 @@ Parses $I and $R files from the Windows Recycle Bin ($Recycle.Bin).
 - $I files contain metadata (original path, deletion time, size)
 - $R files contain the actual deleted file content
 
-Location: C:\$Recycle.Bin\<SID>\
+Location: C:\\$Recycle.Bin\\<SID>\\
 """
 
 import logging

@@ -24,6 +24,22 @@ class ParserCategory(str, Enum):
 
 
 @dataclass
+class ParserMetadata:
+    """Metadata describing a parser's capabilities.
+
+    Used by parsers that implement the get_metadata() classmethod pattern.
+    """
+
+    name: str
+    display_name: str
+    description: str
+    supported_extensions: list[str] = field(default_factory=list)
+    mime_types: list[str] = field(default_factory=list)
+    category: str = "artifacts"
+    priority: int = 50  # Higher = more likely to be selected when multiple parsers match
+
+
+@dataclass
 class ParsedEvent:
     """Represents a single parsed event/record.
 
