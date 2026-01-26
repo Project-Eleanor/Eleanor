@@ -474,7 +474,44 @@ export class WorkbookViewerComponent implements OnInit, OnDestroy {
   }
 
   exportWorkbook(): void {
-    this.snackBar.open('Export coming soon', 'Close', { duration: 3000 });
+    const workbook = this.workbook();
+    if (!workbook) {
+      this.snackBar.open('No workbook to export', 'Close', { duration: 3000 });
+      return;
+    }
+
+    try {
+      // Create export object with workbook definition
+      const exportData = {
+        name: workbook.name,
+        description: workbook.description,
+        definition: workbook.definition,
+        exported_at: new Date().toISOString(),
+        version: '1.0',
+      };
+
+      // Convert to JSON string with pretty formatting
+      const jsonString = JSON.stringify(exportData, null, 2);
+
+      // Create blob and download link
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `workbook-${workbook.name.toLowerCase().replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Clean up the URL object
+      URL.revokeObjectURL(url);
+
+      this.snackBar.open('Workbook exported successfully', 'Close', { duration: 3000 });
+    } catch (error) {
+      console.error('Failed to export workbook:', error);
+      this.snackBar.open('Failed to export workbook', 'Close', { duration: 3000 });
+    }
   }
 
   async cloneWorkbook(): Promise<void> {

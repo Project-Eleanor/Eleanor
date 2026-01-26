@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -14,6 +14,9 @@ import { MatCardModule } from '@angular/material/card';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatListModule } from '@angular/material/list';
 
 import { CytoscapeGraphComponent, LayoutType } from '../../shared/components/cytoscape-graph/cytoscape-graph.component';
 import { GraphService } from '../../core/api/graph.service';
@@ -45,6 +48,9 @@ import {
     MatDividerModule,
     MatDialogModule,
     MatSnackBarModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatListModule,
     CytoscapeGraphComponent,
   ],
   template: `
@@ -227,6 +233,77 @@ import {
             <span class="divider">|</span>
             <span class="warning">Graph truncated (max {{ maxNodes }} nodes)</span>
           }
+        </div>
+      }
+
+      <!-- Save Graph Dialog -->
+      @if (showSaveDialog()) {
+        <div class="dialog-overlay" (click)="closeSaveDialog()">
+          <div class="dialog-panel" (click)="$event.stopPropagation()">
+            <div class="dialog-header">
+              <h3>Save Graph</h3>
+              <button mat-icon-button (click)="closeSaveDialog()">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+            <div class="dialog-content">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Graph Name</mat-label>
+                <input matInput [(ngModel)]="saveGraphName" placeholder="Enter a name for this graph">
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Description (optional)</mat-label>
+                <textarea matInput [(ngModel)]="saveGraphDescription" rows="3" placeholder="Add a description"></textarea>
+              </mat-form-field>
+            </div>
+            <div class="dialog-actions">
+              <button mat-button (click)="closeSaveDialog()">Cancel</button>
+              <button mat-flat-button color="primary" (click)="confirmSaveGraph()" [disabled]="!saveGraphName.trim()">
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Load Graph Dialog -->
+      @if (showLoadDialog()) {
+        <div class="dialog-overlay" (click)="closeLoadDialog()">
+          <div class="dialog-panel load-panel" (click)="$event.stopPropagation()">
+            <div class="dialog-header">
+              <h3>Load Saved Graph</h3>
+              <button mat-icon-button (click)="closeLoadDialog()">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+            <div class="dialog-content">
+              @if (savedGraphs().length === 0) {
+                <div class="empty-state">
+                  <mat-icon>folder_off</mat-icon>
+                  <p>No saved graphs found for this case.</p>
+                </div>
+              } @else {
+                <mat-selection-list [multiple]="false">
+                  @for (graph of savedGraphs(); track graph.id) {
+                    <mat-list-option [value]="graph" (click)="selectSavedGraph(graph)">
+                      <div class="saved-graph-item">
+                        <div class="saved-graph-info">
+                          <span class="saved-graph-name">{{ graph.name }}</span>
+                          @if (graph.description) {
+                            <span class="saved-graph-desc">{{ graph.description }}</span>
+                          }
+                        </div>
+                        <span class="saved-graph-date">{{ graph.updated_at | date:'short' }}</span>
+                      </div>
+                    </mat-list-option>
+                  }
+                </mat-selection-list>
+              }
+            </div>
+            <div class="dialog-actions">
+              <button mat-button (click)="closeLoadDialog()">Cancel</button>
+            </div>
+          </div>
         </div>
       }
     </div>
@@ -422,6 +499,108 @@ import {
     .stats-bar .warning {
       color: #ff9800;
     }
+
+    .dialog-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .dialog-panel {
+      background: #1e1e1e;
+      border-radius: 8px;
+      width: 400px;
+      max-width: 90vw;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    }
+
+    .dialog-panel.load-panel {
+      width: 500px;
+    }
+
+    .dialog-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px;
+      border-bottom: 1px solid #333;
+    }
+
+    .dialog-header h3 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 500;
+    }
+
+    .dialog-content {
+      padding: 16px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .dialog-content .full-width {
+      width: 100%;
+    }
+
+    .dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 16px;
+      border-top: 1px solid #333;
+    }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px;
+      color: #888;
+    }
+
+    .empty-state mat-icon {
+      font-size: 48px;
+      width: 48px;
+      height: 48px;
+      margin-bottom: 16px;
+    }
+
+    .saved-graph-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+    }
+
+    .saved-graph-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .saved-graph-name {
+      font-weight: 500;
+    }
+
+    .saved-graph-desc {
+      font-size: 12px;
+      color: #888;
+      margin-top: 4px;
+    }
+
+    .saved-graph-date {
+      font-size: 12px;
+      color: #666;
+    }
   `],
 })
 export class InvestigationGraphComponent implements OnInit {
@@ -431,11 +610,21 @@ export class InvestigationGraphComponent implements OnInit {
   private dialog = inject(MatDialog);
   private snackBar = inject(MatSnackBar);
 
+  // Child component reference
+  @ViewChild('graphComponent') graphComponent!: CytoscapeGraphComponent;
+
   // State
   caseId = signal<string | null>(null);
   graphData = signal<GraphData | null>(null);
   selectedNode = signal<GraphNode | null>(null);
   loading = signal(false);
+  savedGraphs = signal<SavedGraph[]>([]);
+
+  // Dialog state
+  showSaveDialog = signal(false);
+  showLoadDialog = signal(false);
+  saveGraphName = '';
+  saveGraphDescription = '';
 
   // Configuration
   entityTypes: EntityType[] = ['host', 'user', 'ip', 'process', 'file', 'domain'];
@@ -563,21 +752,158 @@ export class InvestigationGraphComponent implements OnInit {
   }
 
   fitGraph(): void {
-    // Access through ViewChild if needed
+    if (this.graphComponent) {
+      this.graphComponent.fit();
+    }
   }
 
   saveGraph(): void {
-    // Show save dialog
-    this.snackBar.open('Save graph feature coming soon', 'Close', { duration: 3000 });
+    if (!this.graphData()) {
+      this.snackBar.open('No graph to save', 'Close', { duration: 3000 });
+      return;
+    }
+    this.saveGraphName = '';
+    this.saveGraphDescription = '';
+    this.showSaveDialog.set(true);
   }
 
-  loadSavedGraph(): void {
-    // Show load dialog
-    this.snackBar.open('Load graph feature coming soon', 'Close', { duration: 3000 });
+  closeSaveDialog(): void {
+    this.showSaveDialog.set(false);
+  }
+
+  async confirmSaveGraph(): Promise<void> {
+    const caseId = this.caseId();
+    const data = this.graphData();
+    if (!caseId || !data || !this.saveGraphName.trim()) return;
+
+    this.loading.set(true);
+    this.showSaveDialog.set(false);
+
+    try {
+      // Get current positions and viewport from Cytoscape
+      const positions = this.graphComponent?.getPositions() || {};
+      const viewport = this.graphComponent?.getViewport() || { zoom: 1, pan: { x: 0, y: 0 } };
+
+      const savedGraph = await this.graphService.saveGraph({
+        name: this.saveGraphName.trim(),
+        description: this.saveGraphDescription.trim() || undefined,
+        case_id: caseId,
+        definition: {
+          nodes: data.nodes,
+          edges: data.edges,
+          positions,
+          zoom: viewport.zoom,
+          pan: viewport.pan,
+        },
+        config: {
+          layout: this.selectedLayout,
+          showLabels: this.showLabels,
+          nodeSize: 30,
+          edgeWidth: 2,
+          filters: {
+            entityTypes: this.selectedEntityTypes,
+          },
+        },
+      }).toPromise();
+
+      this.snackBar.open(`Graph "${savedGraph?.name}" saved successfully`, 'Close', { duration: 3000 });
+    } catch (error) {
+      console.error('Failed to save graph:', error);
+      this.snackBar.open('Failed to save graph', 'Close', { duration: 3000 });
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  async loadSavedGraph(): Promise<void> {
+    const caseId = this.caseId();
+    if (!caseId) {
+      this.snackBar.open('No case selected', 'Close', { duration: 3000 });
+      return;
+    }
+
+    this.loading.set(true);
+
+    try {
+      const response = await this.graphService.listSavedGraphs(caseId).toPromise();
+      this.savedGraphs.set(response?.items || []);
+      this.showLoadDialog.set(true);
+    } catch (error) {
+      console.error('Failed to load saved graphs:', error);
+      this.snackBar.open('Failed to load saved graphs', 'Close', { duration: 3000 });
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  closeLoadDialog(): void {
+    this.showLoadDialog.set(false);
+  }
+
+  async selectSavedGraph(graph: SavedGraph): Promise<void> {
+    this.showLoadDialog.set(false);
+    this.loading.set(true);
+
+    try {
+      const fullGraph = await this.graphService.getSavedGraph(graph.id).toPromise();
+      if (fullGraph) {
+        // Restore graph data
+        this.graphData.set({
+          nodes: fullGraph.definition.nodes,
+          edges: fullGraph.definition.edges,
+          metadata: {
+            case_id: fullGraph.case_id,
+            total_nodes: fullGraph.definition.nodes.length,
+            total_edges: fullGraph.definition.edges.length,
+          },
+        });
+
+        // Restore config
+        if (fullGraph.config) {
+          if (fullGraph.config.layout) {
+            this.selectedLayout = fullGraph.config.layout as LayoutType;
+          }
+          if (fullGraph.config.filters?.entityTypes) {
+            this.selectedEntityTypes = fullGraph.config.filters.entityTypes;
+          }
+        }
+
+        this.snackBar.open(`Loaded graph "${fullGraph.name}"`, 'Close', { duration: 3000 });
+      }
+    } catch (error) {
+      console.error('Failed to load saved graph:', error);
+      this.snackBar.open('Failed to load saved graph', 'Close', { duration: 3000 });
+    } finally {
+      this.loading.set(false);
+    }
   }
 
   exportPng(): void {
-    this.snackBar.open('Export feature coming soon', 'Close', { duration: 3000 });
+    if (!this.graphComponent) {
+      this.snackBar.open('Graph not ready', 'Close', { duration: 3000 });
+      return;
+    }
+
+    try {
+      const pngData = this.graphComponent.exportPng();
+      if (!pngData) {
+        this.snackBar.open('Failed to export graph', 'Close', { duration: 3000 });
+        return;
+      }
+
+      // Create download link
+      const link = document.createElement('a');
+      link.href = pngData;
+      link.download = `investigation-graph-${this.caseId() || 'export'}-${new Date().toISOString().split('T')[0]}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      this.snackBar.open('Graph exported as PNG', 'Close', { duration: 3000 });
+    } catch (error) {
+      console.error('Failed to export graph:', error);
+      this.snackBar.open('Failed to export graph', 'Close', { duration: 3000 });
+    }
   }
 
   goBack(): void {
