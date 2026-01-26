@@ -359,7 +359,7 @@ export class CytoscapeGraphComponent implements OnInit, AfterViewInit, OnDestroy
 
     // Add edges (filter duplicates)
     const existingEdges = new Set(
-      this.cy.edges().map((e) => `${e.source().id()}-${e.target().id()}`)
+      this.cy.edges().map((e: EdgeSingular) => `${e.source().id()}-${e.target().id()}`)
     );
     const newEdges = data.edges.filter(
       (e) => !existingEdges.has(`${e.source}-${e.target}`)
@@ -406,7 +406,7 @@ export class CytoscapeGraphComponent implements OnInit, AfterViewInit, OnDestroy
     if (edgeData) {
       edgeData.forEach((edge) => {
         const cyEdge = this.cy!.edges().filter(
-          (e) => e.source().id() === edge.source && e.target().id() === edge.target
+          (e: EdgeSingular) => e.source().id() === edge.source && e.target().id() === edge.target
         );
         cyEdge.removeClass('dimmed').addClass('highlighted');
       });
@@ -447,7 +447,7 @@ export class CytoscapeGraphComponent implements OnInit, AfterViewInit, OnDestroy
     if (!this.cy) return {};
 
     const positions: Record<string, { x: number; y: number }> = {};
-    this.cy.nodes().forEach((node) => {
+    this.cy.nodes().forEach((node: NodeSingular) => {
       const pos = node.position();
       positions[node.id()] = { x: pos.x, y: pos.y };
     });
