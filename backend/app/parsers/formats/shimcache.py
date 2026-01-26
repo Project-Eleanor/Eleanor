@@ -4,7 +4,7 @@ Shimcache tracks program execution for application compatibility purposes.
 It's a key artifact for determining what programs have been executed on a system.
 
 Location: SYSTEM registry hive
-Key: HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\AppCompatCache
+Key: HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\AppCompatCache
 """
 
 import logging

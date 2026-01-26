@@ -4,7 +4,7 @@ UserAssist tracks user interaction with Windows shell objects (programs, shortcu
 Data is stored in the NTUSER.DAT registry hive with ROT13-encoded key names.
 
 Location: NTUSER.DAT
-Key: HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\UserAssist
+Key: HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\UserAssist
 """
 
 import codecs

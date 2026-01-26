@@ -5,8 +5,8 @@ Two types:
 - AutomaticDestinations: System-maintained lists (*.automaticDestinations-ms)
 - CustomDestinations: Application-maintained lists (*.customDestinations-ms)
 
-Location: %APPDATA%\Microsoft\Windows\Recent\AutomaticDestinations\
-          %APPDATA%\Microsoft\Windows\Recent\CustomDestinations\
+Location: %APPDATA%\\Microsoft\\Windows\\Recent\\AutomaticDestinations\\
+          %APPDATA%\\Microsoft\\Windows\\Recent\\CustomDestinations\\
 """
 
 import logging

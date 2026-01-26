@@ -7,7 +7,7 @@ SRUM tracks system resource usage including:
 - Energy usage
 - Push notifications
 
-Location: C:\Windows\System32\sru\SRUDB.dat (ESE database)
+Location: C:\\Windows\\System32\\sru\\SRUDB.dat (ESE database)
 """
 
 import logging

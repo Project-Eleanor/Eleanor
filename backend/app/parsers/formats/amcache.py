@@ -6,7 +6,7 @@ Amcache.hve contains information about program execution, including:
 - PE metadata (version, publisher, etc.)
 - Driver and shortcut information
 
-Location: C:\Windows\AppCompat\Programs\Amcache.hve
+Location: C:\\Windows\\AppCompat\\Programs\\Amcache.hve
 """
 
 import logging
