@@ -5,7 +5,6 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from passlib.context import CryptContext
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,9 +13,9 @@ from app.api.v1.auth import get_current_active_admin
 from app.database import get_db
 from app.models.audit import AuditLog
 from app.models.user import AuthProvider, User
+from app.utils.password import hash_password
 
 router = APIRouter()
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 class UserCreate(BaseModel):
@@ -188,7 +187,7 @@ async def create_user(
         email=user_data.email,
         display_name=user_data.display_name or user_data.username,
         auth_provider=AuthProvider.SAM,
-        password_hash=pwd_context.hash(user_data.password),
+        password_hash=hash_password(user_data.password),
         is_admin=user_data.is_admin,
         roles=user_data.roles,
     )
@@ -235,7 +234,7 @@ async def update_user(
     if user_data.display_name is not None:
         user.display_name = user_data.display_name
     if user_data.password is not None:
-        user.password_hash = pwd_context.hash(user_data.password)
+        user.password_hash = hash_password(user_data.password)
     if user_data.is_active is not None:
         user.is_active = user_data.is_active
     if user_data.is_admin is not None:

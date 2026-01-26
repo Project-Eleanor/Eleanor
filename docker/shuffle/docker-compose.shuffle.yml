@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  shuffle-backend:
+    image: ghcr.io/shuffle/shuffle-backend:latest
+    container_name: eleanor-shuffle-backend
+    hostname: shuffle-backend
+    environment:
+      - BACKEND_HOSTNAME=shuffle-backend
+      - SHUFFLE_APP_HOTLOAD_FOLDER=/shuffle-apps
+      - SHUFFLE_FILE_LOCATION=/shuffle-files
+      - SHUFFLE_OPENSEARCH_URL=http://eleanor-elasticsearch:9200
+      - SHUFFLE_DEFAULT_USERNAME=admin
+      - SHUFFLE_DEFAULT_PASSWORD=shuffle_admin
+      - SHUFFLE_DEFAULT_APIKEY=00000000-0000-0000-0000-000000000002
+      - DOCKER_API_VERSION=1.40
+      - SHUFFLE_BASE_URL=http://shuffle-backend:5001
+      - SHUFFLE_ORBIT_NAME=eleanor-shuffle
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - shuffle_apps:/shuffle-apps
+      - shuffle_files:/shuffle-files
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - eleanor_eleanor-network
+    restart: unless-stopped
+
+  shuffle-frontend:
+    image: ghcr.io/shuffle/shuffle-frontend:latest
+    container_name: eleanor-shuffle-frontend
+    hostname: shuffle-frontend
+    depends_on:
+      shuffle-backend:
+        condition: service_healthy
+    environment:
+      - BACKEND_HOSTNAME=shuffle-backend
+    ports:
+      - "3001:80"
+      - "3443:443"
+    networks:
+      - eleanor_eleanor-network
+    restart: unless-stopped
+
+  shuffle-orborus:
+    image: ghcr.io/shuffle/shuffle-orborus:latest
+    container_name: eleanor-shuffle-orborus
+    hostname: shuffle-orborus
+    depends_on:
+      shuffle-backend:
+        condition: service_healthy
+    environment:
+      - SHUFFLE_APP_SDK_VERSION=1.4.0
+      - SHUFFLE_WORKER_VERSION=latest
+      - BASE_URL=http://eleanor-shuffle-backend:5001
+      - DOCKER_API_VERSION=1.40
+      - SHUFFLE_BASE_IMAGE_NAME=shuffle
+      - SHUFFLE_BASE_IMAGE_REGISTRY=ghcr.io
+      - SHUFFLE_BASE_IMAGE_TAG_SUFFIX=-1.4.0
+      - CLEANUP=true
+      - SHUFFLE_ORBORUS_EXECUTION_TIMEOUT=600
+      - ENVIRONMENT_NAME=Eleanor
+      - ORG_ID=Eleanor
+      - SHUFFLE_PASS_WORKER_PROXY=false
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - eleanor_eleanor-network
+    restart: unless-stopped
+
+volumes:
+  shuffle_apps:
+  shuffle_files:
+
+networks:
+  eleanor_eleanor-network:
+    external: true

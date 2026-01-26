@@ -61,6 +61,21 @@ class UserCreate(BaseModel):
     password: str
 
 
+class SetupRequest(BaseModel):
+    """Initial setup request for creating first admin user."""
+
+    username: str
+    email: str | None = None
+    password: str
+
+
+class SetupStatusResponse(BaseModel):
+    """Setup status response."""
+
+    needs_setup: bool
+    message: str
+
+
 def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
     """Create a JWT access token."""
     to_encode = data.copy()
@@ -120,9 +135,7 @@ async def login(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> Token:
     """Authenticate user and return JWT token."""
-    from passlib.context import CryptContext
-
-    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    from app.utils.password import verify_password
 
     # Find user
     result = await db.execute(select(User).where(User.username == form_data.username))
@@ -135,7 +148,7 @@ async def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    if not user.password_hash or not pwd_context.verify(
+    if not user.password_hash or not verify_password(
         form_data.password, user.password_hash
     ):
         raise HTTPException(
@@ -197,4 +210,81 @@ async def refresh_token(
     return Token(
         access_token=access_token,
         expires_in=settings.jwt_expire_minutes * 60,
+    )
+
+
+@router.get("/setup/status", response_model=SetupStatusResponse)
+async def get_setup_status(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> SetupStatusResponse:
+    """Check if initial setup is needed (no users exist)."""
+    from sqlalchemy import func
+
+    result = await db.execute(select(func.count()).select_from(User))
+    user_count = result.scalar() or 0
+
+    if user_count == 0:
+        return SetupStatusResponse(
+            needs_setup=True,
+            message="No users exist. Please create an admin account.",
+        )
+    return SetupStatusResponse(
+        needs_setup=False,
+        message="Setup complete. Please login.",
+    )
+
+
+@router.post("/setup", response_model=UserResponse)
+async def initial_setup(
+    setup_data: SetupRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> UserResponse:
+    """Create initial admin user. Only works when no users exist."""
+    from sqlalchemy import func
+
+    from app.utils.password import hash_password
+
+    # Check if any users exist
+    result = await db.execute(select(func.count()).select_from(User))
+    user_count = result.scalar() or 0
+
+    if user_count > 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Setup already complete. Users already exist.",
+        )
+
+    # Validate password length
+    if len(setup_data.password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must be at least 8 characters long.",
+        )
+
+    # Create admin user
+    admin_user = User(
+        username=setup_data.username,
+        email=setup_data.email,
+        display_name=setup_data.username,
+        auth_provider=AuthProvider.SAM,
+        password_hash=hash_password(setup_data.password),
+        is_admin=True,
+        is_active=True,
+        roles=["admin"],
+    )
+
+    db.add(admin_user)
+    await db.commit()
+    await db.refresh(admin_user)
+
+    return UserResponse(
+        id=str(admin_user.id),
+        username=admin_user.username,
+        email=admin_user.email,
+        display_name=admin_user.display_name,
+        auth_provider=admin_user.auth_provider.value,
+        is_active=admin_user.is_active,
+        is_admin=admin_user.is_admin,
+        roles=admin_user.roles,
+        last_login=admin_user.last_login,
     )

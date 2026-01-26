@@ -1,0 +1,107 @@
+version: '3.8'
+
+services:
+  opencti-minio:
+    image: minio/minio:latest
+    container_name: eleanor-opencti-minio
+    environment:
+      MINIO_ROOT_USER: opencti_minio_user
+      MINIO_ROOT_PASSWORD: opencti_minio_password
+    volumes:
+      - opencti_minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - eleanor_eleanor-network
+    restart: unless-stopped
+
+  opencti-rabbitmq:
+    image: rabbitmq:3-management
+    container_name: eleanor-opencti-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: opencti_rabbitmq
+      RABBITMQ_DEFAULT_PASS: opencti_rabbitmq_password
+    volumes:
+      - opencti_rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - eleanor_eleanor-network
+    restart: unless-stopped
+
+  opencti:
+    image: opencti/platform:6
+    container_name: eleanor-opencti
+    depends_on:
+      opencti-minio:
+        condition: service_healthy
+      opencti-rabbitmq:
+        condition: service_healthy
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=4096
+      - APP__PORT=8080
+      - APP__BASE_URL=http://localhost:8080
+      - APP__ADMIN__EMAIL=admin@eleanor.local
+      - APP__ADMIN__PASSWORD=opencti_admin
+      - APP__ADMIN__TOKEN=00000000-0000-0000-0000-000000000001
+      - APP__APP_LOGS__LOGS_LEVEL=error
+      - REDIS__HOSTNAME=eleanor-redis
+      - REDIS__PORT=6379
+      - REDIS__NAMESPACE=opencti
+      - ELASTICSEARCH__URL=http://eleanor-elasticsearch:9200
+      - ELASTICSEARCH__INDEX_PREFIX=opencti
+      - MINIO__ENDPOINT=eleanor-opencti-minio
+      - MINIO__PORT=9000
+      - MINIO__USE_SSL=false
+      - MINIO__ACCESS_KEY=opencti_minio_user
+      - MINIO__SECRET_KEY=opencti_minio_password
+      - RABBITMQ__HOSTNAME=eleanor-opencti-rabbitmq
+      - RABBITMQ__PORT=5672
+      - RABBITMQ__PORT_MANAGEMENT=15672
+      - RABBITMQ__MANAGEMENT_SSL=false
+      - RABBITMQ__USERNAME=opencti_rabbitmq
+      - RABBITMQ__PASSWORD=opencti_rabbitmq_password
+      - PROVIDERS__LOCAL__STRATEGY=LocalStrategy
+    ports:
+      - "8080:8080"
+    volumes:
+      - opencti_data:/opt/opencti/public
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 180s
+    networks:
+      - eleanor_eleanor-network
+    restart: unless-stopped
+
+  opencti-worker:
+    image: opencti/worker:6
+    container_name: eleanor-opencti-worker
+    depends_on:
+      opencti:
+        condition: service_healthy
+    environment:
+      - OPENCTI_URL=http://eleanor-opencti:8080
+      - OPENCTI_TOKEN=00000000-0000-0000-0000-000000000001
+      - WORKER_LOG_LEVEL=info
+    networks:
+      - eleanor_eleanor-network
+    restart: unless-stopped
+
+volumes:
+  opencti_data:
+  opencti_minio_data:
+  opencti_rabbitmq_data:
+
+networks:
+  eleanor_eleanor-network:
+    external: true

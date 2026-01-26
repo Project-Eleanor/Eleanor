@@ -18,6 +18,10 @@ import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { WorkflowService } from '../../core/api/workflow.service';
 import { Workflow, WorkflowExecution, ApprovalRequest, ExecutionStatus } from '../../shared/models';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { PlaybookDetailDialogComponent } from './playbook-detail-dialog.component';
+import { RunPlaybookDialogComponent } from './run-playbook-dialog.component';
+import { ExecutionDetailDialogComponent } from './execution-detail-dialog.component';
 
 @Component({
   selector: 'app-automation',
@@ -39,7 +43,8 @@ import { Workflow, WorkflowExecution, ApprovalRequest, ExecutionStatus } from '.
     MatMenuModule,
     MatBadgeModule,
     MatDialogModule,
-    MatPaginatorModule
+    MatPaginatorModule,
+    MatSnackBarModule
   ],
   template: `
     <div class="automation">
@@ -736,7 +741,8 @@ export class AutomationComponent implements OnInit {
 
   constructor(
     private workflowService: WorkflowService,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private snackBar: MatSnackBar
   ) {}
 
   ngOnInit(): void {
@@ -867,26 +873,73 @@ export class AutomationComponent implements OnInit {
   }
 
   viewPlaybook(playbook: Workflow): void {
-    console.log('View playbook:', playbook);
+    const dialogRef = this.dialog.open(PlaybookDetailDialogComponent, {
+      data: playbook,
+      panelClass: 'dark-dialog'
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result?.action === 'run') {
+        this.runPlaybook(result.playbook);
+      }
+    });
   }
 
   runPlaybook(playbook: Workflow): void {
-    // Would open a dialog to configure parameters
-    console.log('Run playbook:', playbook);
+    const dialogRef = this.dialog.open(RunPlaybookDialogComponent, {
+      data: playbook,
+      panelClass: 'dark-dialog'
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.loadExecutions();
+        const message = playbook.requires_approval
+          ? 'Playbook submitted for approval'
+          : 'Playbook execution started';
+        this.snackBar.open(message, 'Dismiss', { duration: 3000 });
+      }
+    });
   }
 
   viewExecution(execution: WorkflowExecution): void {
-    console.log('View execution:', execution);
+    const dialogRef = this.dialog.open(ExecutionDetailDialogComponent, {
+      data: execution,
+      panelClass: 'dark-dialog'
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result?.action === 'cancelled') {
+        this.loadExecutions();
+        this.snackBar.open('Execution cancelled', 'Dismiss', { duration: 2000 });
+      } else if (result?.action === 'retry') {
+        this.retryExecution(result.execution);
+      }
+    });
   }
 
   cancelExecution(execution: WorkflowExecution): void {
     this.workflowService.cancelExecution(execution.id).subscribe({
-      next: () => this.loadExecutions()
+      next: () => {
+        this.loadExecutions();
+        this.snackBar.open('Execution cancelled', 'Dismiss', { duration: 2000 });
+      },
+      error: () => {
+        this.snackBar.open('Failed to cancel execution', 'Dismiss', { duration: 3000 });
+      }
     });
   }
 
   retryExecution(execution: WorkflowExecution): void {
-    console.log('Retry execution:', execution);
+    this.workflowService.trigger(execution.workflow_id, execution.parameters).subscribe({
+      next: () => {
+        this.loadExecutions();
+        this.snackBar.open('Playbook execution restarted', 'Dismiss', { duration: 3000 });
+      },
+      error: () => {
+        this.snackBar.open('Failed to retry execution', 'Dismiss', { duration: 3000 });
+      }
+    });
   }
 
   approveRequest(approval: ApprovalRequest): void {

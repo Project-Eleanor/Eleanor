@@ -9,8 +9,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.adapters import get_registry, init_adapters
 from app.api.v1 import router as api_v1_router
 from app.config import get_settings
-from app.database import close_elasticsearch, close_redis, init_elasticsearch_indices
+from app.database import Base, close_elasticsearch, close_redis, engine, init_elasticsearch_indices
 from app.exceptions import setup_exception_handlers
+# Import all models to register them with Base.metadata
+import app.models  # noqa: F401
 
 settings = get_settings()
 
@@ -22,11 +24,24 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+async def init_database():
+    """Initialize database tables."""
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan events."""
     # Startup
     logger.info("Starting Eleanor DFIR Platform v%s", settings.app_version)
+
+    # Initialize database tables
+    try:
+        await init_database()
+        logger.info("Database tables initialized")
+    except Exception as e:
+        logger.warning("Failed to initialize database tables: %s", e)
 
     try:
         await init_elasticsearch_indices()

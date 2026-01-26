@@ -90,6 +90,12 @@ import { D3TimelineComponent, TimelineItem } from '../../shared/components/d3-ti
             <mat-icon>search</mat-icon>
             Filter
           </button>
+          @if (visibleRange()) {
+            <button mat-stroked-button (click)="resetVisibleRange()" matTooltip="Reset zoom to show all events">
+              <mat-icon>zoom_out_map</mat-icon>
+              Reset Zoom
+            </button>
+          }
         </div>
       </mat-card>
 
@@ -114,6 +120,21 @@ import { D3TimelineComponent, TimelineItem } from '../../shared/components/d3-ti
             (itemSelected)="onTimelineItemSelected($event)"
             (rangeChanged)="onRangeChanged($event)">
           </app-d3-timeline>
+
+          <!-- Event List Header -->
+          <div class="event-list-header">
+            <span class="event-count">
+              {{ events().length }} events
+              @if (visibleRange() && events().length !== allEvents().length) {
+                <span class="filtered-indicator">(of {{ allEvents().length }} total)</span>
+              }
+            </span>
+            @if (visibleRange()) {
+              <span class="range-indicator">
+                {{ visibleRange()!.start | date:'short' }} - {{ visibleRange()!.end | date:'short' }}
+              </span>
+            }
+          </div>
 
           <!-- Event List -->
           <div class="event-list">
@@ -340,6 +361,34 @@ import { D3TimelineComponent, TimelineItem } from '../../shared/components/d3-ti
       &.category-persistence { background: var(--danger); }
     }
 
+    .event-list-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      margin-bottom: 8px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .event-count {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-primary);
+
+      .filtered-indicator {
+        font-weight: 400;
+        color: var(--text-secondary);
+      }
+    }
+
+    .range-indicator {
+      font-size: 12px;
+      color: var(--text-muted);
+      background: var(--bg-tertiary);
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+
     .event-list {
       flex: 1;
       overflow-y: auto;
@@ -494,6 +543,9 @@ import { D3TimelineComponent, TimelineItem } from '../../shared/components/d3-ti
   `]
 })
 export class TimelineViewComponent implements OnInit {
+  // All loaded events from the server
+  allEvents = signal<TimelineEvent[]>([]);
+  // Filtered events based on visible range
   events = signal<TimelineEvent[]>([]);
   cases = signal<{ id: string; case_number: string }[]>([]);
   isLoading = signal(false);
@@ -501,6 +553,9 @@ export class TimelineViewComponent implements OnInit {
 
   // Computed signal for D3 timeline items
   timelineItems = signal<TimelineItem[]>([]);
+
+  // Current visible range from D3 timeline
+  visibleRange = signal<{ start: Date; end: Date } | null>(null);
 
   selectedCaseId: string | null = null;
   startDate: Date | null = null;
@@ -532,15 +587,19 @@ export class TimelineViewComponent implements OnInit {
 
   loadTimeline(): void {
     if (!this.selectedCaseId) {
+      this.allEvents.set([]);
       this.events.set([]);
       this.timelineItems.set([]);
+      this.visibleRange.set(null);
       return;
     }
 
     this.isLoading.set(true);
     this.caseService.getTimeline(this.selectedCaseId).subscribe({
       next: (events) => {
+        this.allEvents.set(events);
         this.events.set(events);
+        this.visibleRange.set(null);
         // Convert to D3 timeline format
         this.timelineItems.set(events.map(e => ({
           id: e.id,
@@ -564,8 +623,36 @@ export class TimelineViewComponent implements OnInit {
   }
 
   onRangeChanged(range: { start: Date; end: Date }): void {
-    // Could be used to load more data or update filters
-    console.log('Timeline range changed:', range);
+    // Store the visible range
+    this.visibleRange.set(range);
+
+    // Update date filter fields to reflect visible range
+    this.startDate = range.start;
+    this.endDate = range.end;
+
+    // Filter events to only show those within the visible range
+    const filteredEvents = this.allEvents().filter(event => {
+      const eventTime = new Date(event.timestamp).getTime();
+      return eventTime >= range.start.getTime() && eventTime <= range.end.getTime();
+    });
+
+    this.events.set(filteredEvents);
+
+    // Clear selection if the selected event is no longer visible
+    const selected = this.selectedEvent();
+    if (selected) {
+      const selectedTime = new Date(selected.timestamp).getTime();
+      if (selectedTime < range.start.getTime() || selectedTime > range.end.getTime()) {
+        this.selectedEvent.set(null);
+      }
+    }
+  }
+
+  resetVisibleRange(): void {
+    this.visibleRange.set(null);
+    this.startDate = null;
+    this.endDate = null;
+    this.events.set(this.allEvents());
   }
 
   selectEvent(event: TimelineEvent): void {

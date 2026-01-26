@@ -10,6 +10,7 @@ Timesketch API: https://timesketch.org/guides/user/api/
 """
 
 import logging
+import re
 from datetime import datetime
 from typing import Any, Optional
 
@@ -75,28 +76,60 @@ class TimesketchAdapter(TimelineAdapter):
         if self.config.api_key:
             return
 
+        if self._session_token:
+            # Already authenticated
+            return
+
         username = self.config.extra.get("username", "")
         password = self.config.extra.get("password", "")
 
         if not username or not password:
             raise ValueError("Timesketch requires API key or username/password")
 
-        client = await self._get_client()
-        response = await client.post(
-            "/login/",
-            data={
-                "username": username,
-                "password": password,
-            },
-            follow_redirects=False,
-        )
+        # Create a temporary client for authentication (without auth headers)
+        async with httpx.AsyncClient(
+            base_url=self.config.url.rstrip("/"),
+            timeout=self.config.timeout,
+            verify=self.config.verify_ssl,
+        ) as auth_client:
+            # First, get the login page to obtain CSRF token
+            login_page = await auth_client.get("/login/")
 
-        # Extract session cookie
-        cookies = response.cookies
-        if "session" in cookies:
-            self._session_token = cookies["session"]
-            # Update client headers
-            self._client = None  # Force recreation with new auth
+            # Extract CSRF token from hidden form field
+            csrf_match = re.search(r'name="csrf_token".*?value="([^"]+)"', login_page.text)
+            if not csrf_match:
+                raise ValueError("Could not find CSRF token in login page")
+
+            csrf_token = csrf_match.group(1)
+            logger.debug("Found CSRF token for Timesketch login")
+
+            # Perform login with CSRF token
+            response = await auth_client.post(
+                "/login/",
+                data={
+                    "username": username,
+                    "password": password,
+                    "csrf_token": csrf_token,
+                },
+                follow_redirects=False,
+            )
+
+            # Check if login was successful (redirect to dashboard)
+            if response.status_code == 302:
+                # Extract the new session cookie after successful login
+                if "session" in auth_client.cookies:
+                    self._session_token = auth_client.cookies["session"]
+                    logger.info("Timesketch authentication successful")
+                    # Force recreation of main client with new session
+                    if self._client:
+                        await self._client.aclose()
+                    self._client = None
+                else:
+                    raise ValueError("Login succeeded but no session cookie received")
+            elif response.status_code == 400:
+                raise ValueError("Login failed: Invalid credentials or CSRF error")
+            else:
+                raise ValueError(f"Login failed with status {response.status_code}")
 
     async def _request(
         self,
@@ -125,8 +158,8 @@ class TimesketchAdapter(TimelineAdapter):
             # Try to authenticate if needed
             await self._authenticate()
 
-            # Check status endpoint
-            result = await self._request("GET", "/api/v1/status/")
+            # Check version endpoint
+            result = await self._request("GET", "/api/v1/version/")
             self._version = result.get("meta", {}).get("version", "unknown")
             self._status = AdapterStatus.CONNECTED
 

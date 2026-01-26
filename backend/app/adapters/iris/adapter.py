@@ -103,23 +103,42 @@ class IRISAdapter(CaseManagementAdapter):
         result = response.json()
 
         # IRIS wraps responses in a data envelope
-        if isinstance(result, dict) and "data" in result:
-            return result["data"]
+        # For endpoints like /api/ping, data is an empty list
+        if isinstance(result, dict):
+            if "data" in result and isinstance(result["data"], dict):
+                return result["data"]
+            return result  # Return full response for ping, etc.
         return result
 
     async def health_check(self) -> AdapterHealth:
         """Check IRIS connectivity."""
         try:
-            result = await self._request("GET", "/api/ping")
-            self._version = result.get("version", "unknown")
-            self._status = AdapterStatus.CONNECTED
+            # Get raw JSON response for ping (includes status and message)
+            client = await self._get_client()
+            response = await client.get("/api/ping")
+            response.raise_for_status()
+            result = response.json()
 
-            return AdapterHealth(
-                adapter_name=self.name,
-                status=AdapterStatus.CONNECTED,
-                version=self._version,
-                message="Connected to IRIS",
-            )
+            # Ping returns {"status": "success", "message": "pong", "data": []}
+            if result.get("status") == "success":
+                self._status = AdapterStatus.CONNECTED
+                # Try to get version from a separate endpoint
+                try:
+                    ver_response = await client.get("/api/versions")
+                    ver_result = ver_response.json()
+                    ver_data = ver_result.get("data", {})
+                    self._version = ver_data.get("iris_current", ver_data.get("iris_version", "unknown"))
+                except Exception:
+                    self._version = "connected"
+
+                return AdapterHealth(
+                    adapter_name=self.name,
+                    status=AdapterStatus.CONNECTED,
+                    version=self._version,
+                    message="Connected to IRIS",
+                )
+            else:
+                raise ValueError(f"Unexpected response: {result}")
         except httpx.HTTPError as e:
             logger.error("IRIS health check failed: %s", e)
             self._status = AdapterStatus.ERROR

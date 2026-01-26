@@ -17,6 +17,9 @@ import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { AnalyticsService, DetectionRule, RuleSeverity, RuleStatus } from '../../core/api/analytics.service';
+import { RuleDetailDialogComponent } from './rule-detail-dialog.component';
+import { RuleEditDialogComponent, RuleEditDialogData } from './rule-edit-dialog.component';
+import { RuleTriggersDialogComponent } from './rule-triggers-dialog.component';
 
 export interface AnalyticsRule {
   id: string;
@@ -68,7 +71,7 @@ export interface AnalyticsRule {
             <mat-icon>refresh</mat-icon>
             Refresh
           </button>
-          <button mat-flat-button color="primary">
+          <button mat-flat-button color="primary" (click)="createRule()">
             <mat-icon>add</mat-icon>
             Create Rule
           </button>
@@ -599,24 +602,65 @@ export class AnalyticsComponent implements OnInit {
     });
   }
 
+  createRule(): void {
+    const dialogRef = this.dialog.open(RuleEditDialogComponent, {
+      data: { mode: 'create' } as RuleEditDialogData,
+      panelClass: 'dark-dialog'
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.refresh();
+        this.snackBar.open('Rule created successfully', 'Dismiss', { duration: 2000 });
+      }
+    });
+  }
+
   viewRule(rule: AnalyticsRule): void {
-    console.log('View rule:', rule);
+    const dialogRef = this.dialog.open(RuleDetailDialogComponent, {
+      data: rule,
+      panelClass: 'dark-dialog'
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result?.action === 'edit') {
+        this.editRule(result.rule);
+      }
+    });
   }
 
   editRule(rule: AnalyticsRule): void {
-    console.log('Edit rule:', rule);
+    const dialogRef = this.dialog.open(RuleEditDialogComponent, {
+      data: { rule, mode: 'edit' } as RuleEditDialogData,
+      panelClass: 'dark-dialog'
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.refresh();
+        this.snackBar.open('Rule updated successfully', 'Dismiss', { duration: 2000 });
+      }
+    });
   }
 
   duplicateRule(rule: AnalyticsRule): void {
-    console.log('Duplicate rule:', rule);
+    const dialogRef = this.dialog.open(RuleEditDialogComponent, {
+      data: { rule, mode: 'duplicate' } as RuleEditDialogData,
+      panelClass: 'dark-dialog'
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.refresh();
+        this.snackBar.open('Rule duplicated successfully', 'Dismiss', { duration: 2000 });
+      }
+    });
   }
 
   viewTriggers(rule: AnalyticsRule): void {
-    this.analyticsService.getRuleExecutions(rule.id, 50).subscribe({
-      next: (executions) => {
-        console.log('Rule executions:', executions);
-      },
-      error: (err) => console.error('Failed to load executions:', err)
+    this.dialog.open(RuleTriggersDialogComponent, {
+      data: rule,
+      panelClass: 'dark-dialog'
     });
   }
 

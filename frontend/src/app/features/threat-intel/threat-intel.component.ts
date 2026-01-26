@@ -16,6 +16,10 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
 import { EnrichmentService, ThreatReport, ThreatActor } from '../../core/api/enrichment.service';
 import { IOC } from '../../shared/models';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { EnrichmentResultDialogComponent, EnrichmentDialogData } from './enrichment-result-dialog.component';
+import { ThreatActorDialogComponent } from './threat-actor-dialog.component';
 
 @Component({
   selector: 'app-threat-intel',
@@ -35,7 +39,9 @@ import { IOC } from '../../shared/models';
     MatChipsModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
-    MatMenuModule
+    MatMenuModule,
+    MatDialogModule,
+    MatSnackBarModule
   ],
   template: `
     <div class="threat-intel">
@@ -156,7 +162,7 @@ import { IOC } from '../../shared/models';
                       <mat-icon>more_vert</mat-icon>
                     </button>
                     <mat-menu #iocMenu="matMenu">
-                      <button mat-menu-item (click)="enrichIndicator(ioc.value)">
+                      <button mat-menu-item (click)="enrichIndicator(ioc.value, ioc.indicator_type)">
                         <mat-icon>search</mat-icon>
                         <span>Enrich</span>
                       </button>
@@ -581,7 +587,11 @@ export class ThreatIntelComponent implements OnInit {
 
   indicatorColumns = ['value', 'type', 'confidence', 'source', 'first_seen', 'actions'];
 
-  constructor(private enrichmentService: EnrichmentService) {}
+  constructor(
+    private enrichmentService: EnrichmentService,
+    private dialog: MatDialog,
+    private snackBar: MatSnackBar
+  ) {}
 
   ngOnInit(): void {
     this.loadIndicators();
@@ -653,17 +663,16 @@ export class ThreatIntelComponent implements OnInit {
     return icons[type] || 'security';
   }
 
-  enrichIndicator(value: string): void {
-    this.enrichmentService.enrich(value).subscribe({
-      next: (result) => {
-        console.log('Enrichment result:', result);
-        // Could open a dialog with enrichment details
-      }
+  enrichIndicator(value: string, indicatorType?: string): void {
+    this.dialog.open(EnrichmentResultDialogComponent, {
+      data: { indicator: value, indicatorType } as EnrichmentDialogData,
+      panelClass: 'dark-dialog'
     });
   }
 
   copyToClipboard(value: string): void {
     navigator.clipboard.writeText(value);
+    this.snackBar.open('Copied to clipboard', 'Dismiss', { duration: 2000 });
   }
 
   huntForIndicator(value: string): void {
@@ -672,7 +681,16 @@ export class ThreatIntelComponent implements OnInit {
   }
 
   viewActorDetails(actor: ThreatActor): void {
-    // Could open a dialog with full actor details
-    console.log('View actor:', actor);
+    const dialogRef = this.dialog.open(ThreatActorDialogComponent, {
+      data: actor,
+      panelClass: 'dark-dialog'
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result?.action === 'search') {
+        this.searchQuery = result.query;
+        this.search();
+      }
+    });
   }
 }

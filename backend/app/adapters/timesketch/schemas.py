@@ -69,9 +69,11 @@ class TimesketchTimeline(BaseModel):
 class TimesketchEvent(BaseModel):
     """Timesketch timeline event."""
 
+    # Fields renamed to avoid leading underscore (Pydantic v2 requirement)
+    # The alias allows parsing JSON that uses _id, _index, _source
     es_id: str = Field(alias="_id", default="")
     es_index: str = Field(alias="_index", default="")
-    source: dict[str, Any] = Field(alias="_source", default_factory=dict)
+    es_source: dict[str, Any] = Field(alias="_source", default_factory=dict)
 
     model_config = {"populate_by_name": True}
 
@@ -83,7 +85,7 @@ class TimesketchEvent(BaseModel):
     @property
     def timestamp(self) -> Optional[datetime]:
         """Get event timestamp."""
-        ts = self.source.get("datetime")
+        ts = self.es_source.get("datetime")
         if isinstance(ts, str):
             try:
                 return datetime.fromisoformat(ts.replace("Z", "+00:00"))
@@ -94,27 +96,27 @@ class TimesketchEvent(BaseModel):
     @property
     def message(self) -> str:
         """Get event message."""
-        return self.source.get("message", "")
+        return self.es_source.get("message", "")
 
     @property
     def source_name(self) -> str:
         """Get data source name."""
-        return self.source.get("data_type", self.source.get("source_name", ""))
+        return self.es_source.get("data_type", self.es_source.get("source_name", ""))
 
     @property
     def source_short(self) -> str:
         """Get short source description."""
-        return self.source.get("source_short", "")
+        return self.es_source.get("source_short", "")
 
     @property
     def timestamp_desc(self) -> str:
         """Get timestamp description."""
-        return self.source.get("timestamp_desc", "")
+        return self.es_source.get("timestamp_desc", "")
 
     @property
     def tags(self) -> list[str]:
         """Get event tags."""
-        return self.source.get("tag", [])
+        return self.es_source.get("tag", [])
 
     @property
     def starred(self) -> bool:
@@ -124,12 +126,12 @@ class TimesketchEvent(BaseModel):
     @property
     def comments(self) -> list[str]:
         """Get event comments."""
-        return self.source.get("__ts_comments", [])
+        return self.es_source.get("__ts_comments", [])
 
     @property
     def attributes(self) -> dict[str, Any]:
         """Get all event attributes."""
-        return self.source
+        return self.es_source
 
 
 class TimesketchSavedView(BaseModel):
