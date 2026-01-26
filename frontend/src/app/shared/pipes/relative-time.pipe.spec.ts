@@ -68,7 +68,7 @@ describe('RelativeTimePipe', () => {
 
     it('should show hour ago (singular)', () => {
       const result = pipe.transform('2025-01-20T11:00:00Z');
-      expect(result).toContain('1 hour ago') || expect(result).toContain('about 1 hour ago');
+      expect(result.includes('1 hour ago') || result.includes('about 1 hour ago')).toBe(true);
     });
 
     it('should show hours ago (plural)', () => {
@@ -120,7 +120,7 @@ describe('RelativeTimePipe', () => {
     it('should format case creation date', () => {
       // Case created 2 weeks ago
       const result = pipe.transform('2025-01-06T10:00:00Z');
-      expect(result).toContain('days ago') || expect(result).toContain('weeks ago');
+      expect(result.includes('days ago') || result.includes('weeks ago')).toBe(true);
     });
 
     it('should format evidence collection time', () => {

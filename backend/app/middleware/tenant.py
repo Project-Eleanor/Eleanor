@@ -117,6 +117,11 @@ class TenantMiddleware(BaseHTTPMiddleware):
         Returns:
             TenantContext if tenant is identified, None otherwise.
         """
+        # Skip DB lookups in testing mode (get settings dynamically for test overrides)
+        current_settings = get_settings()
+        if current_settings.testing:
+            return None
+
         # Method 1: API Key authentication
         api_key = request.headers.get(API_KEY_HEADER)
         if api_key:

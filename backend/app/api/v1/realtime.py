@@ -87,7 +87,7 @@ class TopRule(BaseModel):
 
 @router.get("/stats", response_model=OverviewStats)
 async def get_overview_stats(
-    time_range: str = Query("24h", regex="^(1h|24h|7d|30d)$"),
+    time_range: str = Query("24h", pattern="^(1h|24h|7d|30d)$"),
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, Any]:
     """Get dashboard overview statistics.
@@ -100,8 +100,8 @@ async def get_overview_stats(
 
 @router.get("/alerts/timeline", response_model=list[TimelineBucket])
 async def get_alert_timeline(
-    interval: str = Query("1h", regex="^(15m|1h|4h|1d)$"),
-    time_range: str = Query("24h", regex="^(1h|24h|7d|30d)$"),
+    interval: str = Query("1h", pattern="^(15m|1h|4h|1d)$"),
+    time_range: str = Query("24h", pattern="^(1h|24h|7d|30d)$"),
     db: AsyncSession = Depends(get_db),
 ) -> list[dict[str, Any]]:
     """Get alert timeline for charts.
@@ -115,7 +115,7 @@ async def get_alert_timeline(
 @router.get("/rules/top", response_model=list[TopRule])
 async def get_top_rules(
     limit: int = Query(10, ge=1, le=50),
-    time_range: str = Query("24h", regex="^(1h|24h|7d|30d)$"),
+    time_range: str = Query("24h", pattern="^(1h|24h|7d|30d)$"),
     db: AsyncSession = Depends(get_db),
 ) -> list[dict[str, Any]]:
     """Get top triggering rules.
@@ -128,7 +128,7 @@ async def get_top_rules(
 
 @router.get("/alerts/severity")
 async def get_severity_distribution(
-    time_range: str = Query("24h", regex="^(1h|24h|7d|30d)$"),
+    time_range: str = Query("24h", pattern="^(1h|24h|7d|30d)$"),
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, int]:
     """Get alert severity distribution.
@@ -141,7 +141,7 @@ async def get_severity_distribution(
 
 @router.get("/mitre/heatmap")
 async def get_mitre_heatmap(
-    time_range: str = Query("7d", regex="^(24h|7d|30d)$"),
+    time_range: str = Query("7d", pattern="^(24h|7d|30d)$"),
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, int]:
     """Get MITRE ATT&CK technique heatmap.

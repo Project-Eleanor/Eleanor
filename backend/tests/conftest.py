@@ -16,6 +16,9 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
+# Set testing mode before importing app modules (affects cached settings)
+os.environ["TESTING"] = "true"
+
 import pytest
 import pytest_asyncio
 from fastapi import FastAPI
@@ -43,6 +46,7 @@ def test_settings() -> Settings:
     return Settings(
         app_name="Eleanor-Test",
         debug=True,
+        testing=True,  # Skip tenant DB lookups in tests
         database_url="postgresql://test:test@localhost:5432/test",  # Not used in unit tests
         elasticsearch_url="http://localhost:9200",
         elasticsearch_index_prefix="eleanor-test",
@@ -97,14 +101,17 @@ class MockUser:
 
     @staticmethod
     def _hash_password(password: str) -> str:
-        from passlib.context import CryptContext
-        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-        return pwd_context.hash(password)
+        import bcrypt
+        # bcrypt 5.0+ enforces 72-byte limit strictly - truncate to be safe
+        password_bytes = password.encode('utf-8')[:72]
+        salt = bcrypt.gensalt(rounds=4)  # Use lower rounds for faster tests
+        return bcrypt.hashpw(password_bytes, salt).decode('utf-8')
 
     def verify_password(self, password: str) -> bool:
-        from passlib.context import CryptContext
-        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-        return pwd_context.verify(password, self.password_hash)
+        import bcrypt
+        # bcrypt 5.0+ enforces 72-byte limit strictly - truncate to be safe
+        password_bytes = password.encode('utf-8')[:72]
+        return bcrypt.checkpw(password_bytes, self.password_hash.encode('utf-8'))
 
     def has_permission(self, permission: str) -> bool:
         """Check if user has a specific permission."""
@@ -284,51 +291,54 @@ class MockSessionFactory:
 
     async def execute(self, stmt):
         """Mock execute that returns appropriate results based on query."""
-        stmt_str = str(stmt)
+        stmt_str = str(stmt).lower()
 
-        # Count queries for case number generation
-        if "count" in stmt_str.lower():
-            if "cases" in stmt_str.lower():
+        # Count queries - check for count(*) or count( patterns
+        is_count_query = "count(*)" in stmt_str or "count(" in stmt_str
+        if is_count_query:
+            if "cases" in stmt_str:
                 # Return actual count of cases in the mock, not just counter
                 return MockResult([len(set(self.cases.values()))])
-            if "detection_rules" in stmt_str.lower():
+            if "detection_rules" in stmt_str or "detectionrule" in stmt_str:
                 return MockResult([len(self.detection_rules)])
-            if "evidence" in stmt_str.lower():
+            if "evidence" in stmt_str:
                 return MockResult([len(self.evidence)])
+            if "saved_queries" in stmt_str or "savedquery" in stmt_str:
+                return MockResult([len(self.saved_queries)])
             return MockResult([0])
 
         # User queries
-        if "users" in stmt_str.lower():
+        if "users" in stmt_str:
             for username, user in self.users.items():
-                if username in stmt_str or str(user.id) in stmt_str:
+                if username.lower() in stmt_str or str(user.id).lower() in stmt_str:
                     return MockResult([user])
             return MockResult([])
 
         # Case queries
-        if "cases" in stmt_str.lower():
+        if "cases" in stmt_str:
             for key, case in self.cases.items():
-                if key in stmt_str:
+                if key.lower() in stmt_str:
                     return MockResult([case])
             return MockResult(list(set(self.cases.values())))
 
         # Evidence queries
-        if "evidence" in stmt_str.lower():
+        if "evidence" in stmt_str:
             for key, ev in self.evidence.items():
-                if key in stmt_str:
+                if key.lower() in stmt_str:
                     return MockResult([ev])
             return MockResult(list(self.evidence.values()))
 
         # Detection rules queries
-        if "detection_rules" in stmt_str.lower():
+        if "detection_rules" in stmt_str or "detectionrule" in stmt_str:
             for key, rule in self.detection_rules.items():
-                if key in stmt_str:
+                if key.lower() in stmt_str:
                     return MockResult([rule])
             return MockResult(list(self.detection_rules.values()))
 
         # Saved queries
-        if "saved_queries" in stmt_str.lower():
+        if "saved_queries" in stmt_str or "savedquery" in stmt_str:
             for key, sq in self.saved_queries.items():
-                if key in stmt_str:
+                if key.lower() in stmt_str:
                     return MockResult([sq])
             return MockResult(list(self.saved_queries.values()))
 

@@ -249,7 +249,7 @@ async def get_coverage(
 
 @router.get("/coverage/gaps", response_model=list[CoverageGap])
 async def get_coverage_gaps(
-    priority: str = Query("high", regex="^(high|medium|low|all)$"),
+    priority: str = Query("high", pattern="^(high|medium|low|all)$"),
     db: AsyncSession = Depends(get_db),
 ) -> list[dict[str, Any]]:
     """Get detection coverage gaps.
@@ -265,7 +265,7 @@ async def get_coverage_gaps(
 
 @router.get("/heatmap", response_model=HeatmapResponse)
 async def get_heatmap(
-    time_range: str = Query("7d", regex="^(24h|7d|30d)$"),
+    time_range: str = Query("7d", pattern="^(24h|7d|30d)$"),
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, Any]:
     """Get technique heatmap based on alerts/incidents.

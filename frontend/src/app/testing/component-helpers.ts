@@ -10,6 +10,7 @@ import { provideHttpClientTesting, HttpTestingController } from '@angular/common
 import { provideRouter, Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 
+import { of, throwError } from 'rxjs';
 import { provideMockServices } from './mock-services';
 
 /**
@@ -277,7 +278,6 @@ export function flushTimers(): void {
  * Create a mock Observable that emits values.
  */
 export function mockObservable<T>(...values: T[]) {
-  const { of } = require('rxjs');
   return of(...values);
 }
 
@@ -285,6 +285,5 @@ export function mockObservable<T>(...values: T[]) {
  * Create a mock Observable that errors.
  */
 export function mockErrorObservable(error: any) {
-  const { throwError } = require('rxjs');
   return throwError(() => error);
 }

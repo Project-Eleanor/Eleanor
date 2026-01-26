@@ -235,7 +235,7 @@ describe('WorkbookService', () => {
 
       service.executeTile(request).subscribe((result) => {
         expect(result.data.length).toBe(1);
-        expect(result.metadata.took).toBe(15);
+        expect(result.metadata['took']).toBe(15);
       });
 
       const req = httpMock.expectOne(`${baseUrl}/execute-tile`);

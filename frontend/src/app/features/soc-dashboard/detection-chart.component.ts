@@ -1,4 +1,4 @@
-import { Component, input, computed, signal, effect } from '@angular/core';
+import { Component, input, computed, output, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -309,7 +309,7 @@ interface ChartBar {
 export class DetectionChartComponent {
   timeline = input.required<TimelineBucket[]>();
   interval = input<TimelineInterval>('1h');
-  intervalChange = signal<TimelineInterval>('1h');
+  intervalChange = output<TimelineInterval>();
 
   chartData = computed<ChartBar[]>(() => {
     const data = this.timeline();
@@ -351,7 +351,7 @@ export class DetectionChartComponent {
   });
 
   onIntervalChange(value: TimelineInterval): void {
-    this.intervalChange.set(value);
+    this.intervalChange.emit(value);
   }
 
   formatLabel(date: Date): string {
