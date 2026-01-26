@@ -121,7 +121,8 @@ export class CytoscapeGraphComponent implements OnInit, AfterViewInit, OnDestroy
     }
   }
 
-  private getStylesheet(): cytoscape.Stylesheet[] {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private getStylesheet(): any[] {
     return [
       // Node styles
       {
