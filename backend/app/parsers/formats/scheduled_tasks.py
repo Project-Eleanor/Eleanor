@@ -1,6 +1,6 @@
 """Windows Scheduled Tasks parser.
 
-Parses Windows Scheduled Task XML files from System32\Tasks directory.
+Parses Windows Scheduled Task XML files from System32\\Tasks directory.
 """
 
 import logging

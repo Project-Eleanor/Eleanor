@@ -7,7 +7,7 @@ Parses Edge (Chromium-based) browser artifacts:
 - Login Data (saved passwords)
 - Bookmarks
 
-Location: %LocalAppData%\Microsoft\Edge\User Data\Default\
+Location: %LocalAppData%\\Microsoft\\Edge\\User Data\\Default\\
 """
 
 import json
