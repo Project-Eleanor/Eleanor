@@ -50,7 +50,7 @@ class VelociraptorArtifact(BaseModel):
     description: str = ""
     author: str = ""
     type: str = "CLIENT"  # CLIENT, SERVER, INTERNAL
-    tools: list[str] = Field(default_factory=list)
+    tools: list[Any] = Field(default_factory=list)  # Can be strings or dicts
     parameters: list[dict[str, Any]] = Field(default_factory=list)
     sources: list[dict[str, Any]] = Field(default_factory=list)
     precondition: str = ""

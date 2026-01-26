@@ -83,6 +83,10 @@ class Settings(BaseSettings):
     velociraptor_verify_ssl: bool = True
     velociraptor_client_cert: str = ""
     velociraptor_client_key: str = ""
+    velociraptor_ca_cert: str = ""
+    velociraptor_grpc_server_name: str = "VelociraptorServer"
+    velociraptor_username: str = ""
+    velociraptor_password: str = ""
 
     # IRIS - Case Management
     iris_enabled: bool = False

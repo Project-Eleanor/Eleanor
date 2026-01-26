@@ -6,15 +6,19 @@ Provides integration with Velociraptor for:
 - Hunt management
 - Live response actions
 
-Velociraptor uses gRPC for its primary API, but also exposes a REST API
-through the GUI server. This adapter supports both methods.
+Uses gRPC with pyvelociraptor for secure programmatic access via client certificates.
 """
 
+import asyncio
+import json
 import logging
 from datetime import datetime, timedelta
 from typing import Any, Optional
 
+import grpc
+from grpc import RpcError
 import httpx
+from pyvelociraptor import api_pb2, api_pb2_grpc
 
 from app.adapters.base import (
     AdapterConfig,
@@ -46,21 +50,37 @@ class VelociraptorAdapter(CollectionAdapter):
         """Initialize Velociraptor adapter."""
         super().__init__(config)
         self._client: Optional[httpx.AsyncClient] = None
+        self._grpc_channel: Optional[grpc.Channel] = None
+        self._grpc_stub: Optional[api_pb2_grpc.APIStub] = None
         self._version: Optional[str] = None
 
     async def _get_client(self) -> httpx.AsyncClient:
         """Get or create HTTP client."""
         if self._client is None:
             # Build client configuration
+            headers: dict[str, str] = {
+                "Content-Type": "application/json",
+            }
+
+            # Support multiple auth methods:
+            # 1. Bearer token (api_key)
+            # 2. Basic auth (username/password in extra)
+            # 3. Client certificates (client_cert/client_key in extra)
+            if self.config.api_key:
+                headers["Authorization"] = f"Bearer {self.config.api_key}"
+
             kwargs: dict[str, Any] = {
                 "base_url": self.config.url.rstrip("/"),
                 "timeout": self.config.timeout,
                 "verify": self.config.verify_ssl,
-                "headers": {
-                    "Authorization": f"Bearer {self.config.api_key}",
-                    "Content-Type": "application/json",
-                },
+                "headers": headers,
             }
+
+            # Add Basic auth if username/password provided
+            username = self.config.extra.get("username")
+            password = self.config.extra.get("password")
+            if username and password:
+                kwargs["auth"] = (username, password)
 
             # Add client certificate if provided
             cert_path = self.config.extra.get("client_cert")
@@ -71,6 +91,64 @@ class VelociraptorAdapter(CollectionAdapter):
             self._client = httpx.AsyncClient(**kwargs)
 
         return self._client
+
+    def _get_grpc_channel(self) -> grpc.Channel:
+        """Create gRPC channel with certificate authentication."""
+        if self._grpc_channel is None:
+            # Read certificates
+            ca_cert_path = self.config.extra.get("ca_cert")
+            client_cert_path = self.config.extra.get("client_cert")
+            client_key_path = self.config.extra.get("client_key")
+
+            with open(ca_cert_path, "rb") as f:
+                ca_cert = f.read()
+            with open(client_cert_path, "rb") as f:
+                client_cert = f.read()
+            with open(client_key_path, "rb") as f:
+                client_key = f.read()
+
+            credentials = grpc.ssl_channel_credentials(
+                root_certificates=ca_cert,
+                private_key=client_key,
+                certificate_chain=client_cert,
+            )
+
+            server_name = self.config.extra.get("grpc_server_name", "VelociraptorServer")
+            options = [("grpc.ssl_target_name_override", server_name)]
+
+            self._grpc_channel = grpc.secure_channel(
+                self.config.url, credentials, options=options
+            )
+            self._grpc_stub = api_pb2_grpc.APIStub(self._grpc_channel)
+
+        return self._grpc_channel
+
+    def _vql_query_sync(self, query: str, env: Optional[dict] = None) -> list[dict]:
+        """Execute VQL query synchronously via gRPC."""
+        self._get_grpc_channel()
+
+        vql_env = []
+        if env:
+            for key, value in env.items():
+                vql_env.append(api_pb2.VQLEnv(key=key, value=str(value)))
+
+        request = api_pb2.VQLCollectorArgs(
+            max_row=10000,
+            max_wait=10,
+            Query=[api_pb2.VQLRequest(Name="Query", VQL=query)],
+            env=vql_env,
+        )
+
+        results = []
+        for response in self._grpc_stub.Query(request):
+            if response.Response:
+                rows = json.loads(response.Response)
+                if isinstance(rows, list):
+                    results.extend(rows)
+                else:
+                    results.append(rows)
+
+        return results
 
     async def _request(
         self,
@@ -101,7 +179,7 @@ class VelociraptorAdapter(CollectionAdapter):
         query: str,
         env: Optional[dict[str, Any]] = None,
     ) -> list[dict[str, Any]]:
-        """Execute a VQL query.
+        """Execute VQL query asynchronously via gRPC.
 
         Args:
             query: VQL query string.
@@ -110,27 +188,30 @@ class VelociraptorAdapter(CollectionAdapter):
         Returns:
             List of result rows.
         """
-        payload = {
-            "query": query,
-            "env": env or [],
-        }
-        result = await self._request("POST", "/api/v1/VQLQuery", json=payload)
-        return result.get("rows", [])
+        return await asyncio.to_thread(self._vql_query_sync, query, env)
 
     async def health_check(self) -> AdapterHealth:
-        """Check Velociraptor connectivity."""
+        """Check Velociraptor connectivity via gRPC."""
         try:
-            # Query server version
-            rows = await self._vql_query("SELECT * FROM info()")
+            # Query server version from config
+            rows = await self._vql_query("SELECT config.version.version as Version FROM config")
             if rows:
-                self._version = rows[0].get("version", "unknown")
+                self._version = rows[0].get("Version", "unknown")
 
             self._status = AdapterStatus.CONNECTED
             return AdapterHealth(
                 adapter_name=self.name,
                 status=AdapterStatus.CONNECTED,
                 version=self._version,
-                message="Connected to Velociraptor",
+                message="Connected to Velociraptor via gRPC",
+            )
+        except RpcError as e:
+            logger.error("Velociraptor gRPC health check failed: %s", e.details())
+            self._status = AdapterStatus.ERROR
+            return AdapterHealth(
+                adapter_name=self.name,
+                status=AdapterStatus.ERROR,
+                message=f"gRPC error: {e.details()}",
             )
         except httpx.HTTPError as e:
             logger.error("Velociraptor health check failed: %s", e)
@@ -153,9 +234,11 @@ class VelociraptorAdapter(CollectionAdapter):
         """Get adapter configuration (sanitized)."""
         return {
             "url": self.config.url,
-            "verify_ssl": self.config.verify_ssl,
-            "has_api_key": bool(self.config.api_key),
+            "transport": "gRPC",
+            "has_ca_cert": bool(self.config.extra.get("ca_cert")),
             "has_client_cert": bool(self.config.extra.get("client_cert")),
+            "has_client_key": bool(self.config.extra.get("client_key")),
+            "grpc_server_name": self.config.extra.get("grpc_server_name", "VelociraptorServer"),
         }
 
     # =========================================================================
@@ -272,26 +355,30 @@ class VelociraptorAdapter(CollectionAdapter):
         parameters: Optional[dict[str, Any]] = None,
         urgent: bool = False,
     ) -> CollectionJob:
-        """Collect an artifact from an endpoint."""
-        # Build collection request
-        env = []
+        """Collect an artifact from an endpoint via gRPC."""
+        # Build VQL query to schedule collection
+        env_str = ""
         if parameters:
-            env = [{"key": k, "value": str(v)} for k, v in parameters.items()]
+            env_pairs = [f"`{k}`='{v}'" for k, v in parameters.items()]
+            env_str = ", " + ", ".join(env_pairs) if env_pairs else ""
 
-        payload = {
-            "client_id": client_id,
-            "artifacts": [artifact_name],
-            "parameters": {"env": env},
-            "urgent": urgent,
-        }
+        urgent_str = ", urgent=TRUE" if urgent else ""
 
-        result = await self._request(
-            "POST",
-            "/api/v1/CollectArtifact",
-            json=payload,
-        )
+        query = f"""
+        SELECT collect_client(
+            client_id='{client_id}',
+            artifacts=['{artifact_name}']{env_str}{urgent_str}
+        ) AS Flow FROM scope()
+        """
 
-        flow_id = result.get("flow_id", "")
+        rows = await self._vql_query(query)
+
+        flow_id = ""
+        if rows and rows[0].get("Flow"):
+            flow_data = rows[0]["Flow"]
+            if isinstance(flow_data, dict):
+                flow_id = flow_data.get("flow_id", "")
+
         return CollectionJob(
             job_id=flow_id,
             client_id=client_id,
@@ -393,27 +480,32 @@ class VelociraptorAdapter(CollectionAdapter):
         target_labels: Optional[dict[str, str]] = None,
         expires_hours: int = 168,
     ) -> Hunt:
-        """Create a new hunt."""
-        env = []
+        """Create a new hunt via gRPC."""
+        desc = description or name
+        expires_seconds = expires_hours * 3600
+
+        # Build parameters for VQL
+        params_str = ""
         if parameters:
-            env = [{"key": k, "value": str(v)} for k, v in parameters.items()]
+            param_pairs = [f"`{k}`='{v}'" for k, v in parameters.items()]
+            params_str = ", " + ", ".join(param_pairs) if param_pairs else ""
 
-        payload = {
-            "description": description or name,
-            "artifacts": [artifact_name],
-            "parameters": {"env": env},
-            "expires": (datetime.utcnow() + timedelta(hours=expires_hours)).isoformat(),
-            "state": "PAUSED",  # Create paused, start explicitly
-        }
+        query = f"""
+        SELECT hunt(
+            description='{desc}',
+            artifacts=['{artifact_name}']{params_str},
+            expires=now() + {expires_seconds}
+        ) AS Hunt FROM scope()
+        """
 
-        if target_labels:
-            payload["condition"] = {
-                "labels": {"label": list(target_labels.keys())},
-            }
+        rows = await self._vql_query(query)
 
-        result = await self._request("POST", "/api/v1/CreateHunt", json=payload)
+        hunt_id = ""
+        if rows and rows[0].get("Hunt"):
+            hunt_data = rows[0]["Hunt"]
+            if isinstance(hunt_data, dict):
+                hunt_id = hunt_data.get("hunt_id", "")
 
-        hunt_id = result.get("hunt_id", "")
         return Hunt(
             hunt_id=hunt_id,
             name=name,
@@ -424,12 +516,14 @@ class VelociraptorAdapter(CollectionAdapter):
         )
 
     async def start_hunt(self, hunt_id: str) -> Hunt:
-        """Start a paused hunt."""
-        await self._request(
-            "POST",
-            "/api/v1/ModifyHunt",
-            json={"hunt_id": hunt_id, "state": "RUNNING"},
-        )
+        """Start a paused hunt via gRPC."""
+        query = f"""
+        SELECT hunt_update(
+            hunt_id='{hunt_id}',
+            state='RUNNING'
+        ) FROM scope()
+        """
+        await self._vql_query(query)
 
         hunts = await self.list_hunts()
         for hunt in hunts:
@@ -446,12 +540,14 @@ class VelociraptorAdapter(CollectionAdapter):
         )
 
     async def stop_hunt(self, hunt_id: str) -> Hunt:
-        """Stop a running hunt."""
-        await self._request(
-            "POST",
-            "/api/v1/ModifyHunt",
-            json={"hunt_id": hunt_id, "state": "STOPPED"},
-        )
+        """Stop a running hunt via gRPC."""
+        query = f"""
+        SELECT hunt_update(
+            hunt_id='{hunt_id}',
+            state='STOPPED'
+        ) FROM scope()
+        """
+        await self._vql_query(query)
 
         hunts = await self.list_hunts()
         for hunt in hunts:
@@ -545,7 +641,11 @@ class VelociraptorAdapter(CollectionAdapter):
             return False
 
     async def disconnect(self) -> None:
-        """Close HTTP client."""
+        """Close gRPC channel and HTTP client."""
+        if self._grpc_channel:
+            self._grpc_channel.close()
+            self._grpc_channel = None
+            self._grpc_stub = None
         if self._client:
             await self._client.aclose()
             self._client = None
