@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security Vulnerability
+    url: https://github.com/Project-Eleanor/Eleanor/security/advisories/new
+    about: Please report security vulnerabilities through GitHub Security Advisories
+  - name: Questions & Discussion
+    url: https://github.com/Project-Eleanor/Eleanor/discussions
+    about: Ask questions and discuss ideas in GitHub Discussions
+  - name: Documentation
+    url: https://github.com/Project-Eleanor/Eleanor/tree/main/docs
+    about: Check the documentation for answers
