@@ -110,7 +110,7 @@ export const routes: Routes = [
       },
       {
         path: 'connectors',
-        loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent)
+        loadComponent: () => import('./features/connectors/connectors.component').then(m => m.ConnectorsComponent)
       },
       {
         path: 'reports',
