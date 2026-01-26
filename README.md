@@ -14,8 +14,8 @@ Eleanor is an open-source, self-hosted Digital Forensics and Incident Response p
 
 | | |
 |--|--|
-| **Version** | 0.1.0 |
-| **Status** | Phase 2 Complete - Tool Integrations Deployed |
+| **Version** | 0.1.0-prealpha |
+| **Status** | Phase 3 Complete - Frontend & Parsing Pipeline Ready |
 | **Server** | vm-eleanor (10.150.150.50) |
 
 ---
@@ -49,11 +49,11 @@ Eleanor is an open-source, self-hosted Digital Forensics and Incident Response p
 | **PostgreSQL** | 5432 | Internal | - |
 | **Redis** | 6379 | Internal | - |
 
-### Container Summary (21 containers)
+### Container Summary (23 containers)
 
 | Stack | Containers | Status |
 |-------|------------|--------|
-| Eleanor Core | 3 (postgres, elasticsearch, redis) | All healthy |
+| Eleanor Core | 5 (postgres, elasticsearch, redis, celery-worker, celery-beat) | All healthy |
 | IRIS | 5 (app, worker, nginx, db, rabbitmq) | Running |
 | Velociraptor | 1 | Running |
 | OpenCTI | 4 (platform, worker, rabbitmq, minio) | Running |
@@ -161,19 +161,30 @@ Eleanor is an open-source, self-hosted Digital Forensics and Incident Response p
   - Timesketch (Timeline Analysis)
 - API endpoints for integrations, enrichment, collection, workflows
 
-### Phase 3: Angular Frontend (NEXT)
-- Angular 17 project scaffold
+### Phase 3: Frontend & Parsing Pipeline ✅ COMPLETE
+- Angular 17 project with 14 feature modules
 - Core layout with Sentinel-style dark theme
-- Hunting Console with Monaco ES|QL editor
-- Incidents Queue (IRIS cases)
-- Entity Pages with enrichment panels
-- Response Actions panel
+- Hunting Console with Monaco ES|QL/KQL editor
+- Cytoscape investigation graphs
+- D3 timeline visualization
+- Workbooks system with 6 tile types
+- Async parsing pipeline:
+  - Celery workers for distributed processing
+  - 34 evidence parsers (EVTX, Registry, Browser, MFT, Memory, etc.)
+  - Dissect & Volatility3 integration
+- Detection engine with correlation rules
 
-### Phase 4: OVA Distribution (PLANNED)
+### Phase 4: OVA Distribution ✅ COMPLETE
 - Pre-configured Ubuntu 22.04 OVA
 - All components as Docker containers
-- Setup wizard for initial configuration
+- Web-based setup wizard
 - Auto-provisioning of integrations
+- Backup/restore scripts
+
+### Phase 5: Testing & Polish (IN PROGRESS)
+- Basic API smoke tests
+- Parser unit tests
+- End-to-end workflow validation
 
 ---
 

@@ -16,10 +16,12 @@ from typing import Any, AsyncIterator
 from uuid import uuid4
 
 from app.parsers.base import BaseParser, ParsedEvent, ParserMetadata
+from app.parsers.registry import register_parser
 
 logger = logging.getLogger(__name__)
 
 
+@register_parser
 class ApacheAccessParser(BaseParser):
     """Parser for Apache HTTP Server access logs."""
 
@@ -180,6 +182,7 @@ class ApacheAccessParser(BaseParser):
                 return None
 
 
+@register_parser
 class NginxAccessParser(ApacheAccessParser):
     """Parser for Nginx access logs (uses same format as Apache by default)."""
 
@@ -196,6 +199,7 @@ class NginxAccessParser(ApacheAccessParser):
         )
 
 
+@register_parser
 class IISParser(BaseParser):
     """Parser for Microsoft IIS logs (W3C Extended Log Format)."""
 
@@ -410,6 +414,7 @@ class IISParser(BaseParser):
         )
 
 
+@register_parser
 class ApacheErrorParser(BaseParser):
     """Parser for Apache error logs."""
 

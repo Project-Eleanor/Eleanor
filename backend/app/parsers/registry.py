@@ -230,7 +230,7 @@ def load_builtin_parsers() -> None:
 
     Called during application startup to register default parsers.
     """
-    # Import parser modules to trigger registration
+    # Import core parser modules to trigger registration
     from app.parsers.formats import evtx, json as json_parser  # noqa: F401
 
     # Import Dissect-based parsers
@@ -248,6 +248,57 @@ def load_builtin_parsers() -> None:
             browser_firefox,
         )  # noqa: F401
     except ImportError as e:
-        logger.warning(f"Some parsers unavailable due to missing dependencies: {e}")
+        logger.warning(f"Some Dissect parsers unavailable due to missing dependencies: {e}")
+
+    # Import browser parsers
+    try:
+        from app.parsers.formats import browser_edge  # noqa: F401
+    except ImportError as e:
+        logger.debug(f"Edge browser parser unavailable: {e}")
+
+    # Import Windows execution artifact parsers
+    try:
+        from app.parsers.formats import (
+            shimcache,
+            amcache,
+            userassist,
+        )  # noqa: F401
+    except ImportError as e:
+        logger.debug(f"Some Windows execution parsers unavailable: {e}")
+
+    # Import Windows system artifact parsers
+    try:
+        from app.parsers.formats import (
+            srum,
+            recyclebin,
+            lnk,
+            jumplist,
+        )  # noqa: F401
+    except ImportError as e:
+        logger.debug(f"Some Windows system parsers unavailable: {e}")
+
+    # Import memory forensics parser
+    try:
+        from app.parsers.formats import memory  # noqa: F401
+    except ImportError as e:
+        logger.debug(f"Memory parser unavailable: {e}")
+
+    # Import remote access parsers
+    try:
+        from app.parsers.formats import remoteaccess  # noqa: F401
+    except ImportError as e:
+        logger.debug(f"Remote access parsers unavailable: {e}")
+
+    # Import web server parsers
+    try:
+        from app.parsers.formats import webserver  # noqa: F401
+    except ImportError as e:
+        logger.debug(f"Web server parsers unavailable: {e}")
+
+    # Import SSH artifact parsers
+    try:
+        from app.parsers.formats import ssh  # noqa: F401
+    except ImportError as e:
+        logger.debug(f"SSH parsers unavailable: {e}")
 
     logger.info(f"Loaded {len(_registry._parsers)} built-in parsers")

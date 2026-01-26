@@ -17,6 +17,7 @@ from typing import Any, AsyncIterator
 from uuid import uuid4
 
 from app.parsers.base import BaseParser, ParsedEvent, ParserMetadata
+from app.parsers.registry import register_parser
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +65,7 @@ KNOWN_APP_IDS = {
 }
 
 
+@register_parser
 class JumpListParser(BaseParser):
     """Parser for Windows Jump List files."""
 

@@ -17,6 +17,7 @@ from typing import Any, AsyncIterator
 from uuid import uuid4
 
 from app.parsers.base import BaseParser, ParsedEvent, ParserMetadata
+from app.parsers.registry import register_parser
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +33,7 @@ LNK_SIGNATURE = b"\x4c\x00\x00\x00"
 LNK_GUID = b"\x01\x14\x02\x00\x00\x00\x00\x00\xc0\x00\x00\x00\x00\x00\x00\x46"
 
 
+@register_parser
 class LnkParser(BaseParser):
     """Parser for Windows LNK (shortcut) files."""
 

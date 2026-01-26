@@ -20,10 +20,12 @@ from typing import Any, AsyncIterator
 from uuid import uuid4
 
 from app.parsers.base import BaseParser, ParsedEvent, ParserMetadata
+from app.parsers.registry import register_parser
 
 logger = logging.getLogger(__name__)
 
 
+@register_parser
 class AuthorizedKeysParser(BaseParser):
     """Parser for SSH authorized_keys files."""
 
@@ -214,6 +216,7 @@ class AuthorizedKeysParser(BaseParser):
         )
 
 
+@register_parser
 class KnownHostsParser(BaseParser):
     """Parser for SSH known_hosts files."""
 
@@ -351,6 +354,7 @@ class KnownHostsParser(BaseParser):
         )
 
 
+@register_parser
 class PuTTYParser(BaseParser):
     """Parser for PuTTY registry exports containing SSH information."""
 

@@ -14,6 +14,7 @@ from typing import Any, AsyncIterator
 from uuid import uuid4
 
 from app.parsers.base import BaseParser, ParsedEvent, ParserMetadata
+from app.parsers.registry import register_parser
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,7 @@ except ImportError:
     logger.warning("dissect.target not available, ShimcacheParser will be limited")
 
 
+@register_parser
 class ShimcacheParser(BaseParser):
     """Parser for Windows Shimcache (AppCompatCache) from registry."""
 

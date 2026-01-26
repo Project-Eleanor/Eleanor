@@ -18,6 +18,7 @@ from typing import Any, AsyncIterator
 from uuid import uuid4
 
 from app.parsers.base import BaseParser, ParsedEvent, ParserMetadata
+from app.parsers.registry import register_parser
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +29,7 @@ except ImportError:
     SQLITE_AVAILABLE = False
 
 
+@register_parser
 class EdgeHistoryParser(BaseParser):
     """Parser for Microsoft Edge browser history."""
 
@@ -172,6 +174,7 @@ class EdgeHistoryParser(BaseParser):
             return None
 
 
+@register_parser
 class EdgeDownloadsParser(BaseParser):
     """Parser for Microsoft Edge browser downloads."""
 
@@ -318,6 +321,7 @@ class EdgeDownloadsParser(BaseParser):
             return None
 
 
+@register_parser
 class EdgeBookmarksParser(BaseParser):
     """Parser for Microsoft Edge bookmarks."""
 

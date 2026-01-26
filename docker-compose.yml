@@ -128,6 +128,60 @@ services:
     profiles:
       - prod
 
+  # Celery worker for async task processing
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: eleanor-celery-worker
+    command: celery -A app.tasks.celery_app worker -l info -Q high,default,low,enrichment -c 4
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://eleanor:${POSTGRES_PASSWORD:-eleanor_dev_password}@postgres:5432/eleanor
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - REDIS_URL=redis://redis:6379
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
+      - C_FORCE_ROOT=true
+    volumes:
+      - ./backend:/app
+      - evidence_storage:/app/evidence
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - eleanor-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A app.tasks.celery_app inspect ping -d celery@$$HOSTNAME"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Celery beat for scheduled tasks
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: eleanor-celery-beat
+    command: celery -A app.tasks.celery_app beat -l info --pidfile=/tmp/celerybeat.pid
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://eleanor:${POSTGRES_PASSWORD:-eleanor_dev_password}@postgres:5432/eleanor
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - REDIS_URL=redis://redis:6379
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - redis
+      - celery-worker
+    networks:
+      - eleanor-network
+    restart: unless-stopped
+
 volumes:
   postgres_data:
     driver: local
