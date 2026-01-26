@@ -22,6 +22,7 @@ import { EnrichmentService, EnrichmentResult, EnrichmentSource } from '../../cor
 import { SavedQuery, SearchResult } from '../../shared/models';
 import { SaveQueryDialogComponent } from './save-query-dialog.component';
 import { MonacoEditorComponent } from '../../shared/components/monaco-editor/monaco-editor.component';
+import { QueryBuilderComponent } from './query-builder/query-builder.component';
 
 @Component({
   selector: 'app-hunting-console',
@@ -44,76 +45,98 @@ import { MonacoEditorComponent } from '../../shared/components/monaco-editor/mon
     MatDialogModule,
     MatSnackBarModule,
     MatButtonToggleModule,
-    MonacoEditorComponent
+    MonacoEditorComponent,
+    QueryBuilderComponent
   ],
   template: `
     <div class="hunting-console">
       <!-- Query Panel -->
       <mat-card class="query-panel">
-        <div class="query-header">
-          <div class="query-controls">
-            <mat-form-field appearance="outline" class="saved-queries">
-              <mat-label>Saved Queries</mat-label>
-              <mat-select (selectionChange)="loadSavedQuery($event.value)">
-                @for (query of savedQueries(); track query.id) {
-                  <mat-option [value]="query">
-                    {{ query.name }}
-                  </mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-
-            <button mat-stroked-button (click)="saveQuery()" [disabled]="!query">
-              <mat-icon>save</mat-icon>
-              Save Query
-            </button>
-          </div>
-
-          <div class="query-actions">
-            <button mat-stroked-button (click)="clearQuery()">
-              <mat-icon>clear</mat-icon>
-              Clear
-            </button>
-            <button mat-flat-button color="accent" (click)="executeQuery()" [disabled]="!query || isExecuting()">
-              @if (isExecuting()) {
-                <mat-spinner diameter="20"></mat-spinner>
-              } @else {
-                <mat-icon>play_arrow</mat-icon>
-                Run Query
-              }
-            </button>
-          </div>
-        </div>
-
-        <!-- Query Language Toggle -->
-        <div class="language-toggle">
-          <mat-button-toggle-group [(ngModel)]="queryLanguage" (change)="onLanguageChange()">
-            <mat-button-toggle value="esql">ES|QL</mat-button-toggle>
-            <mat-button-toggle value="kql">KQL</mat-button-toggle>
+        <!-- Query Mode Tabs -->
+        <div class="query-mode-tabs">
+          <mat-button-toggle-group [(ngModel)]="queryMode">
+            <mat-button-toggle value="editor">
+              <mat-icon>code</mat-icon>
+              Query Editor
+            </mat-button-toggle>
+            <mat-button-toggle value="builder">
+              <mat-icon>build</mat-icon>
+              Query Builder
+            </mat-button-toggle>
           </mat-button-toggle-group>
-          <div class="editor-hint">Press Ctrl+Enter to run query</div>
         </div>
 
-        <!-- Monaco Editor -->
-        <div class="query-editor">
-          <app-monaco-editor
-            #monacoEditor
-            [(ngModel)]="query"
-            [language]="queryLanguage"
-            (executeQuery)="executeQuery()">
-          </app-monaco-editor>
-        </div>
+        @if (queryMode === 'editor') {
+          <div class="query-header">
+            <div class="query-controls">
+              <mat-form-field appearance="outline" class="saved-queries">
+                <mat-label>Saved Queries</mat-label>
+                <mat-select (selectionChange)="loadSavedQuery($event.value)">
+                  @for (query of savedQueries(); track query.id) {
+                    <mat-option [value]="query">
+                      {{ query.name }}
+                    </mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
 
-        <!-- Query Examples -->
-        <div class="query-examples">
-          <span class="examples-label">Examples:</span>
-          @for (example of queryExamples; track example.label) {
-            <button mat-stroked-button class="example-btn" (click)="useExample(example.query)"
-                    [matTooltip]="example.query">
-              {{ example.label }}
-            </button>
-          }
-        </div>
+              <button mat-stroked-button (click)="saveQuery()" [disabled]="!query">
+                <mat-icon>save</mat-icon>
+                Save Query
+              </button>
+            </div>
+
+            <div class="query-actions">
+              <button mat-stroked-button (click)="clearQuery()">
+                <mat-icon>clear</mat-icon>
+                Clear
+              </button>
+              <button mat-flat-button color="accent" (click)="executeQuery()" [disabled]="!query || isExecuting()">
+                @if (isExecuting()) {
+                  <mat-spinner diameter="20"></mat-spinner>
+                } @else {
+                  <mat-icon>play_arrow</mat-icon>
+                  Run Query
+                }
+              </button>
+            </div>
+          </div>
+
+          <!-- Query Language Toggle -->
+          <div class="language-toggle">
+            <mat-button-toggle-group [(ngModel)]="queryLanguage" (change)="onLanguageChange()">
+              <mat-button-toggle value="esql">ES|QL</mat-button-toggle>
+              <mat-button-toggle value="kql">KQL</mat-button-toggle>
+            </mat-button-toggle-group>
+            <div class="editor-hint">Press Ctrl+Enter to run query</div>
+          </div>
+
+          <!-- Monaco Editor -->
+          <div class="query-editor">
+            <app-monaco-editor
+              #monacoEditor
+              [(ngModel)]="query"
+              [language]="queryLanguage"
+              (executeQuery)="executeQuery()">
+            </app-monaco-editor>
+          </div>
+
+          <!-- Query Examples -->
+          <div class="query-examples">
+            <span class="examples-label">Examples:</span>
+            @for (example of queryExamples; track example.label) {
+              <button mat-stroked-button class="example-btn" (click)="useExample(example.query)"
+                      [matTooltip]="example.query">
+                {{ example.label }}
+              </button>
+            }
+          </div>
+        } @else {
+          <!-- Query Builder -->
+          <app-query-builder
+            (queryGenerated)="onQueryGenerated($event)">
+          </app-query-builder>
+        }
       </mat-card>
 
       <!-- Results Panel -->
@@ -294,6 +317,43 @@ import { MonacoEditorComponent } from '../../shared/components/monaco-editor/mon
     .query-panel {
       background: var(--bg-card);
       border: 1px solid var(--border-color);
+    }
+
+    .query-mode-tabs {
+      margin-bottom: 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-color);
+
+      ::ng-deep .mat-button-toggle-group {
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        overflow: hidden;
+      }
+
+      ::ng-deep .mat-button-toggle {
+        background: var(--bg-surface);
+
+        .mat-button-toggle-label-content {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 0 16px;
+        }
+
+        mat-icon {
+          font-size: 18px;
+          width: 18px;
+          height: 18px;
+        }
+
+        &.mat-button-toggle-checked {
+          background: var(--accent);
+
+          .mat-button-toggle-label-content {
+            color: white;
+          }
+        }
+      }
     }
 
     .query-header {
@@ -679,6 +739,7 @@ export class HuntingConsoleComponent implements OnInit {
 
   query = '';
   queryLanguage: 'esql' | 'kql' = 'esql';
+  queryMode: 'editor' | 'builder' = 'editor';
   savedQueries = signal<SavedQuery[]>([]);
   results = signal<SearchResult[]>([]);
   displayedColumns = signal<string[]>([]);
@@ -1003,5 +1064,22 @@ export class HuntingConsoleComponent implements OnInit {
 
   getSourceNames(sources: EnrichmentSource[]): string {
     return sources.map(s => s.name).join(', ');
+  }
+
+  /**
+   * Handle query generated from the visual query builder.
+   */
+  onQueryGenerated(generatedQuery: string): void {
+    this.query = generatedQuery;
+    this.queryLanguage = 'esql';
+    this.queryMode = 'editor';
+
+    // Update Monaco editor
+    if (this.monacoEditor) {
+      this.monacoEditor.setValue(generatedQuery);
+    }
+
+    // Execute the query
+    this.executeQuery();
   }
 }

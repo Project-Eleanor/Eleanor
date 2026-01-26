@@ -10,13 +10,17 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatCardModule } from '@angular/material/card';
+import { NgxChartsModule } from '@swimlane/ngx-charts';
 
 import { WorkbookService } from '../../core/api/workbook.service';
 import {
   Workbook,
   TileDefinition,
   TileExecuteResponse,
+  TileConfig,
+  ChartData,
 } from '../../shared/models/workbook.model';
+import { D3TimelineComponent, TimelineItem } from '../../shared/components/d3-timeline/d3-timeline.component';
 
 @Component({
   selector: 'app-workbook-viewer',
@@ -33,6 +37,8 @@ import {
     MatTooltipModule,
     MatSnackBarModule,
     MatCardModule,
+    NgxChartsModule,
+    D3TimelineComponent,
   ],
   template: `
     <div class="workbook-viewer">
@@ -78,13 +84,23 @@ import {
               <mat-icon>more_vert</mat-icon>
             </button>
             <mat-menu #moreMenu="matMenu">
-              <button mat-menu-item (click)="exportWorkbook()">
+              <button mat-menu-item [matMenuTriggerFor]="exportMenu">
                 <mat-icon>download</mat-icon>
                 Export
               </button>
               <button mat-menu-item (click)="cloneWorkbook()">
                 <mat-icon>content_copy</mat-icon>
                 Clone
+              </button>
+            </mat-menu>
+            <mat-menu #exportMenu="matMenu">
+              <button mat-menu-item (click)="exportWorkbook()">
+                <mat-icon>code</mat-icon>
+                Export JSON
+              </button>
+              <button mat-menu-item (click)="exportToPdf()" [disabled]="isExporting()">
+                <mat-icon>picture_as_pdf</mat-icon>
+                Export PDF
               </button>
             </mat-menu>
           </div>
@@ -122,11 +138,76 @@ import {
                     }
                     @case ('chart') {
                       <div class="chart-tile">
-                        <!-- Chart would be rendered here with ngx-charts -->
-                        <div class="chart-placeholder">
-                          <mat-icon>bar_chart</mat-icon>
-                          <span>{{ (tileData()[tile.id]?.length || 0) }} data points</span>
-                        </div>
+                        @if (tileData()[tile.id]?.length > 0) {
+                          @switch (tile.config.chart_type) {
+                            @case ('bar') {
+                              <ngx-charts-bar-vertical
+                                [results]="transformChartData(tileData()[tile.id], tile.config)"
+                                [xAxis]="true"
+                                [yAxis]="true"
+                                [legend]="false"
+                                [showXAxisLabel]="true"
+                                [showYAxisLabel]="true"
+                                [xAxisLabel]="tile.config.x_field || 'Category'"
+                                [yAxisLabel]="tile.config.y_field || 'Count'"
+                                [gradient]="true"
+                                [scheme]="chartColorScheme">
+                              </ngx-charts-bar-vertical>
+                            }
+                            @case ('line') {
+                              <ngx-charts-line-chart
+                                [results]="transformMultiSeriesData(tileData()[tile.id], tile.config)"
+                                [xAxis]="true"
+                                [yAxis]="true"
+                                [legend]="true"
+                                [showXAxisLabel]="true"
+                                [showYAxisLabel]="true"
+                                [xAxisLabel]="tile.config.x_field || 'Time'"
+                                [yAxisLabel]="tile.config.y_field || 'Value'"
+                                [autoScale]="true"
+                                [scheme]="chartColorScheme">
+                              </ngx-charts-line-chart>
+                            }
+                            @case ('pie') {
+                              <ngx-charts-pie-chart
+                                [results]="transformChartData(tileData()[tile.id], tile.config)"
+                                [legend]="true"
+                                [legendTitle]="tile.config.group_by || 'Legend'"
+                                [doughnut]="false"
+                                [scheme]="chartColorScheme">
+                              </ngx-charts-pie-chart>
+                            }
+                            @case ('area') {
+                              <ngx-charts-area-chart
+                                [results]="transformMultiSeriesData(tileData()[tile.id], tile.config)"
+                                [xAxis]="true"
+                                [yAxis]="true"
+                                [legend]="true"
+                                [showXAxisLabel]="true"
+                                [showYAxisLabel]="true"
+                                [xAxisLabel]="tile.config.x_field || 'Time'"
+                                [yAxisLabel]="tile.config.y_field || 'Value'"
+                                [autoScale]="true"
+                                [gradient]="true"
+                                [scheme]="chartColorScheme">
+                              </ngx-charts-area-chart>
+                            }
+                            @default {
+                              <ngx-charts-bar-vertical
+                                [results]="transformChartData(tileData()[tile.id], tile.config)"
+                                [xAxis]="true"
+                                [yAxis]="true"
+                                [legend]="false"
+                                [scheme]="chartColorScheme">
+                              </ngx-charts-bar-vertical>
+                            }
+                          }
+                        } @else {
+                          <div class="chart-placeholder">
+                            <mat-icon>bar_chart</mat-icon>
+                            <span>No data</span>
+                          </div>
+                        }
                       </div>
                     }
                     @case ('table') {
@@ -162,10 +243,22 @@ import {
                     }
                     @case ('timeline') {
                       <div class="timeline-tile">
-                        <div class="timeline-placeholder">
-                          <mat-icon>timeline</mat-icon>
-                          <span>{{ (tileData()[tile.id]?.length || 0) }} time buckets</span>
-                        </div>
+                        @if (tileData()[tile.id]?.length > 0) {
+                          <app-d3-timeline
+                            [items]="transformTimelineData(tileData()[tile.id])"
+                            [config]="{
+                              height: (tile.position.height * 60) - 60,
+                              enableZoom: true,
+                              enableBrush: false
+                            }"
+                            (itemSelected)="onTileEventSelected(tile.id, $event)">
+                          </app-d3-timeline>
+                        } @else {
+                          <div class="timeline-placeholder">
+                            <mat-icon>timeline</mat-icon>
+                            <span>No timeline data</span>
+                          </div>
+                        }
                       </div>
                     }
                     @default {
@@ -301,6 +394,21 @@ import {
     .chart-tile, .timeline-tile {
       width: 100%;
       height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chart-tile ngx-charts-bar-vertical,
+    .chart-tile ngx-charts-line-chart,
+    .chart-tile ngx-charts-pie-chart,
+    .chart-tile ngx-charts-area-chart {
+      width: 100%;
+      height: 100%;
+    }
+
+    .timeline-tile app-d3-timeline {
+      width: 100%;
+      height: 100%;
     }
 
     .chart-placeholder, .timeline-placeholder {
@@ -365,11 +473,15 @@ export class WorkbookViewerComponent implements OnInit, OnDestroy {
   loading = signal(false);
   tileData = signal<Record<string, any>>({});
   tileLoading = signal<Record<string, boolean>>({});
+  isExporting = signal(false);
 
   caseId = signal<string | null>(null);
   selectedCaseId = '';
 
   private refreshInterval: any;
+
+  // Chart color scheme (ngx-charts built-in scheme)
+  chartColorScheme = 'cool';
 
   ngOnInit(): void {
     // Get case ID from query params
@@ -529,6 +641,159 @@ export class WorkbookViewerComponent implements OnInit, OnDestroy {
     } catch (error) {
       console.error('Failed to clone workbook:', error);
       this.snackBar.open('Failed to clone workbook', 'Close', { duration: 3000 });
+    }
+  }
+
+  /**
+   * Transform API chart data to ngx-charts single series format.
+   * Expected input: [{ key: string, count: number }] or raw data with configurable fields
+   */
+  transformChartData(data: any[], config: TileConfig): { name: string; value: number }[] {
+    if (!data || data.length === 0) return [];
+
+    // If data is already in ChartData format
+    if (data[0]?.key !== undefined && data[0]?.count !== undefined) {
+      return data.map((item: ChartData) => ({
+        name: item.key || 'Unknown',
+        value: item.count || 0
+      }));
+    }
+
+    // Transform from raw API response using config fields
+    const xField = config.x_field || config.group_by || 'key';
+    const yField = config.y_field || 'count';
+
+    return data.map((item: any) => ({
+      name: this.getNestedValue(item, xField)?.toString() || 'Unknown',
+      value: Number(this.getNestedValue(item, yField)) || 0
+    }));
+  }
+
+  /**
+   * Transform API data to ngx-charts multi-series format for line/area charts.
+   * Format: [{ name: string, series: [{ name: string, value: number }] }]
+   */
+  transformMultiSeriesData(data: any[], config: TileConfig): any[] {
+    if (!data || data.length === 0) return [];
+
+    // If data has split_by field, create multiple series
+    if (config.split_by && data[0]?.split) {
+      const series: any[] = [];
+      const seriesMap = new Map<string, { name: string; value: number }[]>();
+
+      for (const item of data) {
+        const xValue = item.key || item[config.x_field || 'timestamp'];
+        if (item.split && Array.isArray(item.split)) {
+          for (const split of item.split) {
+            const seriesName = split.key || 'Unknown';
+            if (!seriesMap.has(seriesName)) {
+              seriesMap.set(seriesName, []);
+            }
+            seriesMap.get(seriesName)!.push({
+              name: xValue?.toString() || '',
+              value: split.count || 0
+            });
+          }
+        }
+      }
+
+      seriesMap.forEach((points, name) => {
+        series.push({ name, series: points });
+      });
+
+      return series;
+    }
+
+    // Single series - wrap in series format
+    const xField = config.x_field || config.timestamp_field || 'timestamp';
+    const yField = config.y_field || 'count';
+
+    return [{
+      name: config.y_field || 'Value',
+      series: data.map((item: any) => ({
+        name: this.getNestedValue(item, xField)?.toString() || '',
+        value: Number(this.getNestedValue(item, yField)) || 0
+      }))
+    }];
+  }
+
+  /**
+   * Transform API data to D3 timeline format.
+   */
+  transformTimelineData(data: any[]): TimelineItem[] {
+    if (!data || data.length === 0) return [];
+
+    return data.map((item: any, index: number) => ({
+      id: item.id || `event-${index}`,
+      timestamp: new Date(item['@timestamp'] || item.timestamp),
+      title: item.message || item.event?.action || item.event_type || 'Event',
+      category: item.event?.category?.[0] || item.category || 'unknown',
+      data: item
+    }));
+  }
+
+  /**
+   * Handle timeline event selection from workbook tile.
+   */
+  onTileEventSelected(tileId: string, event: TimelineItem): void {
+    console.log('Timeline event selected:', tileId, event);
+    // Could open a detail panel or navigate to event details
+    this.snackBar.open(`Event: ${event.title}`, 'Close', { duration: 3000 });
+  }
+
+  /**
+   * Export workbook to PDF using html2canvas and jsPDF.
+   */
+  async exportToPdf(): Promise<void> {
+    const element = document.querySelector('.tiles-container') as HTMLElement;
+    if (!element) {
+      this.snackBar.open('Unable to export: tiles container not found', 'Close', { duration: 3000 });
+      return;
+    }
+
+    this.isExporting.set(true);
+    this.snackBar.open('Generating PDF...', '', { duration: 2000 });
+
+    try {
+      // Dynamically import html2canvas and jsPDF
+      const [html2canvasModule, jsPDFModule] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf')
+      ]);
+      const html2canvas = html2canvasModule.default;
+      const jsPDF = jsPDFModule.default;
+
+      const canvas = await html2canvas(element, {
+        backgroundColor: '#1e1e1e',
+        scale: 2,
+        useCORS: true,
+        logging: false
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+
+      // Determine orientation based on aspect ratio
+      const orientation = imgWidth > imgHeight ? 'landscape' : 'portrait';
+
+      const pdf = new jsPDF({
+        orientation,
+        unit: 'px',
+        format: [imgWidth / 2, imgHeight / 2] // Scale down for reasonable file size
+      });
+
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth / 2, imgHeight / 2);
+
+      const filename = `${this.workbook()?.name || 'workbook'}-${new Date().toISOString().split('T')[0]}.pdf`;
+      pdf.save(filename);
+
+      this.snackBar.open('PDF exported successfully', 'Close', { duration: 3000 });
+    } catch (error) {
+      console.error('Failed to export PDF:', error);
+      this.snackBar.open('Failed to export PDF. Make sure dependencies are installed.', 'Close', { duration: 5000 });
+    } finally {
+      this.isExporting.set(false);
     }
   }
 }

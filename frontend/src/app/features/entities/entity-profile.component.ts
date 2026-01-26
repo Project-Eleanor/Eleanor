@@ -1,5 +1,5 @@
 import { Component, OnInit, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, DatePipe } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -11,7 +11,8 @@ import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { EntityService } from '../../core/api/entity.service';
 import { EnrichmentService } from '../../core/api/enrichment.service';
-import { EntityType, HostProfile, UserProfile, IPProfile, Entity } from '../../shared/models';
+import { EntityType, HostProfile, UserProfile, IPProfile, Entity, EntityEvent } from '../../shared/models';
+import { D3TimelineComponent, TimelineItem } from '../../shared/components/d3-timeline/d3-timeline.component';
 
 @Component({
   selector: 'app-entity-profile',
@@ -26,7 +27,9 @@ import { EntityType, HostProfile, UserProfile, IPProfile, Entity } from '../../s
     MatChipsModule,
     MatProgressSpinnerModule,
     MatTableModule,
-    MatTooltipModule
+    MatTooltipModule,
+    D3TimelineComponent,
+    DatePipe
   ],
   template: `
     @if (isLoading()) {
@@ -103,9 +106,46 @@ import { EntityType, HostProfile, UserProfile, IPProfile, Entity } from '../../s
                 </div>
               </mat-tab>
 
-              <mat-tab label="Timeline">
-                <div class="tab-content">
-                  <div class="empty">Timeline view coming soon</div>
+              <mat-tab label="Timeline" (click)="loadTimelineEvents()">
+                <div class="tab-content timeline-tab">
+                  @if (timelineLoading()) {
+                    <div class="loading">
+                      <mat-spinner diameter="40"></mat-spinner>
+                    </div>
+                  } @else if (timelineEvents().length === 0) {
+                    <div class="empty">No timeline events found</div>
+                  } @else {
+                    <div class="timeline-container">
+                      <app-d3-timeline
+                        [items]="timelineEvents()"
+                        [config]="{ height: 200, enableZoom: true, enableBrush: true }"
+                        [selectedId]="selectedTimelineEvent()?.id || null"
+                        (itemSelected)="onTimelineEventSelected($event)">
+                      </app-d3-timeline>
+
+                      <div class="event-list">
+                        <h4>Events ({{ timelineEvents().length }})</h4>
+                        @for (event of timelineEvents(); track event.id) {
+                          <div class="event-item"
+                               [class.selected]="selectedTimelineEvent()?.id === event.id"
+                               (click)="onTimelineEventSelected(event)">
+                            <div class="event-header">
+                              <span class="timestamp">{{ event.timestamp | date:'medium' }}</span>
+                              @if (event.category) {
+                                <mat-chip class="category-chip">{{ event.category }}</mat-chip>
+                              }
+                            </div>
+                            <span class="title">{{ event.title }}</span>
+                            @if (event.data?.['case_id']) {
+                              <a class="case-link" [routerLink]="['/incidents', event.data?.['case_id']]">
+                                View Case
+                              </a>
+                            }
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
                 </div>
               </mat-tab>
             </mat-tab-group>
@@ -539,6 +579,92 @@ import { EntityType, HostProfile, UserProfile, IPProfile, Entity } from '../../s
       text-align: center;
       color: var(--text-muted);
     }
+
+    .timeline-tab {
+      display: flex;
+      flex-direction: column;
+      min-height: 400px;
+    }
+
+    .timeline-container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .event-list {
+      flex: 1;
+      overflow-y: auto;
+      max-height: 400px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 16px;
+
+      h4 {
+        margin: 0 0 12px;
+        font-size: 14px;
+        color: var(--text-secondary);
+      }
+    }
+
+    .event-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 12px;
+      border-bottom: 1px solid var(--border-color);
+      cursor: pointer;
+      transition: background 0.15s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.02);
+      }
+
+      &.selected {
+        background: rgba(var(--accent-rgb), 0.1);
+        border-left: 3px solid var(--accent);
+        margin-left: -3px;
+      }
+
+      &:last-child {
+        border-bottom: none;
+      }
+    }
+
+    .event-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .timestamp {
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-family: monospace;
+    }
+
+    .category-chip {
+      font-size: 10px;
+      min-height: 20px !important;
+      padding: 0 8px !important;
+    }
+
+    .title {
+      font-weight: 500;
+      font-size: 14px;
+    }
+
+    .case-link {
+      font-size: 12px;
+      color: var(--accent);
+      text-decoration: none;
+      margin-top: 4px;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
   `]
 })
 export class EntityProfileComponent implements OnInit {
@@ -554,6 +680,12 @@ export class EntityProfileComponent implements OnInit {
 
   isLoading = signal(true);
   isEnriching = signal(false);
+
+  // Timeline state
+  timelineEvents = signal<TimelineItem[]>([]);
+  timelineLoading = signal(false);
+  selectedTimelineEvent = signal<TimelineItem | null>(null);
+  private timelineLoaded = false;
 
   constructor(
     private route: ActivatedRoute,
@@ -642,5 +774,42 @@ export class EntityProfileComponent implements OnInit {
     if (score >= 70) return 'risk-high';
     if (score >= 40) return 'risk-medium';
     return 'risk-low';
+  }
+
+  /**
+   * Load timeline events for the current entity.
+   * Only loads once per component instance.
+   */
+  loadTimelineEvents(): void {
+    if (this.timelineLoaded || this.timelineLoading()) return;
+
+    this.timelineLoading.set(true);
+    this.entityService.getEntityEvents(this.entityType, this.entityValue, { size: 100 }).subscribe({
+      next: (events: EntityEvent[]) => {
+        this.timelineEvents.set(events.map(e => ({
+          id: e.id,
+          timestamp: new Date(e.timestamp),
+          title: e.message || e.event_type || 'Event',
+          category: e.event_type || undefined,
+          data: { case_id: e.case_id }
+        })));
+        this.timelineLoading.set(false);
+        this.timelineLoaded = true;
+      },
+      error: (error) => {
+        console.error('Failed to load timeline events:', error);
+        this.timelineLoading.set(false);
+        this.timelineLoaded = true;
+      }
+    });
+  }
+
+  /**
+   * Handle timeline event selection.
+   */
+  onTimelineEventSelected(event: TimelineItem): void {
+    this.selectedTimelineEvent.set(
+      this.selectedTimelineEvent()?.id === event.id ? null : event
+    );
   }
 }
