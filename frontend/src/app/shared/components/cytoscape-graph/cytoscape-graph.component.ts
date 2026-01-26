@@ -12,8 +12,9 @@ import {
   effect,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import cytoscape, { Core, NodeSingular, EdgeSingular } from 'cytoscape';
+import cytoscape, { Core, NodeSingular, EdgeSingular, StylesheetCSS } from 'cytoscape';
 import dagre from 'cytoscape-dagre';
+// @ts-expect-error - no types available for cytoscape-cola
 import cola from 'cytoscape-cola';
 import {
   GraphData,
@@ -119,7 +120,7 @@ export class CytoscapeGraphComponent implements OnInit, AfterViewInit, OnDestroy
     }
   }
 
-  private getStylesheet(): cytoscape.Stylesheet[] {
+  private getStylesheet(): StylesheetCSS[] {
     return [
       // Node styles
       {
@@ -229,10 +230,10 @@ export class CytoscapeGraphComponent implements OnInit, AfterViewInit, OnDestroy
 
     // Selection change
     this.cy.on('select unselect', () => {
-      const selectedNodes = this.cy!.$('node:selected').map((n) =>
+      const selectedNodes = this.cy!.$('node:selected').map((n: NodeSingular) =>
         this.cyNodeToGraphNode(n)
       );
-      const selectedEdges = this.cy!.$('edge:selected').map((e) =>
+      const selectedEdges = this.cy!.$('edge:selected').map((e: EdgeSingular) =>
         this.cyEdgeToGraphEdge(e)
       );
       this.selectionChange.emit({ nodes: selectedNodes, edges: selectedEdges });
@@ -330,7 +331,7 @@ export class CytoscapeGraphComponent implements OnInit, AfterViewInit, OnDestroy
       },
     };
 
-    const layout = this.cy.layout(layoutOptions[name] || layoutOptions.dagre);
+    const layout = this.cy.layout(layoutOptions[name] || layoutOptions['dagre']);
     layout.on('layoutstop', () => this.layoutComplete.emit());
     layout.run();
   }
@@ -342,7 +343,7 @@ export class CytoscapeGraphComponent implements OnInit, AfterViewInit, OnDestroy
     if (!this.cy) return;
 
     // Filter out existing nodes
-    const existingIds = new Set(this.cy.nodes().map((n) => n.id()));
+    const existingIds = new Set(this.cy.nodes().map((n: NodeSingular) => n.id()));
     const newNodes = data.nodes.filter((n) => !existingIds.has(n.id));
 
     // Add new nodes
