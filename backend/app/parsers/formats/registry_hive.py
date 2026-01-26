@@ -135,9 +135,11 @@ class WindowsRegistryParser(DissectParserAdapter):
                 timestamp = self._to_datetime(record.timestamp)
 
             # Determine event category based on path
+            # Sort patterns by length (descending) to match most specific pattern first
             event_category = "registry"
-            for pattern, category in FORENSIC_PATHS.items():
-                if pattern.lower() in key_path.lower():
+            key_path_lower = key_path.lower()
+            for pattern, category in sorted(FORENSIC_PATHS.items(), key=lambda x: len(x[0]), reverse=True):
+                if pattern.lower() in key_path_lower:
                     event_category = category
                     break
 

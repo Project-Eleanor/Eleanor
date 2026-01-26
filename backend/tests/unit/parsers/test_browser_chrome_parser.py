@@ -105,8 +105,8 @@ class TestWebkitTimestamp:
 
         # WebKit timestamp for 2026-01-15 10:30:00 UTC
         # Unix epoch in microseconds + offset
-        # 2026-01-15 10:30:00 = 1768564200 seconds from Unix epoch
-        webkit_ts = (1768564200 * 1000000) + 11644473600000000
+        # 2026-01-15 10:30:00 = 1768473000 seconds from Unix epoch
+        webkit_ts = (1768473000 * 1000000) + 11644473600000000
 
         result = webkit_to_datetime(webkit_ts)
 

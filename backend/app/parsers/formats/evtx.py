@@ -246,7 +246,7 @@ class WindowsEvtxParser(BaseParser):
             user_name=user_name,
             user_domain=user_domain,
             user_id=user_id,
-            process_name=Path(process_name).name if process_name else None,
+            process_name=self._extract_filename(process_name) if process_name else None,
             process_pid=int(process_id, 16) if process_id and process_id.startswith("0x") else (int(process_id) if process_id and process_id.isdigit() else None),
             process_ppid=int(parent_process_id, 16) if parent_process_id and parent_process_id.startswith("0x") else (int(parent_process_id) if parent_process_id and parent_process_id.isdigit() else None),
             process_command_line=command_line,
@@ -310,3 +310,17 @@ class WindowsEvtxParser(BaseParser):
             return f"PowerShell script block executed"
 
         return f"{provider_str} Event {event_id}"
+
+    def _extract_filename(self, path: str) -> str | None:
+        """Extract filename from path, handling Windows paths on Linux."""
+        if not path:
+            return None
+        try:
+            from pathlib import PureWindowsPath, PurePosixPath
+
+            # Detect Windows path
+            if "\\" in path or (len(path) > 1 and path[1] == ":"):
+                return PureWindowsPath(path).name
+            return PurePosixPath(path).name
+        except Exception:
+            return path

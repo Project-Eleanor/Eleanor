@@ -159,13 +159,18 @@ class DissectParserAdapter(BaseParser):
             return value
 
         if isinstance(value, (int, float)):
-            # Assume Unix timestamp
+            # Assume Unix timestamp - determine units based on magnitude
+            # Unix timestamps in seconds: 1970-2100 range is ~0 to ~4e9
+            # Milliseconds: 1e12 to 4e12 for same range
+            # Nanoseconds: 1e18 to 4e18 for same range
             try:
-                # Check if nanoseconds
-                if value > 1e12:
+                if value > 1e15:
+                    # Nanoseconds (e.g., 1768563000000000000)
                     value = value / 1e9
-                elif value > 1e9:
+                elif value > 1e12:
+                    # Milliseconds (e.g., 1768563000000)
                     value = value / 1e3
+                # Otherwise seconds (e.g., 1768563000)
                 return datetime.fromtimestamp(value, tz=timezone.utc)
             except (OSError, ValueError):
                 return datetime.now(timezone.utc)
@@ -200,7 +205,7 @@ class DissectParserAdapter(BaseParser):
         """Extract directory and filename from path.
 
         Args:
-            path: Full file path
+            path: Full file path (supports both Windows and Unix paths)
 
         Returns:
             Tuple of (directory, filename)
@@ -209,7 +214,14 @@ class DissectParserAdapter(BaseParser):
             return None, None
 
         try:
-            p = Path(path)
+            # Handle Windows paths correctly even on Unix
+            from pathlib import PureWindowsPath, PurePosixPath
+
+            # Detect path type based on separators
+            if "\\" in path or (len(path) > 1 and path[1] == ":"):
+                p = PureWindowsPath(path)
+            else:
+                p = PurePosixPath(path)
             return str(p.parent), p.name
         except Exception:
             return None, path

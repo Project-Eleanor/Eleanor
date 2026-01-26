@@ -124,9 +124,9 @@ class GenericJSONParser(BaseParser):
         if not first_line:
             return
 
-        # Check if it's a JSON array
-        if first_line.startswith("["):
-            # Read entire file as JSON array
+        # Check if it's a JSON array or object
+        if first_line.startswith("[") or first_line.startswith("{"):
+            # Try to parse as complete JSON (array or object)
             file_handle.seek(0)
             try:
                 data = json.load(file_handle)
@@ -140,28 +140,33 @@ class GenericJSONParser(BaseParser):
                         for i, record in enumerate(data):
                             yield self._parse_record(record, source_name, i + 1)
                 elif isinstance(data, dict):
-                    # Check for wrapped records (CloudTrail)
+                    # Check for wrapped records (CloudTrail, etc.)
                     if "Records" in data:
                         for i, record in enumerate(data["Records"]):
                             yield self._parse_record(record, source_name, i + 1)
                     else:
                         yield self._parse_record(data, source_name, 1)
-            except json.JSONDecodeError as e:
-                logger.error(f"Failed to parse JSON: {e}")
-                return
+            except json.JSONDecodeError:
+                # Failed to parse as complete JSON, try JSONL
+                file_handle.seek(0)
+                yield from self._parse_jsonl(file_handle, source_name)
         else:
             # JSONL format - parse line by line
             file_handle.seek(0)
-            for line_num, line in enumerate(file_handle, 1):
-                line = line.strip()
-                if not line or line.startswith("#"):
-                    continue
-                try:
-                    record = json.loads(line)
-                    yield self._parse_record(record, source_name, line_num)
-                except json.JSONDecodeError as e:
-                    logger.debug(f"Failed to parse line {line_num}: {e}")
-                    continue
+            yield from self._parse_jsonl(file_handle, source_name)
+
+    def _parse_jsonl(self, file_handle, source_name: str) -> Iterator[ParsedEvent]:
+        """Parse JSONL (JSON Lines) format."""
+        for line_num, line in enumerate(file_handle, 1):
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            try:
+                record = json.loads(line)
+                yield self._parse_record(record, source_name, line_num)
+            except json.JSONDecodeError as e:
+                logger.debug(f"Failed to parse line {line_num}: {e}")
+                continue
 
     def _parse_record(self, record: dict, source_name: str, line_num: int) -> ParsedEvent:
         """Parse a single JSON record to ParsedEvent."""

@@ -48,11 +48,12 @@ class WindowsPrefetchParser(DissectParserAdapter):
 
     def can_parse(self, file_path: Path | None = None, content: bytes | None = None) -> bool:
         """Check for Prefetch magic bytes."""
-        if content and len(content) >= 8:
-            # Check for various prefetch versions
-            if content[4:8] == b"SCCA":
+        if content:
+            # Check for compressed prefetch (MAM) - only needs 4 bytes
+            if len(content) >= 4 and content[:4] == MAM_MAGIC:
                 return True
-            if content[:4] == MAM_MAGIC:
+            # Check for various prefetch versions (SCCA magic at offset 4)
+            if len(content) >= 8 and content[4:8] == b"SCCA":
                 return True
 
         if file_path:
@@ -112,10 +113,15 @@ class WindowsPrefetchParser(DissectParserAdapter):
 
             # Get file references (loaded files/directories)
             file_references = []
+            file_reference_count = 0
             if hasattr(record, "filenames"):
-                file_references = list(record.filenames)[:50]  # Limit to 50
+                all_refs = list(record.filenames)
+                file_reference_count = len(all_refs)
+                file_references = all_refs[:50]  # Limit to 50 for output
             elif hasattr(record, "files"):
-                file_references = list(record.files)[:50]
+                all_refs = list(record.files)
+                file_reference_count = len(all_refs)
+                file_references = all_refs[:50]
 
             # Get volume info
             volumes = []
@@ -139,7 +145,7 @@ class WindowsPrefetchParser(DissectParserAdapter):
                 "executable_name": executable_name,
                 "run_count": run_count,
                 "last_run_times": [str(t) for t in last_run_times if t],
-                "file_reference_count": len(file_references),
+                "file_reference_count": file_reference_count,
                 "prefetch_hash": hex(record.prefetch_hash) if hasattr(record, "prefetch_hash") else None,
             }
             if file_references:
