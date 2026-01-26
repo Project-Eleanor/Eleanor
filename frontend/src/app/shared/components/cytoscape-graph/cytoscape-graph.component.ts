@@ -12,7 +12,7 @@ import {
   effect,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import cytoscape, { Core, NodeSingular, EdgeSingular, StylesheetCSS } from 'cytoscape';
+import cytoscape, { Core, NodeSingular, EdgeSingular, Stylesheet } from 'cytoscape';
 import dagre from 'cytoscape-dagre';
 // @ts-expect-error - no types available for cytoscape-cola
 import cola from 'cytoscape-cola';
@@ -120,7 +120,7 @@ export class CytoscapeGraphComponent implements OnInit, AfterViewInit, OnDestroy
     }
   }
 
-  private getStylesheet(): StylesheetCSS[] {
+  private getStylesheet(): Stylesheet[] {
     return [
       // Node styles
       {
