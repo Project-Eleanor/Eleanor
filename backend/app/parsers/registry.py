@@ -233,4 +233,21 @@ def load_builtin_parsers() -> None:
     # Import parser modules to trigger registration
     from app.parsers.formats import evtx, json as json_parser  # noqa: F401
 
+    # Import Dissect-based parsers
+    try:
+        from app.parsers.formats import (
+            registry_hive,
+            prefetch,
+            mft,
+            scheduled_tasks,
+            browser_chrome,
+            linux_auth,
+            pcap,
+            usn_journal,
+            linux_syslog,
+            browser_firefox,
+        )  # noqa: F401
+    except ImportError as e:
+        logger.warning(f"Some parsers unavailable due to missing dependencies: {e}")
+
     logger.info(f"Loaded {len(_registry._parsers)} built-in parsers")

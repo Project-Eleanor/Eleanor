@@ -96,6 +96,11 @@ class DetectionRule(Base):
     auto_create_incident: Mapped[bool] = mapped_column(Boolean, default=False)
     playbook_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
+    # Correlation configuration (for correlation rules)
+    correlation_config: Mapped[dict | None] = mapped_column(
+        JSONBType(), nullable=True
+    )  # pattern_type, window, events, join_on, sequence, thresholds
+
     # Metadata
     custom_fields: Mapped[dict] = mapped_column(JSONBType(), default=dict)
     references: Mapped[list[str]] = mapped_column(ArrayType(String), default=list)
@@ -170,3 +175,73 @@ class RuleExecution(Base):
 
     def __repr__(self) -> str:
         return f"<RuleExecution {self.rule_id} at {self.started_at}>"
+
+
+class CorrelationStateStatus(str, enum.Enum):
+    """Correlation state tracking status."""
+
+    ACTIVE = "active"
+    COMPLETED = "completed"
+    EXPIRED = "expired"
+
+
+class CorrelationState(Base):
+    """Tracks partial correlation sequence matches.
+
+    This table stores intermediate state for correlation rules that
+    require tracking event sequences across time windows.
+    """
+
+    __tablename__ = "correlation_states"
+
+    id: Mapped[UUID] = mapped_column(
+        UUIDType(), primary_key=True, default=uuid4
+    )
+    rule_id: Mapped[UUID] = mapped_column(
+        UUIDType(),
+        ForeignKey("detection_rules.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    # Entity key for grouping (e.g., "user.name:admin" or "host.name:server01")
+    entity_key: Mapped[str] = mapped_column(String(512), nullable=False, index=True)
+
+    # Current state of the correlation sequence
+    state: Mapped[dict] = mapped_column(JSONBType(), default=dict)
+    # State structure:
+    # {
+    #   "matched_events": [{"event_id": "...", "step": "failed_logins", "timestamp": "..."}],
+    #   "current_step": 0,
+    #   "counts": {"failed_logins": 5, "success": 0},
+    #   "first_event_id": "...",
+    # }
+
+    # Time window tracking
+    window_start: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    window_end: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+
+    # Status
+    status: Mapped[CorrelationStateStatus] = mapped_column(
+        Enum(CorrelationStateStatus),
+        nullable=False,
+        default=CorrelationStateStatus.ACTIVE,
+    )
+
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    # Relationships
+    rule: Mapped["DetectionRule"] = relationship("DetectionRule")
+
+    def __repr__(self) -> str:
+        return f"<CorrelationState {self.rule_id}:{self.entity_key} ({self.status.value})>"

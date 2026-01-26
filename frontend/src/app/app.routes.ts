@@ -60,6 +60,27 @@ export const routes: Routes = [
         loadComponent: () => import('./features/timeline/timeline-view.component').then(m => m.TimelineViewComponent)
       },
       {
+        path: 'investigation-graph',
+        loadComponent: () => import('./features/investigation-graph/investigation-graph.component').then(m => m.InvestigationGraphComponent)
+      },
+      {
+        path: 'workbooks',
+        children: [
+          {
+            path: '',
+            loadComponent: () => import('./features/workbooks/workbook-list.component').then(m => m.WorkbookListComponent)
+          },
+          {
+            path: ':id',
+            loadComponent: () => import('./features/workbooks/workbook-viewer.component').then(m => m.WorkbookViewerComponent)
+          },
+          {
+            path: ':id/edit',
+            loadComponent: () => import('./features/workbooks/workbook-viewer.component').then(m => m.WorkbookViewerComponent)
+          }
+        ]
+      },
+      {
         path: 'response',
         loadComponent: () => import('./features/response/response-actions.component').then(m => m.ResponseActionsComponent)
       },

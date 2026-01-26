@@ -14,10 +14,13 @@ from app.api.v1 import (
     entities,
     events,
     evidence,
+    graphs,
     integrations,
     notifications,
+    parsing,
     rbac,
     search,
+    workbooks,
     workflows,
     ws,
 )
@@ -34,6 +37,15 @@ router.include_router(events.router, prefix="/events", tags=["Events"])
 router.include_router(search.router, prefix="/search", tags=["Search"])
 router.include_router(entities.router, prefix="/entities", tags=["Entities"])
 router.include_router(admin.router, prefix="/admin", tags=["Admin"])
+
+# Parsing endpoints
+router.include_router(parsing.router, prefix="/parsing", tags=["Parsing"])
+
+# Graph endpoints
+router.include_router(graphs.router, prefix="/graphs", tags=["Investigation Graphs"])
+
+# Workbook endpoints
+router.include_router(workbooks.router, prefix="/workbooks", tags=["Workbooks"])
 
 # Analytics and connectors
 router.include_router(analytics.router, prefix="/analytics", tags=["Analytics"])

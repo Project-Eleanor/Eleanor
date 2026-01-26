@@ -359,3 +359,241 @@ async def get_system_config(
             "debug": settings.debug,
         },
     )
+
+
+# =============================================================================
+# Update Management Endpoints
+# =============================================================================
+
+
+class UpdateInfo(BaseModel):
+    """Available update information."""
+
+    current_version: str
+    latest_version: str
+    update_available: bool
+    release_notes: str | None = None
+    release_url: str | None = None
+    published_at: datetime | None = None
+
+
+class UpdateResult(BaseModel):
+    """Update operation result."""
+
+    success: bool
+    message: str
+    previous_version: str | None = None
+    new_version: str | None = None
+    backup_path: str | None = None
+
+
+@router.get("/updates/check", response_model=UpdateInfo)
+async def check_for_updates(
+    admin: Annotated[User, Depends(get_current_active_admin)],
+) -> UpdateInfo:
+    """Check for available updates from GitHub releases."""
+    import httpx
+    from app.config import get_settings
+
+    settings = get_settings()
+    current_version = settings.app_version
+
+    try:
+        # Check GitHub releases API
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                "https://api.github.com/repos/eleanor-dfir/eleanor/releases/latest",
+                headers={"Accept": "application/vnd.github+json"},
+                timeout=10.0,
+            )
+
+            if response.status_code == 200:
+                release = response.json()
+                latest_version = release.get("tag_name", "").lstrip("v")
+
+                # Compare versions (simple string comparison for semver)
+                update_available = latest_version > current_version.lstrip("v")
+
+                return UpdateInfo(
+                    current_version=current_version,
+                    latest_version=latest_version,
+                    update_available=update_available,
+                    release_notes=release.get("body"),
+                    release_url=release.get("html_url"),
+                    published_at=release.get("published_at"),
+                )
+            else:
+                # Could not check for updates
+                return UpdateInfo(
+                    current_version=current_version,
+                    latest_version=current_version,
+                    update_available=False,
+                    release_notes="Could not check for updates",
+                )
+
+    except Exception as e:
+        return UpdateInfo(
+            current_version=current_version,
+            latest_version=current_version,
+            update_available=False,
+            release_notes=f"Error checking for updates: {str(e)}",
+        )
+
+
+@router.post("/updates/apply", response_model=UpdateResult)
+async def apply_update(
+    admin: Annotated[User, Depends(get_current_active_admin)],
+) -> UpdateResult:
+    """Apply available update.
+
+    This triggers the update script which:
+    1. Creates a backup
+    2. Pulls new Docker images
+    3. Runs database migrations
+    4. Restarts services
+    5. Runs health check
+    """
+    import subprocess
+    import os
+    from app.config import get_settings
+
+    settings = get_settings()
+    current_version = settings.app_version
+
+    update_script = "/opt/eleanor/update.sh"
+
+    if not os.path.exists(update_script):
+        return UpdateResult(
+            success=False,
+            message="Update script not found. Manual update required.",
+            previous_version=current_version,
+        )
+
+    try:
+        # Run update script in background
+        result = subprocess.run(
+            ["bash", update_script],
+            capture_output=True,
+            text=True,
+            timeout=600,  # 10 minute timeout
+            cwd="/opt/eleanor",
+        )
+
+        if result.returncode == 0:
+            # Get new version (re-read settings)
+            from importlib import reload
+            from app import config
+            reload(config)
+            new_settings = config.get_settings()
+
+            return UpdateResult(
+                success=True,
+                message="Update completed successfully",
+                previous_version=current_version,
+                new_version=new_settings.app_version,
+            )
+        else:
+            return UpdateResult(
+                success=False,
+                message=f"Update failed: {result.stderr}",
+                previous_version=current_version,
+            )
+
+    except subprocess.TimeoutExpired:
+        return UpdateResult(
+            success=False,
+            message="Update timed out after 10 minutes",
+            previous_version=current_version,
+        )
+    except Exception as e:
+        return UpdateResult(
+            success=False,
+            message=f"Update error: {str(e)}",
+            previous_version=current_version,
+        )
+
+
+class HealthStatus(BaseModel):
+    """System health status."""
+
+    status: str  # healthy, degraded, unhealthy
+    components: dict[str, dict]
+    timestamp: datetime
+
+
+@router.get("/health", response_model=HealthStatus)
+async def get_system_health(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    admin: Annotated[User, Depends(get_current_active_admin)],
+) -> HealthStatus:
+    """Get detailed system health status."""
+    import asyncio
+    from app.database import get_elasticsearch, get_redis
+
+    components = {}
+    overall_status = "healthy"
+
+    # Check database
+    try:
+        await db.execute(select(func.now()))
+        components["database"] = {"status": "healthy", "message": "Connected"}
+    except Exception as e:
+        components["database"] = {"status": "unhealthy", "message": str(e)}
+        overall_status = "unhealthy"
+
+    # Check Elasticsearch
+    try:
+        es = await get_elasticsearch()
+        health = await es.cluster.health()
+        es_status = health.get("status", "unknown")
+        components["elasticsearch"] = {
+            "status": "healthy" if es_status == "green" else "degraded",
+            "cluster_status": es_status,
+            "message": f"Cluster: {health.get('cluster_name')}",
+        }
+        if es_status == "red":
+            overall_status = "unhealthy"
+        elif es_status == "yellow" and overall_status == "healthy":
+            overall_status = "degraded"
+    except Exception as e:
+        components["elasticsearch"] = {"status": "unhealthy", "message": str(e)}
+        overall_status = "unhealthy"
+
+    # Check Redis
+    try:
+        redis = await get_redis()
+        await redis.ping()
+        info = await redis.info("memory")
+        components["redis"] = {
+            "status": "healthy",
+            "message": "Connected",
+            "used_memory": info.get("used_memory_human", "unknown"),
+        }
+    except Exception as e:
+        components["redis"] = {"status": "unhealthy", "message": str(e)}
+        overall_status = "unhealthy"
+
+    # Check disk space
+    import shutil
+    try:
+        usage = shutil.disk_usage("/var/lib/eleanor")
+        free_pct = (usage.free / usage.total) * 100
+        disk_status = "healthy" if free_pct > 20 else ("degraded" if free_pct > 10 else "unhealthy")
+        components["disk"] = {
+            "status": disk_status,
+            "message": f"{free_pct:.1f}% free",
+            "total_gb": round(usage.total / (1024**3), 1),
+            "free_gb": round(usage.free / (1024**3), 1),
+        }
+        if disk_status == "unhealthy":
+            overall_status = "unhealthy"
+        elif disk_status == "degraded" and overall_status == "healthy":
+            overall_status = "degraded"
+    except Exception as e:
+        components["disk"] = {"status": "unknown", "message": str(e)}
+
+    return HealthStatus(
+        status=overall_status,
+        components=components,
+        timestamp=datetime.utcnow(),
+    )
