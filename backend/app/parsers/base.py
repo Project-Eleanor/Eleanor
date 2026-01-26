@@ -231,43 +231,85 @@ class ParserResult:
 class BaseParser(ABC):
     """Abstract base class for all evidence parsers.
 
-    Subclasses must implement:
-    - name: Parser identifier
-    - category: Parser category (logs, artifacts, etc.)
-    - can_parse(): Check if parser can handle given input
-    - parse(): Parse the input and yield events
+    Subclasses can implement either:
+    1. Properties: name, category, description, supported_extensions, supported_mime_types
+       and method: can_parse()
+    2. Classmethod: get_metadata() returning ParserMetadata
+
+    All parsers must implement: parse()
     """
 
-    @property
-    @abstractmethod
-    def name(self) -> str:
-        """Unique identifier for this parser."""
-        ...
+    _metadata: ParserMetadata | None = None
+
+    @classmethod
+    def get_metadata(cls) -> ParserMetadata | None:
+        """Return parser metadata. Override in subclasses using metadata pattern."""
+        return None
+
+    def _get_metadata(self) -> ParserMetadata | None:
+        """Get cached metadata instance."""
+        if self._metadata is None:
+            self._metadata = self.__class__.get_metadata()
+        return self._metadata
 
     @property
-    @abstractmethod
+    def name(self) -> str:
+        """Unique identifier for this parser."""
+        meta = self._get_metadata()
+        if meta:
+            return meta.name
+        return self.__class__.__name__.lower().replace("parser", "")
+
+    @property
     def category(self) -> ParserCategory:
         """Category of evidence this parser handles."""
-        ...
+        meta = self._get_metadata()
+        if meta:
+            # Map string category to enum
+            cat_map = {
+                "logs": ParserCategory.LOGS,
+                "artifacts": ParserCategory.ARTIFACTS,
+                "memory": ParserCategory.MEMORY,
+                "disk": ParserCategory.DISK,
+                "network": ParserCategory.NETWORK,
+                "cloud": ParserCategory.CLOUD,
+                "windows": ParserCategory.ARTIFACTS,
+                "browser": ParserCategory.ARTIFACTS,
+                "webserver": ParserCategory.LOGS,
+                "ssh": ParserCategory.ARTIFACTS,
+                "remoteaccess": ParserCategory.ARTIFACTS,
+            }
+            return cat_map.get(meta.category, ParserCategory.ARTIFACTS)
+        return ParserCategory.ARTIFACTS
 
     @property
     def description(self) -> str:
         """Human-readable description of what this parser handles."""
+        meta = self._get_metadata()
+        if meta:
+            return meta.description
         return ""
 
     @property
     def supported_extensions(self) -> list[str]:
         """List of file extensions this parser can handle."""
+        meta = self._get_metadata()
+        if meta:
+            return meta.supported_extensions
         return []
 
     @property
     def supported_mime_types(self) -> list[str]:
         """List of MIME types this parser can handle."""
+        meta = self._get_metadata()
+        if meta:
+            return meta.mime_types
         return []
 
-    @abstractmethod
     def can_parse(self, file_path: Path | None = None, content: bytes | None = None) -> bool:
         """Check if this parser can handle the given input.
+
+        Default implementation checks file extension against supported_extensions.
 
         Args:
             file_path: Path to the file to check
@@ -276,7 +318,10 @@ class BaseParser(ABC):
         Returns:
             True if this parser can handle the input
         """
-        ...
+        if file_path and self.supported_extensions:
+            ext = file_path.suffix.lower()
+            return ext in self.supported_extensions or ext.lstrip(".") in [e.lstrip(".") for e in self.supported_extensions]
+        return True  # Default to True if no extension check possible
 
     @abstractmethod
     def parse(
