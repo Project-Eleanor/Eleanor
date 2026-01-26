@@ -13,6 +13,7 @@ from app.models.compat import ArrayType, JSONBType, UUIDType
 
 if TYPE_CHECKING:
     from app.models.evidence import Evidence
+    from app.models.tenant import Tenant
     from app.models.user import User
 
 
@@ -53,6 +54,9 @@ class Case(Base):
 
     id: Mapped[UUID] = mapped_column(
         UUIDType(), primary_key=True, default=uuid4
+    )
+    tenant_id: Mapped[UUID] = mapped_column(
+        UUIDType(), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
     )
     case_number: Mapped[str] = mapped_column(
         String(50), unique=True, nullable=False, index=True
@@ -97,6 +101,7 @@ class Case(Base):
     case_metadata: Mapped[dict] = mapped_column(JSONBType(), default=dict)
 
     # Relationships
+    tenant: Mapped["Tenant"] = relationship("Tenant")
     assignee: Mapped["User | None"] = relationship(
         "User", back_populates="assigned_cases", foreign_keys=[assignee_id]
     )

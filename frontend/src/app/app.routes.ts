@@ -22,6 +22,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent)
       },
       {
+        path: 'soc',
+        loadComponent: () => import('./features/soc-dashboard/soc-dashboard.component').then(m => m.SocDashboardComponent)
+      },
+      {
         path: 'incidents',
         children: [
           {

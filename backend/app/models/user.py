@@ -14,6 +14,7 @@ from app.models.compat import ArrayType, UUIDType
 if TYPE_CHECKING:
     from app.models.case import Case
     from app.models.rbac import Role
+    from app.models.tenant import TenantMembership
 
 
 class AuthProvider(str, enum.Enum):
@@ -62,6 +63,11 @@ class User(Base):
         "Role",
         secondary="user_roles",
         back_populates="users"
+    )
+    tenant_memberships: Mapped[list["TenantMembership"]] = relationship(
+        "TenantMembership",
+        back_populates="user",
+        cascade="all, delete-orphan"
     )
 
     def __repr__(self) -> str:

@@ -8,3 +8,4 @@ export * from './workflow.model';
 export * from './collection.model';
 export * from './rbac.model';
 export * from './notification.model';
+export * from './tenant.model';

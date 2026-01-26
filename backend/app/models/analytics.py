@@ -12,6 +12,7 @@ from app.database import Base
 from app.models.compat import ArrayType, JSONBType, UUIDType
 
 if TYPE_CHECKING:
+    from app.models.tenant import Tenant
     from app.models.user import User
 
 
@@ -49,6 +50,9 @@ class DetectionRule(Base):
 
     id: Mapped[UUID] = mapped_column(
         UUIDType(), primary_key=True, default=uuid4
+    )
+    tenant_id: Mapped[UUID] = mapped_column(
+        UUIDType(), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -124,6 +128,7 @@ class DetectionRule(Base):
     false_positive_count: Mapped[int] = mapped_column(Integer, default=0)
 
     # Relationships
+    tenant: Mapped["Tenant"] = relationship("Tenant")
     creator: Mapped["User | None"] = relationship("User")
     executions: Mapped[list["RuleExecution"]] = relationship(
         "RuleExecution", back_populates="rule", cascade="all, delete-orphan"

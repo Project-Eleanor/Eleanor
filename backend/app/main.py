@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.adapters import get_registry, init_adapters
+from app.middleware.tenant import TenantMiddleware
 from app.api.v1 import router as api_v1_router
 from app.config import get_settings
 from app.database import Base, close_elasticsearch, close_redis, engine, init_elasticsearch_indices
@@ -94,6 +95,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Tenant middleware for multi-tenancy support
+app.add_middleware(TenantMiddleware)
 
 # Setup exception handlers for standardized error responses
 setup_exception_handlers(app)

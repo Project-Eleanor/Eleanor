@@ -18,6 +18,25 @@ from app.models.graph import SavedGraph
 from app.models.notification import Notification, NotificationPreference, NotificationSeverity, NotificationType
 from app.models.parsing_job import ParsingJob, ParsingJobStatus
 from app.models.rbac import Permission, PermissionAction, PermissionScope, Role
+from app.models.playbook import (
+    ApprovalStatus,
+    ExecutionStatus,
+    Playbook,
+    PlaybookApproval,
+    PlaybookExecution,
+    PlaybookStatus,
+    RulePlaybookBinding,
+    StepType,
+)
+from app.models.tenant import (
+    Tenant,
+    TenantAdapterConfig,
+    TenantAPIKey,
+    TenantMembership,
+    TenantMembershipRole,
+    TenantPlan,
+    TenantStatus,
+)
 from app.models.user import User
 from app.models.workbook import SavedQuery, Workbook
 
@@ -45,6 +64,14 @@ __all__ = [
     "ParsingJob",
     "ParsingJobStatus",
     "Permission",
+    "Playbook",
+    "PlaybookApproval",
+    "PlaybookExecution",
+    "PlaybookStatus",
+    "ApprovalStatus",
+    "ExecutionStatus",
+    "RulePlaybookBinding",
+    "StepType",
     "PermissionAction",
     "PermissionScope",
     "Role",
@@ -55,6 +82,13 @@ __all__ = [
     "SavedGraph",
     "SavedQuery",
     "Severity",
+    "Tenant",
+    "TenantAdapterConfig",
+    "TenantAPIKey",
+    "TenantMembership",
+    "TenantMembershipRole",
+    "TenantPlan",
+    "TenantStatus",
     "User",
     "Workbook",
 ]
