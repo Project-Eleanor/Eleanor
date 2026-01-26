@@ -71,7 +71,7 @@ services:
       dockerfile: Dockerfile
     container_name: eleanor-backend
     environment:
-      - DATABASE_URL=postgresql://eleanor:${POSTGRES_PASSWORD:-eleanor_dev_password}@postgres:5432/eleanor
+      - DATABASE_URL=postgresql+asyncpg://eleanor:${POSTGRES_PASSWORD:-eleanor_dev_password}@postgres:5432/eleanor
       - ELASTICSEARCH_URL=http://elasticsearch:9200
       - REDIS_URL=redis://redis:6379
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
