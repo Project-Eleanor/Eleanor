@@ -69,3 +69,9 @@ try:
     __all__.append("PcapParser")
 except ImportError:
     pass
+
+try:
+    from app.parsers.formats.memory import MemoryParser
+    __all__.append("MemoryParser")
+except ImportError:
+    pass
