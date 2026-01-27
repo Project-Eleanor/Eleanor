@@ -28,6 +28,11 @@ from app.models.playbook import (
     RulePlaybookBinding,
     StepType,
 )
+from app.models.response_action import (
+    ResponseAction,
+    ResponseActionStatus,
+    ResponseActionType,
+)
 from app.models.tenant import (
     Tenant,
     TenantAdapterConfig,
@@ -75,6 +80,9 @@ __all__ = [
     "PermissionAction",
     "PermissionScope",
     "Role",
+    "ResponseAction",
+    "ResponseActionStatus",
+    "ResponseActionType",
     "RuleExecution",
     "RuleSeverity",
     "RuleStatus",

@@ -1,0 +1,708 @@
+# Eleanor DFIR Platform - Full Stack Deployment
+# Includes: Eleanor + IRIS + Velociraptor + OpenCTI + Timesketch + Shuffle
+#
+# Usage:
+#   docker-compose -f docker-compose.full.yml up -d
+#
+# Requirements:
+#   - 32GB+ RAM recommended
+#   - 100GB+ disk space
+#   - Docker Compose v2.20+
+#
+# Default credentials (CHANGE IN PRODUCTION):
+#   Eleanor: admin / admin (set via UI on first run)
+#   IRIS: administrator / changeme
+#   Velociraptor: admin / admin (use server config)
+#   OpenCTI: admin@opencti.io / ChangeMeAdmin!
+#   Timesketch: admin / admin
+#   Shuffle: admin@shuffle.local / admin
+
+version: '3.8'
+
+x-eleanor-common: &eleanor-common
+  networks:
+    - eleanor-network
+  restart: unless-stopped
+
+x-eleanor-env: &eleanor-env
+  DATABASE_URL: postgresql+asyncpg://eleanor:${POSTGRES_PASSWORD:-eleanor_secure_password}@postgres:5432/eleanor
+  ELASTICSEARCH_URL: http://elasticsearch:9200
+  REDIS_URL: redis://redis:6379
+  SECRET_KEY: ${SECRET_KEY:-CHANGE_THIS_IN_PRODUCTION_USE_SECURE_RANDOM}
+  # Integration URLs
+  IRIS_URL: http://iris-web:8000
+  IRIS_API_KEY: ${IRIS_API_KEY:-}
+  VELOCIRAPTOR_URL: https://velociraptor:8001
+  VELOCIRAPTOR_CA_CERT: /certs/velociraptor/ca.crt
+  VELOCIRAPTOR_CLIENT_CERT: /certs/velociraptor/api_client.crt
+  VELOCIRAPTOR_CLIENT_KEY: /certs/velociraptor/api_client.key
+  OPENCTI_URL: http://opencti:8080
+  OPENCTI_API_KEY: ${OPENCTI_API_KEY:-}
+  TIMESKETCH_URL: http://timesketch:5000
+  TIMESKETCH_API_KEY: ${TIMESKETCH_API_KEY:-}
+  SHUFFLE_URL: http://shuffle-backend:5001
+  SHUFFLE_API_KEY: ${SHUFFLE_API_KEY:-}
+
+services:
+  # ==========================================================================
+  # ELEANOR CORE SERVICES
+  # ==========================================================================
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: eleanor-postgres
+    environment:
+      POSTGRES_DB: eleanor
+      POSTGRES_USER: eleanor
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-eleanor_secure_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./deploy/docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U eleanor -d eleanor"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    <<: *eleanor-common
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
+    container_name: eleanor-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - xpack.security.enrollment.enabled=false
+      - "ES_JAVA_OPTS=-Xms2g -Xmx2g"
+      - cluster.name=eleanor-cluster
+      - bootstrap.memory_lock=true
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q 'status.*green\\|status.*yellow'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+    <<: *eleanor-common
+
+  redis:
+    image: redis:7-alpine
+    container_name: eleanor-redis
+    command: redis-server --appendonly yes --maxmemory 1gb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    <<: *eleanor-common
+
+  backend:
+    image: ghcr.io/project-eleanor/eleanor-backend:latest
+    container_name: eleanor-backend
+    environment:
+      <<: *eleanor-env
+      DEBUG: "false"
+      RATE_LIMIT_ENABLED: "true"
+    volumes:
+      - evidence_storage:/data/evidence
+      - velociraptor_certs:/certs/velociraptor:ro
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    <<: *eleanor-common
+
+  frontend:
+    image: ghcr.io/project-eleanor/eleanor-frontend:latest
+    container_name: eleanor-frontend
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/docker/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./deploy/docker/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - backend
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    <<: *eleanor-common
+
+  celery-worker:
+    image: ghcr.io/project-eleanor/eleanor-backend:latest
+    container_name: eleanor-celery-worker
+    command: celery -A app.tasks.celery_app worker -l info -Q high,default,low,enrichment,parsing -c 4
+    environment:
+      <<: *eleanor-env
+      C_FORCE_ROOT: "true"
+    volumes:
+      - evidence_storage:/data/evidence
+      - velociraptor_certs:/certs/velociraptor:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A app.tasks.celery_app inspect ping -d celery@$$HOSTNAME || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+    <<: *eleanor-common
+
+  celery-beat:
+    image: ghcr.io/project-eleanor/eleanor-backend:latest
+    container_name: eleanor-celery-beat
+    command: celery -A app.tasks.celery_app beat -l info --pidfile=/tmp/celerybeat.pid
+    environment:
+      <<: *eleanor-env
+    depends_on:
+      - redis
+      - celery-worker
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    <<: *eleanor-common
+
+  # ==========================================================================
+  # IRIS - Case Management
+  # ==========================================================================
+
+  iris-db:
+    image: postgres:16-alpine
+    container_name: iris-db
+    environment:
+      POSTGRES_DB: iris
+      POSTGRES_USER: iris
+      POSTGRES_PASSWORD: ${IRIS_DB_PASSWORD:-iris_secure_password}
+    volumes:
+      - iris_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U iris -d iris"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    <<: *eleanor-common
+
+  iris-web:
+    image: ghcr.io/dfir-iris/iriswebapp_app:latest
+    container_name: iris-web
+    environment:
+      POSTGRES_SERVER: iris-db
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: iris
+      POSTGRES_PASSWORD: ${IRIS_DB_PASSWORD:-iris_secure_password}
+      POSTGRES_DB: iris
+      IRIS_SECRET_KEY: ${IRIS_SECRET_KEY:-CHANGE_THIS_IRIS_SECRET}
+      IRIS_SECURITY_PASSWORD_SALT: ${IRIS_SALT:-CHANGE_THIS_SALT}
+      IRIS_ADMIN_PASSWORD: ${IRIS_ADMIN_PASSWORD:-changeme}
+    volumes:
+      - iris_data:/home/iris/server_data
+    ports:
+      - "8001:8000"
+    depends_on:
+      iris-db:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    <<: *eleanor-common
+
+  iris-worker:
+    image: ghcr.io/dfir-iris/iriswebapp_worker:latest
+    container_name: iris-worker
+    environment:
+      POSTGRES_SERVER: iris-db
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: iris
+      POSTGRES_PASSWORD: ${IRIS_DB_PASSWORD:-iris_secure_password}
+      POSTGRES_DB: iris
+    volumes:
+      - iris_data:/home/iris/server_data
+    depends_on:
+      - iris-web
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    <<: *eleanor-common
+
+  # ==========================================================================
+  # VELOCIRAPTOR - Endpoint Collection & Response
+  # ==========================================================================
+
+  velociraptor:
+    image: ghcr.io/weslambert/velociraptor:latest
+    container_name: velociraptor
+    command: >
+      sh -c "
+        if [ ! -f /config/server.config.yaml ]; then
+          ./velociraptor config generate --merge_file=/config/merged.yaml > /config/server.config.yaml
+        fi &&
+        ./velociraptor --config /config/server.config.yaml frontend -v
+      "
+    volumes:
+      - velociraptor_data:/data
+      - velociraptor_config:/config
+      - velociraptor_certs:/certs
+    ports:
+      - "8002:8000"   # Web UI
+      - "8003:8001"   # Frontend (gRPC)
+    healthcheck:
+      test: ["CMD-SHELL", "curl -k -s https://localhost:8000/server.pem || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    <<: *eleanor-common
+
+  # ==========================================================================
+  # OPENCTI - Threat Intelligence Platform
+  # ==========================================================================
+
+  opencti-redis:
+    image: redis:7-alpine
+    container_name: opencti-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - opencti_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    <<: *eleanor-common
+
+  opencti-elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
+    container_name: opencti-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      - cluster.name=opencti-cluster
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - opencti_elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q 'status.*green\\|status.*yellow'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    <<: *eleanor-common
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: opencti-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: opencti
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-opencti_mq_password}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    <<: *eleanor-common
+
+  minio:
+    image: minio/minio:latest
+    container_name: opencti-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-opencti}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-opencti_minio_password}
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    <<: *eleanor-common
+
+  opencti:
+    image: opencti/platform:6.0.9
+    container_name: opencti
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=8096
+      - APP__PORT=8080
+      - APP__BASE_URL=http://localhost:8004
+      - APP__ADMIN__EMAIL=admin@opencti.io
+      - APP__ADMIN__PASSWORD=${OPENCTI_ADMIN_PASSWORD:-ChangeMeAdmin!}
+      - APP__ADMIN__TOKEN=${OPENCTI_API_KEY:-CHANGE_THIS_OPENCTI_TOKEN}
+      - APP__APP_LOGS__LOGS_LEVEL=error
+      - REDIS__HOSTNAME=opencti-redis
+      - REDIS__PORT=6379
+      - ELASTICSEARCH__URL=http://opencti-elasticsearch:9200
+      - MINIO__ENDPOINT=minio
+      - MINIO__PORT=9000
+      - MINIO__USE_SSL=false
+      - MINIO__ACCESS_KEY=${MINIO_ROOT_USER:-opencti}
+      - MINIO__SECRET_KEY=${MINIO_ROOT_PASSWORD:-opencti_minio_password}
+      - RABBITMQ__HOSTNAME=rabbitmq
+      - RABBITMQ__PORT=5672
+      - RABBITMQ__USERNAME=opencti
+      - RABBITMQ__PASSWORD=${RABBITMQ_PASSWORD:-opencti_mq_password}
+      - SMTP__HOSTNAME=localhost
+      - SMTP__PORT=25
+    ports:
+      - "8004:8080"
+    depends_on:
+      opencti-redis:
+        condition: service_healthy
+      opencti-elasticsearch:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+    <<: *eleanor-common
+
+  opencti-worker:
+    image: opencti/worker:6.0.9
+    container_name: opencti-worker
+    environment:
+      - OPENCTI_URL=http://opencti:8080
+      - OPENCTI_TOKEN=${OPENCTI_API_KEY:-CHANGE_THIS_OPENCTI_TOKEN}
+      - WORKER_LOG_LEVEL=info
+    depends_on:
+      - opencti
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          memory: 1G
+    <<: *eleanor-common
+
+  # ==========================================================================
+  # TIMESKETCH - Timeline Analysis
+  # ==========================================================================
+
+  timesketch-postgres:
+    image: postgres:16-alpine
+    container_name: timesketch-postgres
+    environment:
+      POSTGRES_DB: timesketch
+      POSTGRES_USER: timesketch
+      POSTGRES_PASSWORD: ${TIMESKETCH_DB_PASSWORD:-timesketch_secure_password}
+    volumes:
+      - timesketch_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U timesketch -d timesketch"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    <<: *eleanor-common
+
+  timesketch-redis:
+    image: redis:7-alpine
+    container_name: timesketch-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - timesketch_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    <<: *eleanor-common
+
+  timesketch:
+    image: us-docker.pkg.dev/osdfir-registry/timesketch/timesketch:latest
+    container_name: timesketch
+    environment:
+      - TIMESKETCH_USER=admin
+      - TIMESKETCH_PASSWORD=${TIMESKETCH_PASSWORD:-admin}
+      - POSTGRES_HOST=timesketch-postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=timesketch
+      - POSTGRES_PASSWORD=${TIMESKETCH_DB_PASSWORD:-timesketch_secure_password}
+      - POSTGRES_DATABASE=timesketch
+      - REDIS_HOST=timesketch-redis
+      - REDIS_PORT=6379
+      - ELASTICSEARCH_HOST=elasticsearch
+      - ELASTICSEARCH_PORT=9200
+      - SECRET_KEY=${TIMESKETCH_SECRET_KEY:-CHANGE_THIS_TIMESKETCH_SECRET}
+    volumes:
+      - timesketch_data:/var/lib/timesketch
+    ports:
+      - "8005:5000"
+    depends_on:
+      timesketch-postgres:
+        condition: service_healthy
+      timesketch-redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    <<: *eleanor-common
+
+  timesketch-worker:
+    image: us-docker.pkg.dev/osdfir-registry/timesketch/timesketch:latest
+    container_name: timesketch-worker
+    command: celery -A timesketch.lib.tasks worker --loglevel=info
+    environment:
+      - POSTGRES_HOST=timesketch-postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=timesketch
+      - POSTGRES_PASSWORD=${TIMESKETCH_DB_PASSWORD:-timesketch_secure_password}
+      - POSTGRES_DATABASE=timesketch
+      - REDIS_HOST=timesketch-redis
+      - REDIS_PORT=6379
+      - ELASTICSEARCH_HOST=elasticsearch
+      - ELASTICSEARCH_PORT=9200
+      - SECRET_KEY=${TIMESKETCH_SECRET_KEY:-CHANGE_THIS_TIMESKETCH_SECRET}
+    volumes:
+      - timesketch_data:/var/lib/timesketch
+    depends_on:
+      - timesketch
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    <<: *eleanor-common
+
+  # ==========================================================================
+  # SHUFFLE - SOAR Platform
+  # ==========================================================================
+
+  shuffle-backend:
+    image: ghcr.io/shuffle/shuffle-backend:latest
+    container_name: shuffle-backend
+    hostname: shuffle-backend
+    environment:
+      - DATASTORE_EMULATOR_HOST=shuffle-database:8000
+      - SHUFFLE_APP_HOTLOAD_FOLDER=/shuffle-apps
+      - SHUFFLE_FILE_LOCATION=/shuffle-files
+      - SHUFFLE_OPENSEARCH_URL=http://shuffle-opensearch:9200
+      - SHUFFLE_ORBORUS_EXECUTION_TIMEOUT=600
+      - SHUFFLE_PASS_APP_PROXY=false
+      - SHUFFLE_PASS_WORKER_PROXY=false
+      - SHUFFLE_BASE_URL=http://shuffle-backend:5001
+      - SHUFFLE_DEFAULT_USERNAME=admin@shuffle.local
+      - SHUFFLE_DEFAULT_PASSWORD=${SHUFFLE_PASSWORD:-admin}
+      - SHUFFLE_DEFAULT_APIKEY=${SHUFFLE_API_KEY:-CHANGE_THIS_SHUFFLE_KEY}
+    volumes:
+      - shuffle_apps:/shuffle-apps
+      - shuffle_files:/shuffle-files
+    ports:
+      - "8006:5001"
+    depends_on:
+      - shuffle-database
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    <<: *eleanor-common
+
+  shuffle-frontend:
+    image: ghcr.io/shuffle/shuffle-frontend:latest
+    container_name: shuffle-frontend
+    hostname: shuffle-frontend
+    environment:
+      - BACKEND_HOSTNAME=shuffle-backend
+    ports:
+      - "8007:80"
+    depends_on:
+      - shuffle-backend
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    <<: *eleanor-common
+
+  shuffle-orborus:
+    image: ghcr.io/shuffle/shuffle-orborus:latest
+    container_name: shuffle-orborus
+    hostname: shuffle-orborus
+    environment:
+      - SHUFFLE_APP_SDK_VERSION=1.2.0
+      - SHUFFLE_WORKER_VERSION=latest
+      - ORG_ID=Shuffle
+      - ENVIRONMENT_NAME=onprem
+      - BASE_URL=http://shuffle-backend:5001
+      - DOCKER_API_VERSION=1.40
+      - SHUFFLE_BASE_IMAGE_NAME=shuffle
+      - SHUFFLE_BASE_IMAGE_REGISTRY=ghcr.io
+      - SHUFFLE_BASE_IMAGE_TAG_SUFFIX=-1.0.0
+      - SHUFFLE_PASS_WORKER_PROXY=false
+      - CLEANUP=true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - shuffle-backend
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    <<: *eleanor-common
+
+  shuffle-database:
+    image: frikky/shuffle:database
+    container_name: shuffle-database
+    hostname: shuffle-database
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    <<: *eleanor-common
+
+  shuffle-opensearch:
+    image: opensearchproject/opensearch:2.11.0
+    container_name: shuffle-opensearch
+    hostname: shuffle-opensearch
+    environment:
+      - cluster.name=shuffle-cluster
+      - node.name=shuffle-opensearch
+      - discovery.type=single-node
+      - DISABLE_SECURITY_PLUGIN=true
+      - DISABLE_INSTALL_DEMO_CONFIG=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - shuffle_opensearch_data:/usr/share/opensearch/data
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    <<: *eleanor-common
+
+# ==========================================================================
+# VOLUMES
+# ==========================================================================
+
+volumes:
+  # Eleanor
+  postgres_data:
+    driver: local
+  elasticsearch_data:
+    driver: local
+  redis_data:
+    driver: local
+  evidence_storage:
+    driver: local
+
+  # IRIS
+  iris_db_data:
+    driver: local
+  iris_data:
+    driver: local
+
+  # Velociraptor
+  velociraptor_data:
+    driver: local
+  velociraptor_config:
+    driver: local
+  velociraptor_certs:
+    driver: local
+
+  # OpenCTI
+  opencti_redis_data:
+    driver: local
+  opencti_elasticsearch_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
+  minio_data:
+    driver: local
+
+  # Timesketch
+  timesketch_postgres_data:
+    driver: local
+  timesketch_redis_data:
+    driver: local
+  timesketch_data:
+    driver: local
+
+  # Shuffle
+  shuffle_apps:
+    driver: local
+  shuffle_files:
+    driver: local
+  shuffle_opensearch_data:
+    driver: local
+
+# ==========================================================================
+# NETWORKS
+# ==========================================================================
+
+networks:
+  eleanor-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

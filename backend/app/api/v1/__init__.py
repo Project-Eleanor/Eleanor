@@ -22,6 +22,7 @@ from app.api.v1 import (
     playbooks,
     rbac,
     realtime,
+    response,
     rule_builder,
     search,
     tenants,
@@ -63,6 +64,7 @@ router.include_router(connectors.router, prefix="/connectors", tags=["Data Conne
 router.include_router(integrations.router, prefix="/integrations", tags=["Integrations"])
 router.include_router(enrichment.router, prefix="/enrichment", tags=["Enrichment"])
 router.include_router(collection.router, prefix="/collection", tags=["Collection"])
+router.include_router(response.router, prefix="/response", tags=["Response Actions"])
 router.include_router(workflows.router, prefix="/workflows", tags=["Workflows"])
 router.include_router(playbooks.router, prefix="/playbooks", tags=["Playbooks"])
 router.include_router(realtime.router, prefix="/realtime", tags=["Real-time Dashboard"])

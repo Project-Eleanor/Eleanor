@@ -1,0 +1,88 @@
+# Pod Disruption Budgets for Eleanor DFIR Platform
+# Ensures high availability during node maintenance and upgrades
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: eleanor-backend-pdb
+  namespace: eleanor
+  labels:
+    app.kubernetes.io/name: backend
+    app.kubernetes.io/part-of: eleanor-dfir
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: backend
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: eleanor-celery-worker-pdb
+  namespace: eleanor
+  labels:
+    app.kubernetes.io/name: celery-worker
+    app.kubernetes.io/part-of: eleanor-dfir
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: celery-worker
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: eleanor-frontend-pdb
+  namespace: eleanor
+  labels:
+    app.kubernetes.io/name: frontend
+    app.kubernetes.io/part-of: eleanor-dfir
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: frontend
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: eleanor-postgres-pdb
+  namespace: eleanor
+  labels:
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/part-of: eleanor-dfir
+spec:
+  # StatefulSet - allow 0 disruption for single replica DB
+  maxUnavailable: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: postgres
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: eleanor-elasticsearch-pdb
+  namespace: eleanor
+  labels:
+    app.kubernetes.io/name: elasticsearch
+    app.kubernetes.io/part-of: eleanor-dfir
+spec:
+  # Allow rolling updates but never all down
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: elasticsearch
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: eleanor-redis-pdb
+  namespace: eleanor
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/part-of: eleanor-dfir
+spec:
+  maxUnavailable: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: redis

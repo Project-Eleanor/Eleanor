@@ -19,6 +19,7 @@ resources:
   - frontend.yaml
   - ingress.yaml
   - network-policies.yaml
+  - pdb.yaml
 
 commonLabels:
   app.kubernetes.io/managed-by: kustomize
