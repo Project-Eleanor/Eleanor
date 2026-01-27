@@ -1,5 +1,5 @@
 # Eleanor OVA Release Workflow
-# Builds VMware and VirtualBox OVA appliances for tagged releases
+# Builds OVA appliances on vSphere for tagged releases
 
 name: OVA Release
 
@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version tag (e.g., v1.0.0-alpha)'
+        description: 'Version tag (e.g., v1.0.0)'
         required: true
         type: string
 
@@ -20,7 +20,7 @@ env:
 jobs:
   build-ova:
     name: Build OVA Appliances
-    runs-on: [self-hosted, Linux, X64, ova-builder]  # Uses thinkbook with VirtualBox + Packer
+    runs-on: [self-hosted, Linux, X64, ova-builder]
     timeout-minutes: 180
 
     steps:
@@ -42,7 +42,6 @@ jobs:
 
       - name: Verify Packer installation
         run: |
-          # Use pre-installed Packer (thinkbook has Packer in ~/bin)
           export PATH="$HOME/bin:$PATH"
           which packer
           packer version
@@ -55,11 +54,27 @@ jobs:
 
       - name: Validate Packer configuration
         working-directory: ova
+        env:
+          PKR_VAR_vsphere_password: ${{ secrets.VSPHERE_PASSWORD }}
         run: |
           export PATH="$HOME/bin:$PATH"
           packer validate eleanor.pkr.hcl
 
-      - name: Build VirtualBox OVA
+      - name: Build vSphere OVA
+        working-directory: ova
+        env:
+          PKR_VAR_vsphere_password: ${{ secrets.VSPHERE_PASSWORD }}
+        run: |
+          export PATH="$HOME/bin:$PATH"
+          packer build \
+            -only='*.vsphere-iso.*' \
+            -var "version=${{ steps.version.outputs.VERSION }}" \
+            eleanor.pkr.hcl
+        continue-on-error: true
+        id: vsphere-build
+
+      - name: Build VirtualBox OVA (fallback)
+        if: steps.vsphere-build.outcome != 'success'
         working-directory: ova
         run: |
           export PATH="$HOME/bin:$PATH"
@@ -72,10 +87,11 @@ jobs:
 
       - name: Verify builds
         run: |
+          echo "vSphere build result: ${{ steps.vsphere-build.outcome }}"
           echo "VirtualBox build result: ${{ steps.vbox-build.outcome }}"
 
-          if [ "${{ steps.vbox-build.outcome }}" != "success" ]; then
-            echo "VirtualBox build failed!"
+          if [ "${{ steps.vsphere-build.outcome }}" != "success" ] && [ "${{ steps.vbox-build.outcome }}" != "success" ]; then
+            echo "All builds failed!"
             exit 1
           fi
 
@@ -83,9 +99,16 @@ jobs:
         run: |
           VERSION="${{ steps.version.outputs.VERSION }}"
 
-          # VirtualBox OVA
-          if [ -f ova/output-virtualbox-iso/eleanor-dfir.ova ]; then
-            mv ova/output-virtualbox-iso/eleanor-dfir.ova ova/output-virtualbox-iso/eleanor-dfir-${VERSION}-virtualbox.ova
+          # vSphere OVA
+          if [ -d ova/output-vsphere ]; then
+            for f in ova/output-vsphere/*.ova; do
+              [ -f "$f" ] && mv "$f" "ova/output-vsphere/eleanor-dfir-${VERSION}.ova"
+            done
+          fi
+
+          # VirtualBox OVA (fallback)
+          if [ -f ova/output-virtualbox/eleanor-dfir.ova ]; then
+            mv ova/output-virtualbox/eleanor-dfir.ova "ova/output-virtualbox/eleanor-dfir-${VERSION}.ova"
           fi
 
       - name: Generate checksums
@@ -93,18 +116,19 @@ jobs:
           VERSION="${{ steps.version.outputs.VERSION }}"
           CHECKSUM_FILE="ova/SHA256SUMS-${VERSION}.txt"
 
-          # Clear existing checksum file
           > $CHECKSUM_FILE
 
-          # Generate checksums for VirtualBox OVA
-          if [ -d ova/output-virtualbox-iso ] && ls ova/output-virtualbox-iso/*.ova 2>/dev/null; then
-            cd ova/output-virtualbox-iso
-            sha256sum *.ova >> ../${CHECKSUM_FILE##ova/}
-            cd ../..
-          fi
+          # Generate checksums for all OVA files
+          for dir in ova/output-vsphere ova/output-virtualbox; do
+            if [ -d "$dir" ] && ls "$dir"/*.ova 2>/dev/null; then
+              cd "$dir"
+              sha256sum *.ova >> "../${CHECKSUM_FILE##ova/}"
+              cd ../..
+            fi
+          done
 
           echo "=== Checksums ==="
-          cat $CHECKSUM_FILE
+          cat $CHECKSUM_FILE || echo "No checksums generated"
 
       - name: Sign artifacts (if GPG key available)
         if: ${{ env.GPG_PRIVATE_KEY != '' }}
@@ -112,25 +136,23 @@ jobs:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: |
-          # Import GPG key
           echo "$GPG_PRIVATE_KEY" | gpg --batch --import
 
           VERSION="${{ steps.version.outputs.VERSION }}"
           CHECKSUM_FILE="ova/SHA256SUMS-${VERSION}.txt"
 
-          # Sign checksum file
           echo "$GPG_PASSPHRASE" | gpg --batch --yes --passphrase-fd 0 \
             --armor --detach-sign "$CHECKSUM_FILE"
 
-      - name: Upload VirtualBox OVA artifact
-        if: steps.vbox-build.outcome == 'success'
+      - name: Upload OVA artifact
         uses: actions/upload-artifact@v4
         with:
-          name: eleanor-ova-virtualbox-${{ steps.version.outputs.VERSION }}
+          name: eleanor-ova-${{ steps.version.outputs.VERSION }}
           path: |
-            ova/output-virtualbox-iso/*.ova
+            ova/output-vsphere/*.ova
+            ova/output-virtualbox/*.ova
           retention-days: 30
-          compression-level: 0  # OVA is already compressed
+          compression-level: 0
 
       - name: Upload checksums
         uses: actions/upload-artifact@v4
@@ -157,11 +179,11 @@ jobs:
         id: version
         run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
-      - name: Download VirtualBox OVA
+      - name: Download OVA
         uses: actions/download-artifact@v4
         with:
-          name: eleanor-ova-virtualbox-${{ steps.version.outputs.VERSION }}
-          path: ./release/virtualbox
+          name: eleanor-ova-${{ steps.version.outputs.VERSION }}
+          path: ./release/ova
         continue-on-error: true
 
       - name: Download checksums
@@ -181,6 +203,7 @@ jobs:
           Pre-built virtual appliances for easy deployment.
 
           ### Requirements
+          - **VMware**: ESXi 7.0+, vSphere, or Workstation 16+
           - **VirtualBox**: VirtualBox 7.0+
           - **Resources**: 4 vCPU, 16GB RAM minimum (32GB recommended)
           - **Storage**: 100GB disk space
@@ -188,7 +211,7 @@ jobs:
           ### Quick Start
 
           1. Download the OVA file
-          2. Import into VirtualBox (File > Import Appliance)
+          2. Import into your hypervisor
           3. Start the VM and wait for boot
           4. Access the setup wizard at \`https://<VM-IP>:9443\`
           5. Complete initial configuration
@@ -229,7 +252,7 @@ jobs:
           name: Eleanor DFIR Platform ${{ steps.version.outputs.VERSION }}
           body_path: RELEASE_NOTES.md
           files: |
-            release/virtualbox/*.ova
+            release/ova/*.ova
             release/checksums/*
           draft: false
           prerelease: ${{ contains(steps.version.outputs.VERSION, 'alpha') || contains(steps.version.outputs.VERSION, 'beta') || contains(steps.version.outputs.VERSION, 'rc') }}

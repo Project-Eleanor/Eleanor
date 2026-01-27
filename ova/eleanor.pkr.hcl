@@ -15,6 +15,10 @@ packer {
       version = ">= 1.0.0"
       source  = "github.com/hashicorp/virtualbox"
     }
+    vsphere = {
+      version = ">= 1.2.0"
+      source  = "github.com/hashicorp/vsphere"
+    }
   }
 }
 
@@ -80,6 +84,56 @@ variable "headless" {
   description = "Run build in headless mode (no GUI)"
 }
 
+# vSphere variables
+variable "vsphere_server" {
+  type        = string
+  default     = "10.40.40.199"
+  description = "vCenter server address"
+}
+
+variable "vsphere_username" {
+  type        = string
+  default     = "svc_tf_vsphere"
+  description = "vCenter username"
+}
+
+variable "vsphere_password" {
+  type        = string
+  default     = ""
+  sensitive   = true
+  description = "vCenter password"
+}
+
+variable "vsphere_datacenter" {
+  type        = string
+  default     = "Datacenter-ESXI"
+  description = "vSphere datacenter name"
+}
+
+variable "vsphere_host" {
+  type        = string
+  default     = "10.40.40.99"
+  description = "ESXi host"
+}
+
+variable "vsphere_datastore" {
+  type        = string
+  default     = "Datawarehouse"
+  description = "Datastore name"
+}
+
+variable "vsphere_network" {
+  type        = string
+  default     = "VM Management"
+  description = "Network name"
+}
+
+variable "vsphere_folder" {
+  type        = string
+  default     = "Packer-Builds"
+  description = "VM folder for build VMs"
+}
+
 # Local variables
 locals {
   build_timestamp = formatdate("YYYYMMDD-hhmm", timestamp())
@@ -123,6 +177,61 @@ source "vmware-iso" "eleanor" {
     "--compress=9",
     "--allowExtraConfig"
   ]
+}
+
+# vSphere ISO source (builds directly on ESXi)
+source "vsphere-iso" "eleanor" {
+  vcenter_server      = var.vsphere_server
+  username            = var.vsphere_username
+  password            = var.vsphere_password
+  insecure_connection = true
+
+  datacenter = var.vsphere_datacenter
+  host       = var.vsphere_host
+  datastore  = var.vsphere_datastore
+  folder     = var.vsphere_folder
+
+  vm_name       = "${var.vm_name}-${local.build_timestamp}"
+  guest_os_type = "ubuntu64Guest"
+  CPUs          = var.cpus
+  RAM           = var.memory
+  RAM_reserve_all = true
+
+  disk_controller_type = ["pvscsi"]
+  storage {
+    disk_size             = var.disk_size
+    disk_thin_provisioned = true
+  }
+
+  network_adapters {
+    network      = var.vsphere_network
+    network_card = "vmxnet3"
+  }
+
+  iso_url      = var.iso_url
+  iso_checksum = var.iso_checksum
+
+  http_directory = "cloud-init"
+
+  boot_wait = "5s"
+  boot_command = [
+    "c<wait>",
+    "linux /casper/vmlinuz --- autoinstall ds='nocloud-net;s=http://{{ .HTTPIP }}:{{ .HTTPPort }}/'<enter><wait>",
+    "initrd /casper/initrd<enter><wait>",
+    "boot<enter>"
+  ]
+
+  ssh_username = var.ssh_username
+  ssh_password = var.ssh_password
+  ssh_timeout  = "30m"
+
+  shutdown_command = "echo '${var.ssh_password}' | sudo -S shutdown -P now"
+
+  # Export as OVA
+  export {
+    force            = true
+    output_directory = "output-vsphere"
+  }
 }
 
 # VirtualBox source
@@ -178,7 +287,8 @@ build {
 
   sources = [
     "source.vmware-iso.eleanor",
-    "source.virtualbox-iso.eleanor"
+    "source.virtualbox-iso.eleanor",
+    "source.vsphere-iso.eleanor"
   ]
 
   # Wait for cloud-init to finish
