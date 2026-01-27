@@ -1,5 +1,6 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { HeroComponent } from './components/hero/hero.component';
+import { FeaturesComponent } from './components/features/features.component';
 import { DownloadsComponent } from './components/downloads/downloads.component';
 import { RequirementsComponent } from './components/requirements/requirements.component';
 import { FooterComponent } from './components/footer/footer.component';
@@ -10,6 +11,7 @@ import { AnimationService } from './services/animation.service';
   standalone: true,
   imports: [
     HeroComponent,
+    FeaturesComponent,
     DownloadsComponent,
     RequirementsComponent,
     FooterComponent
@@ -17,6 +19,7 @@ import { AnimationService } from './services/animation.service';
   template: `
     <main class="app-main">
       <app-hero />
+      <app-features />
       <app-downloads />
       <app-requirements />
       <app-footer />

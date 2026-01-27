@@ -35,7 +35,8 @@ import { AnimationService } from '../../services/animation.service';
         <!-- Title with split text animation -->
         <div class="title-group">
           <h1 class="title" #titleEl>Eleanor</h1>
-          <p class="tagline" #taglineEl>Digital Forensics & Incident Response Platform</p>
+          <p class="tagline" #taglineEl>Hunt. Collect. Analyze. Respond.</p>
+          <p class="subtitle">The open-source DFIR platform that unifies your investigation workflow</p>
         </div>
 
         <!-- Version badge -->
@@ -213,9 +214,12 @@ import { AnimationService } from '../../services/animation.service';
     }
 
     .tagline {
-      font-size: clamp(1rem, 2.5vw, 1.25rem);
-      color: var(--text-secondary);
-      font-weight: 400;
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(1.25rem, 3vw, 1.75rem);
+      color: var(--accent);
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
 
       :host ::ng-deep .split-item {
         display: inline-block;
@@ -225,6 +229,13 @@ import { AnimationService } from '../../services/animation.service';
       :host ::ng-deep .split-inner {
         display: inline-block;
       }
+    }
+
+    .subtitle {
+      font-size: clamp(1rem, 2vw, 1.125rem);
+      color: var(--text-secondary);
+      font-weight: 400;
+      margin-top: 0.75rem;
     }
 
     // Badge

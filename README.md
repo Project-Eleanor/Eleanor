@@ -9,11 +9,15 @@
 </p>
 
 <p align="center">
+  <em>The open-source DFIR platform that unifies your investigation workflow</em>
+</p>
+
+<p align="center">
   <a href="#features">Features</a> •
+  <a href="#who-is-eleanor-for">Who It's For</a> •
   <a href="#quick-start">Quick Start</a> •
   <a href="#documentation">Documentation</a> •
-  <a href="#contributing">Contributing</a> •
-  <a href="#license">License</a>
+  <a href="#contributing">Contributing</a>
 </p>
 
 <p align="center">
@@ -36,11 +40,43 @@
 
 ---
 
-Eleanor is an open-source, self-hosted **Digital Forensics and Incident Response (DFIR)** platform that provides a unified Sentinel-style interface for the complete investigation lifecycle. Rather than building everything from scratch, Eleanor integrates best-of-breed open-source tools under a single dashboard, eliminating context-switching during investigations.
+## What is Eleanor?
 
-> **Named after the unicorn 1967 Shelby GT500 from *Gone in 60 Seconds*** — the all-in-one DFIR solution the community has long sought.
+Eleanor is an open-source, self-hosted **Digital Forensics and Incident Response (DFIR)** platform that brings the entire investigation lifecycle into a single, unified interface. No more juggling a dozen browser tabs, copy-pasting IOCs between tools, or losing context during critical investigations.
 
-**Philosophy:** Investigation-first, not alert-first. Deep forensic investigation from hunt through response.
+> **Named after the unicorn 1967 Shelby GT500 from *Gone in 60 Seconds*** — Eleanor is the all-in-one DFIR solution the community has long sought.
+
+### The Problem Eleanor Solves
+
+Modern DFIR teams use 10+ separate tools: SIEM for detection, case management for tracking, endpoint agents for collection, forensic tools for analysis, threat intel platforms for enrichment, and SOAR for response. Each tool has its own interface, data format, and learning curve. Context-switching kills investigation velocity.
+
+**Eleanor fixes this.** It integrates battle-tested open-source tools (IRIS, Velociraptor, OpenCTI, Shuffle, Timesketch) under a single Sentinel-style dashboard. One login, one interface, one unified workflow from detection to remediation.
+
+### Philosophy
+
+**Investigation-first, not alert-first.** Most security tools optimize for alert triage—Eleanor optimizes for deep investigation. Start with a hypothesis, hunt proactively, and follow the evidence wherever it leads. When you find something, you have the tools to respond immediately.
+
+## Who is Eleanor For?
+
+| Role | How Eleanor Helps |
+|------|-------------------|
+| **SOC Analysts** | Investigate alerts faster with unified entity profiles, automated enrichment, and one-click threat intel lookups. No more copying hashes between VirusTotal tabs. |
+| **Threat Hunters** | Hunt across your environment with ES\|QL/KQL queries, save successful hunts as reusable playbooks, and build workbooks that capture institutional knowledge. |
+| **Forensic Investigators** | Process disk images, memory dumps, and triage packages with 34+ built-in parsers. Build timelines, trace lateral movement, and generate court-ready reports. |
+| **Incident Responders** | Coordinate response with case management, execute automated playbooks with approval gates, and contain threats without leaving the platform. |
+| **MSSPs** | Serve multiple clients from one instance with full multi-tenancy, tenant isolation, and per-organization configurations. |
+
+## What Makes Eleanor Unique?
+
+1. **Unified Interface, Best-of-Breed Tools** — Eleanor doesn't reinvent proven tools. It wraps IRIS, Velociraptor, OpenCTI, and Shuffle in a cohesive UI so you get the power of each without the integration headaches.
+
+2. **Self-Hosted & Privacy-Preserving** — Your investigation data never leaves your infrastructure. No cloud dependencies, no telemetry phoning home, no vendor lock-in. Critical for investigations involving sensitive data.
+
+3. **Multi-Tenant by Design** — Built from day one for MSSPs and enterprise teams. Row-level security, scoped Elasticsearch indices, and per-tenant configurations. One instance, many clients.
+
+4. **Investigation Workbooks** — Capture your team's investigative playbooks as reusable workbooks. New analysts can follow proven procedures; experienced hunters can share their techniques.
+
+5. **OVA Deployment** — Download a pre-configured virtual appliance and be investigating in under 30 minutes. No Kubernetes expertise required (though we support that too).
 
 ## Features
 
