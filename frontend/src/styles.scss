@@ -22,29 +22,29 @@ $danger: #f85149;          // Red for errors/critical
 $info: #4a9eff;            // Blue for info
 $border-color: #1e2a3a;    // Blue-tinted borders
 
-// Use predefined Material palettes for Sentinel-style theme (M2 theming API)
-$eleanor-primary: mat.m2-define-palette(mat.$m2-blue-palette);
-$eleanor-accent: mat.m2-define-palette(mat.$m2-light-blue-palette, A200, A100, A400);
-$eleanor-warn: mat.m2-define-palette(mat.$m2-red-palette);
+// Use predefined Material palettes for Sentinel-style theme
+$eleanor-primary: mat.define-palette(mat.$blue-palette);
+$eleanor-accent: mat.define-palette(mat.$light-blue-palette, A200, A100, A400);
+$eleanor-warn: mat.define-palette(mat.$red-palette);
 
-// Custom typography using Syne and Manrope (M2 theming API)
-$eleanor-typography: mat.m2-define-typography-config(
+// Custom typography using Syne and Manrope
+$eleanor-typography: mat.define-typography-config(
   $font-family: 'Manrope, sans-serif',
-  $headline-1: mat.m2-define-typography-level(96px, 1.2, 700, 'Syne, sans-serif'),
-  $headline-2: mat.m2-define-typography-level(60px, 1.2, 700, 'Syne, sans-serif'),
-  $headline-3: mat.m2-define-typography-level(48px, 1.2, 600, 'Syne, sans-serif'),
-  $headline-4: mat.m2-define-typography-level(34px, 1.2, 600, 'Syne, sans-serif'),
-  $headline-5: mat.m2-define-typography-level(24px, 1.2, 600, 'Syne, sans-serif'),
-  $headline-6: mat.m2-define-typography-level(20px, 1.2, 600, 'Syne, sans-serif'),
-  $subtitle-1: mat.m2-define-typography-level(16px, 1.5, 500),
-  $subtitle-2: mat.m2-define-typography-level(14px, 1.5, 500),
-  $body-1: mat.m2-define-typography-level(16px, 1.5, 400),
-  $body-2: mat.m2-define-typography-level(14px, 1.5, 400),
-  $caption: mat.m2-define-typography-level(12px, 1.5, 400),
-  $button: mat.m2-define-typography-level(14px, 1.5, 600),
+  $headline-1: mat.define-typography-level(96px, 1.2, 700, 'Syne, sans-serif'),
+  $headline-2: mat.define-typography-level(60px, 1.2, 700, 'Syne, sans-serif'),
+  $headline-3: mat.define-typography-level(48px, 1.2, 600, 'Syne, sans-serif'),
+  $headline-4: mat.define-typography-level(34px, 1.2, 600, 'Syne, sans-serif'),
+  $headline-5: mat.define-typography-level(24px, 1.2, 600, 'Syne, sans-serif'),
+  $headline-6: mat.define-typography-level(20px, 1.2, 600, 'Syne, sans-serif'),
+  $subtitle-1: mat.define-typography-level(16px, 1.5, 500),
+  $subtitle-2: mat.define-typography-level(14px, 1.5, 500),
+  $body-1: mat.define-typography-level(16px, 1.5, 400),
+  $body-2: mat.define-typography-level(14px, 1.5, 400),
+  $caption: mat.define-typography-level(12px, 1.5, 400),
+  $button: mat.define-typography-level(14px, 1.5, 600),
 );
 
-$eleanor-theme: mat.m2-define-dark-theme((
+$eleanor-theme: mat.define-dark-theme((
   color: (
     primary: $eleanor-primary,
     accent: $eleanor-accent,
