@@ -18,7 +18,7 @@ class Settings(BaseSettings):
 
     # Application
     app_name: str = "Eleanor"
-    app_version: str = "0.1.0"
+    app_version: str = "1.0.0-alpha"
     debug: bool = False
     testing: bool = False  # Skip tenant DB lookups in tests
     log_level: str = "INFO"
