@@ -98,3 +98,8 @@ secrets/
 # Local configuration
 config.local.yaml
 .env.local
+
+# Packer variable files with secrets
+*.pkrvars.hcl
+*.auto.pkrvars.hcl
+ova/vsphere.pkrvars.hcl

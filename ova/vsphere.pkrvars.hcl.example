@@ -1,0 +1,14 @@
+# vSphere configuration example
+# Copy to vsphere.pkrvars.hcl and fill in your values
+# The .pkrvars.hcl file is gitignored for security
+
+vsphere_server     = "vcenter.example.com"
+vsphere_username   = "administrator@vsphere.local"
+vsphere_datacenter = "Datacenter"
+vsphere_host       = "esxi-host.example.com"
+vsphere_datastore  = "datastore1"
+vsphere_network    = "VM Network"
+vsphere_folder     = "Packer-Builds"
+
+# Password should be passed via environment variable:
+# export PKR_VAR_vsphere_password="your-password"

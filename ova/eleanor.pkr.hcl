@@ -84,16 +84,16 @@ variable "headless" {
   description = "Run build in headless mode (no GUI)"
 }
 
-# vSphere variables
+# vSphere variables (set via environment or .pkrvars.hcl file)
 variable "vsphere_server" {
   type        = string
-  default     = "10.40.40.199"
+  default     = ""
   description = "vCenter server address"
 }
 
 variable "vsphere_username" {
   type        = string
-  default     = "svc_tf_vsphere"
+  default     = ""
   description = "vCenter username"
 }
 
@@ -106,31 +106,31 @@ variable "vsphere_password" {
 
 variable "vsphere_datacenter" {
   type        = string
-  default     = "Datacenter-ESXI"
+  default     = ""
   description = "vSphere datacenter name"
 }
 
 variable "vsphere_host" {
   type        = string
-  default     = "10.40.40.99"
+  default     = ""
   description = "ESXi host"
 }
 
 variable "vsphere_datastore" {
   type        = string
-  default     = "Datawarehouse"
+  default     = ""
   description = "Datastore name"
 }
 
 variable "vsphere_network" {
   type        = string
-  default     = "VM Management"
+  default     = "VM Network"
   description = "Network name"
 }
 
 variable "vsphere_folder" {
   type        = string
-  default     = "Packer-Builds"
+  default     = ""
   description = "VM folder for build VMs"
 }
 

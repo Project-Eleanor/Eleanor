@@ -55,7 +55,14 @@ jobs:
       - name: Validate Packer configuration
         working-directory: ova
         env:
+          PKR_VAR_vsphere_server: ${{ secrets.VSPHERE_SERVER }}
+          PKR_VAR_vsphere_username: ${{ secrets.VSPHERE_USERNAME }}
           PKR_VAR_vsphere_password: ${{ secrets.VSPHERE_PASSWORD }}
+          PKR_VAR_vsphere_datacenter: ${{ secrets.VSPHERE_DATACENTER }}
+          PKR_VAR_vsphere_host: ${{ secrets.VSPHERE_HOST }}
+          PKR_VAR_vsphere_datastore: ${{ secrets.VSPHERE_DATASTORE }}
+          PKR_VAR_vsphere_network: ${{ secrets.VSPHERE_NETWORK }}
+          PKR_VAR_vsphere_folder: ${{ secrets.VSPHERE_FOLDER }}
         run: |
           export PATH="$HOME/bin:$PATH"
           packer validate eleanor.pkr.hcl
@@ -63,7 +70,14 @@ jobs:
       - name: Build vSphere OVA
         working-directory: ova
         env:
+          PKR_VAR_vsphere_server: ${{ secrets.VSPHERE_SERVER }}
+          PKR_VAR_vsphere_username: ${{ secrets.VSPHERE_USERNAME }}
           PKR_VAR_vsphere_password: ${{ secrets.VSPHERE_PASSWORD }}
+          PKR_VAR_vsphere_datacenter: ${{ secrets.VSPHERE_DATACENTER }}
+          PKR_VAR_vsphere_host: ${{ secrets.VSPHERE_HOST }}
+          PKR_VAR_vsphere_datastore: ${{ secrets.VSPHERE_DATASTORE }}
+          PKR_VAR_vsphere_network: ${{ secrets.VSPHERE_NETWORK }}
+          PKR_VAR_vsphere_folder: ${{ secrets.VSPHERE_FOLDER }}
         run: |
           export PATH="$HOME/bin:$PATH"
           packer build \
