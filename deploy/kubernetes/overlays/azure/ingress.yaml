@@ -1,0 +1,93 @@
+---
+# Azure Application Gateway Ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: eleanor-agic-ingress
+  namespace: eleanor
+  annotations:
+    # Application Gateway Ingress Controller annotations
+    kubernetes.io/ingress.class: azure/application-gateway
+
+    # SSL/TLS configuration
+    appgw.ingress.kubernetes.io/ssl-redirect: "true"
+    appgw.ingress.kubernetes.io/appgw-ssl-certificate: eleanor-ssl-cert
+    appgw.ingress.kubernetes.io/appgw-ssl-profile: eleanor-ssl-profile
+
+    # Backend configuration
+    appgw.ingress.kubernetes.io/backend-protocol: http
+    appgw.ingress.kubernetes.io/backend-hostname: eleanor-backend.eleanor.svc.cluster.local
+
+    # Health probe configuration
+    appgw.ingress.kubernetes.io/health-probe-path: /api/health
+    appgw.ingress.kubernetes.io/health-probe-interval: "15"
+    appgw.ingress.kubernetes.io/health-probe-timeout: "5"
+    appgw.ingress.kubernetes.io/health-probe-unhealthy-threshold: "3"
+
+    # WAF configuration (requires WAF_v2 SKU)
+    appgw.ingress.kubernetes.io/waf-policy-for-path: /subscriptions/${SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP}/providers/Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies/eleanor-waf
+
+    # Connection draining
+    appgw.ingress.kubernetes.io/connection-draining: "true"
+    appgw.ingress.kubernetes.io/connection-draining-timeout: "30"
+
+    # Request timeout
+    appgw.ingress.kubernetes.io/request-timeout: "60"
+
+    # Cookie-based affinity (if needed)
+    # appgw.ingress.kubernetes.io/cookie-based-affinity: "true"
+
+spec:
+  ingressClassName: azure-application-gateway
+  tls:
+    - hosts:
+        - ${ELEANOR_DOMAIN}
+      secretName: eleanor-tls-secret
+  rules:
+    - host: ${ELEANOR_DOMAIN}
+      http:
+        paths:
+          # Backend API
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 8000
+          # WebSocket endpoint
+          - path: /ws
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 8000
+          # Frontend (default)
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+
+---
+# Internal Load Balancer for private services
+apiVersion: v1
+kind: Service
+metadata:
+  name: eleanor-internal-lb
+  namespace: eleanor
+  annotations:
+    service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+    service.beta.kubernetes.io/azure-load-balancer-internal-subnet: ${INTERNAL_SUBNET}
+spec:
+  type: LoadBalancer
+  selector:
+    app: backend
+  ports:
+    - name: grpc
+      port: 50051
+      targetPort: 50051
+      protocol: TCP

@@ -1,0 +1,100 @@
+---
+# GKE Ingress with Google Cloud Load Balancer
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: eleanor-gce-ingress
+  namespace: eleanor
+  annotations:
+    # GKE Ingress class
+    kubernetes.io/ingress.class: gce
+    kubernetes.io/ingress.global-static-ip-name: eleanor-static-ip
+
+    # SSL/TLS configuration
+    networking.gke.io/managed-certificates: eleanor-certificate
+    networking.gke.io/v1beta1.FrontendConfig: eleanor-frontend-config
+
+    # Cloud Armor (WAF) policy
+    # networking.gke.io/v1beta1.CloudArmorPolicy: eleanor-armor-policy
+
+spec:
+  defaultBackend:
+    service:
+      name: frontend
+      port:
+        number: 80
+  rules:
+    - host: ${ELEANOR_DOMAIN}
+      http:
+        paths:
+          # Backend API
+          - path: /api/*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 8000
+          # WebSocket endpoint
+          - path: /ws/*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 8000
+          # Frontend (default)
+          - path: /*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+
+---
+# Managed SSL Certificate
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: eleanor-certificate
+  namespace: eleanor
+spec:
+  domains:
+    - ${ELEANOR_DOMAIN}
+    # Add additional domains if needed
+    # - www.${ELEANOR_DOMAIN}
+
+---
+# Frontend Configuration for HTTPS redirect
+apiVersion: networking.gke.io/v1beta1
+kind: FrontendConfig
+metadata:
+  name: eleanor-frontend-config
+  namespace: eleanor
+spec:
+  redirectToHttps:
+    enabled: true
+    responseCodeName: MOVED_PERMANENTLY_DEFAULT
+  # SSL Policy (optional - for TLS version control)
+  # sslPolicy: eleanor-ssl-policy
+
+---
+# Internal Load Balancer for private services
+apiVersion: v1
+kind: Service
+metadata:
+  name: eleanor-internal-lb
+  namespace: eleanor
+  annotations:
+    cloud.google.com/load-balancer-type: Internal
+    networking.gke.io/internal-load-balancer-allow-global-access: "true"
+spec:
+  type: LoadBalancer
+  selector:
+    app: backend
+  ports:
+    - name: grpc
+      port: 50051
+      targetPort: 50051
+      protocol: TCP

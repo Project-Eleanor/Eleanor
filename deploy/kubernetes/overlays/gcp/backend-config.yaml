@@ -1,0 +1,79 @@
+---
+# Backend Configuration for GKE Ingress
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: eleanor-backend-config
+  namespace: eleanor
+spec:
+  # Health check configuration
+  healthCheck:
+    checkIntervalSec: 15
+    timeoutSec: 5
+    healthyThreshold: 2
+    unhealthyThreshold: 3
+    type: HTTP
+    requestPath: /api/health
+    port: 8000
+
+  # Connection draining
+  connectionDraining:
+    drainingTimeoutSec: 30
+
+  # Session affinity (if needed)
+  # sessionAffinity:
+  #   affinityType: GENERATED_COOKIE
+  #   affinityCookieTtlSec: 3600
+
+  # Cloud CDN (for static assets)
+  # cdn:
+  #   enabled: true
+  #   cachePolicy:
+  #     includeHost: true
+  #     includeProtocol: true
+  #     includeQueryString: true
+
+  # Cloud Armor security policy
+  # securityPolicy:
+  #   name: eleanor-armor-policy
+
+  # Custom request headers
+  customRequestHeaders:
+    headers:
+      - X-Client-Region:{client_region}
+      - X-Client-City:{client_city}
+
+  # Logging
+  logging:
+    enable: true
+    sampleRate: 1.0
+
+  # Timeout
+  timeoutSec: 60
+
+---
+# Backend Config for WebSocket connections
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: eleanor-websocket-config
+  namespace: eleanor
+spec:
+  healthCheck:
+    checkIntervalSec: 15
+    timeoutSec: 10
+    healthyThreshold: 2
+    unhealthyThreshold: 3
+    type: HTTP
+    requestPath: /api/health
+    port: 8000
+
+  connectionDraining:
+    drainingTimeoutSec: 300
+
+  # Longer timeout for WebSocket connections
+  timeoutSec: 3600
+
+  logging:
+    enable: true
+    sampleRate: 0.5

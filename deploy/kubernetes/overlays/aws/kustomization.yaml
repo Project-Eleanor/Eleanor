@@ -1,0 +1,44 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: eleanor-aws
+
+namespace: eleanor
+
+resources:
+  - ../production
+  - storage-class.yaml
+  - ingress.yaml
+  - service-account.yaml
+
+# AWS-specific patches
+patches:
+  # Use AWS ALB Ingress Controller annotations
+  - path: ingress-patch.yaml
+  # Add IRSA annotations to service accounts
+  - path: service-account-patch.yaml
+  # Use gp3 storage class for PVCs
+  - patch: |-
+      - op: add
+        path: /spec/storageClassName
+        value: eleanor-gp3
+    target:
+      kind: PersistentVolumeClaim
+  # Add EFS storage class for evidence (RWX)
+  - patch: |-
+      - op: replace
+        path: /spec/storageClassName
+        value: eleanor-efs
+    target:
+      kind: PersistentVolumeClaim
+      name: evidence-storage
+
+# AWS-specific labels
+commonLabels:
+  cloud: aws
+  infrastructure: eks
+
+# AWS-specific annotations
+commonAnnotations:
+  kubernetes.io/ingress.class: alb

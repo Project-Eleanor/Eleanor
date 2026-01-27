@@ -1,0 +1,95 @@
+---
+# Premium SSD Storage Class (RWO)
+# Used for databases, Elasticsearch, Redis
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: eleanor-premium-ssd
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: disk.csi.azure.com
+parameters:
+  skuName: Premium_LRS
+  # Enable encryption at rest
+  # networkAccessPolicy: AllowPrivate
+  # diskAccessID: /subscriptions/.../diskAccesses/...
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer
+
+---
+# Premium SSD v2 Storage Class (high performance)
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: eleanor-premium-ssd-v2
+provisioner: disk.csi.azure.com
+parameters:
+  skuName: PremiumV2_LRS
+  DiskIOPSReadWrite: "10000"
+  DiskMBpsReadWrite: "250"
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer
+
+---
+# Azure Files Premium Storage Class (RWX)
+# Used for evidence storage that needs to be accessed by multiple pods
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: eleanor-azure-files
+provisioner: file.csi.azure.com
+parameters:
+  skuName: Premium_LRS
+  # Enable SMB multichannel for better performance
+  enableLargeFileShares: "true"
+  # Private endpoint support
+  # networkEndpointType: privateEndpoint
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+volumeBindingMode: Immediate
+mountOptions:
+  - dir_mode=0700
+  - file_mode=0600
+  - uid=1000
+  - gid=1000
+  - mfsymlinks
+  - cache=strict
+  - actimeo=30
+  - nosharesock
+
+---
+# Ultra Disk Storage Class (for critical high-performance workloads)
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: eleanor-ultra-disk
+provisioner: disk.csi.azure.com
+parameters:
+  skuName: UltraSSD_LRS
+  DiskIOPSReadWrite: "20000"
+  DiskMBpsReadWrite: "500"
+  # Requires VM types that support Ultra Disk
+  cachingMode: None
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer
+
+---
+# Azure NetApp Files Storage Class (enterprise NFS)
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: eleanor-netapp-premium
+provisioner: netappfiles.csi.azure.com
+parameters:
+  resourceGroup: ${NETAPP_RESOURCE_GROUP}
+  netAppAccount: ${NETAPP_ACCOUNT}
+  capacityPool: ${NETAPP_POOL}
+  serviceLevel: Premium
+  # Protocol: nfsv3 or nfsv41
+  protocol: nfsv41
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+volumeBindingMode: Immediate

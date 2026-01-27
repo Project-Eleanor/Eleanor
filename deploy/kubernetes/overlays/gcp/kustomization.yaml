@@ -1,0 +1,46 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: eleanor-gcp
+
+namespace: eleanor
+
+resources:
+  - ../production
+  - storage-class.yaml
+  - ingress.yaml
+  - service-account.yaml
+  - secrets.yaml
+  - backend-config.yaml
+
+# GCP-specific patches
+patches:
+  # Use GKE Ingress annotations
+  - path: ingress-patch.yaml
+  # Add Workload Identity annotations
+  - path: service-account-patch.yaml
+  # Use pd-ssd storage class
+  - patch: |-
+      - op: add
+        path: /spec/storageClassName
+        value: eleanor-pd-ssd
+    target:
+      kind: PersistentVolumeClaim
+  # Use Filestore for evidence (RWX)
+  - patch: |-
+      - op: replace
+        path: /spec/storageClassName
+        value: eleanor-filestore
+    target:
+      kind: PersistentVolumeClaim
+      name: evidence-storage
+
+# GCP-specific labels
+commonLabels:
+  cloud: gcp
+  infrastructure: gke
+
+# GCP-specific annotations
+commonAnnotations:
+  kubernetes.io/ingress.class: gce

@@ -1,0 +1,73 @@
+---
+# GP3 Storage Class for EBS volumes (RWO)
+# Used for databases, Elasticsearch, Redis
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: eleanor-gp3
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: ebs.csi.aws.com
+parameters:
+  type: gp3
+  iops: "3000"
+  throughput: "125"
+  encrypted: "true"
+  # Use default KMS key, override with kmsKeyId if needed
+  # kmsKeyId: arn:aws:kms:us-east-1:123456789012:key/your-key-id
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer
+
+---
+# GP3 Fast Storage Class for high IOPS workloads
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: eleanor-gp3-fast
+provisioner: ebs.csi.aws.com
+parameters:
+  type: gp3
+  iops: "16000"
+  throughput: "1000"
+  encrypted: "true"
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer
+
+---
+# EFS Storage Class for shared storage (RWX)
+# Used for evidence storage that needs to be accessed by multiple pods
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: eleanor-efs
+provisioner: efs.csi.aws.com
+parameters:
+  # EFS Access Point configuration
+  provisioningMode: efs-ap
+  fileSystemId: ${EFS_FILE_SYSTEM_ID}
+  directoryPerms: "700"
+  gidRangeStart: "1000"
+  gidRangeEnd: "2000"
+  basePath: "/eleanor"
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+volumeBindingMode: Immediate
+mountOptions:
+  - tls
+
+---
+# io2 Storage Class for critical databases (high durability)
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: eleanor-io2
+provisioner: ebs.csi.aws.com
+parameters:
+  type: io2
+  iops: "10000"
+  encrypted: "true"
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer

@@ -70,6 +70,15 @@ class Settings(BaseSettings):
     # Evidence Storage
     evidence_path: str = "/app/evidence"
 
+    # Cloud Storage Settings
+    storage_backend: str = "local"  # local, s3, azure, gcs
+    storage_bucket: str | None = None  # Bucket/container name for cloud storage
+    storage_region: str | None = None  # AWS region or equivalent
+    storage_access_key: str | None = None  # Access key or service account path (GCS)
+    storage_secret_key: str | None = None  # Secret key
+    storage_endpoint_url: str | None = None  # For S3-compatible (MinIO) or Azure account URL
+    storage_connection_string: str | None = None  # Azure connection string
+
     # Case Number Format
     case_number_prefix: str = "ELEANOR"
 
@@ -114,6 +123,21 @@ class Settings(BaseSettings):
     timesketch_verify_ssl: bool = True
     timesketch_username: str = ""
     timesketch_password: str = ""
+
+    # Microsoft Defender for Endpoint
+    defender_enabled: bool = False
+    defender_tenant_id: str = ""  # Azure AD tenant ID
+    defender_client_id: str = ""  # Application (client) ID
+    defender_client_secret: str = ""  # Client secret
+
+    # Microsoft Sentinel
+    sentinel_enabled: bool = False
+    sentinel_tenant_id: str = ""  # Azure AD tenant ID
+    sentinel_client_id: str = ""  # Application (client) ID
+    sentinel_client_secret: str = ""  # Client secret
+    sentinel_subscription_id: str = ""  # Azure subscription ID
+    sentinel_resource_group: str = ""  # Resource group containing Sentinel workspace
+    sentinel_workspace_name: str = ""  # Log Analytics workspace name
 
 
 @lru_cache

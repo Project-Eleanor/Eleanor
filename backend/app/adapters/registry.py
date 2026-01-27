@@ -141,6 +141,31 @@ class AdapterRegistry:
                     "password": getattr(settings, "timesketch_password", ""),
                 },
             ),
+            "defender": AdapterConfig(
+                enabled=getattr(settings, "defender_enabled", False),
+                url="https://api.securitycenter.microsoft.com",
+                api_key="",  # Uses OAuth2
+                verify_ssl=True,
+                extra={
+                    "tenant_id": getattr(settings, "defender_tenant_id", ""),
+                    "client_id": getattr(settings, "defender_client_id", ""),
+                    "client_secret": getattr(settings, "defender_client_secret", ""),
+                },
+            ),
+            "sentinel": AdapterConfig(
+                enabled=getattr(settings, "sentinel_enabled", False),
+                url="https://management.azure.com",
+                api_key="",  # Uses OAuth2
+                verify_ssl=True,
+                extra={
+                    "tenant_id": getattr(settings, "sentinel_tenant_id", ""),
+                    "client_id": getattr(settings, "sentinel_client_id", ""),
+                    "client_secret": getattr(settings, "sentinel_client_secret", ""),
+                    "subscription_id": getattr(settings, "sentinel_subscription_id", ""),
+                    "resource_group": getattr(settings, "sentinel_resource_group", ""),
+                    "workspace_name": getattr(settings, "sentinel_workspace_name", ""),
+                },
+            ),
         }
 
         for name, config in adapter_settings.items():
@@ -310,6 +335,20 @@ async def init_adapters(settings: Any) -> AdapterRegistry:
         registry.register("timesketch", TimesketchAdapter)
     except ImportError:
         logger.debug("Timesketch adapter not available")
+
+    try:
+        from app.adapters.defender import DefenderAdapter
+
+        registry.register("defender", DefenderAdapter)
+    except ImportError:
+        logger.debug("Defender adapter not available")
+
+    try:
+        from app.adapters.sentinel import SentinelAdapter
+
+        registry.register("sentinel", SentinelAdapter)
+    except ImportError:
+        logger.debug("Sentinel adapter not available")
 
     # Configure from settings
     await registry.configure_from_settings(settings)

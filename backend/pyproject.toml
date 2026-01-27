@@ -59,6 +59,13 @@ dependencies = [
     "python-evtx>=0.7.4",
     # Memory forensics
     "volatility3>=2.5.0",
+    # Cloud Storage SDKs
+    "boto3>=1.34.0",  # AWS S3
+    "azure-storage-blob>=12.19.0",  # Azure Blob Storage
+    "azure-identity>=1.15.0",  # Azure authentication
+    "google-cloud-storage>=2.14.0",  # Google Cloud Storage
+    # Microsoft Integrations
+    "msal>=1.26.0",  # Microsoft Authentication Library
 ]
 
 [project.optional-dependencies]

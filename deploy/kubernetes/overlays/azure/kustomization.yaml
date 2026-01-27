@@ -1,0 +1,45 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: eleanor-azure
+
+namespace: eleanor
+
+resources:
+  - ../production
+  - storage-class.yaml
+  - ingress.yaml
+  - service-account.yaml
+  - secrets.yaml
+
+# Azure-specific patches
+patches:
+  # Use Azure Application Gateway Ingress Controller
+  - path: ingress-patch.yaml
+  # Add Azure Workload Identity annotations
+  - path: service-account-patch.yaml
+  # Use Azure managed-premium storage class
+  - patch: |-
+      - op: add
+        path: /spec/storageClassName
+        value: eleanor-premium-ssd
+    target:
+      kind: PersistentVolumeClaim
+  # Use Azure Files for evidence (RWX)
+  - patch: |-
+      - op: replace
+        path: /spec/storageClassName
+        value: eleanor-azure-files
+    target:
+      kind: PersistentVolumeClaim
+      name: evidence-storage
+
+# Azure-specific labels
+commonLabels:
+  cloud: azure
+  infrastructure: aks
+
+# Azure-specific annotations
+commonAnnotations:
+  kubernetes.io/ingress.class: azure/application-gateway

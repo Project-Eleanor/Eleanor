@@ -1,0 +1,91 @@
+---
+# PD-SSD Storage Class (RWO)
+# Used for databases, Elasticsearch, Redis
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: eleanor-pd-ssd
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: pd.csi.storage.gke.io
+parameters:
+  type: pd-ssd
+  # Enable CMEK encryption
+  # disk-encryption-kms-key: projects/${PROJECT_ID}/locations/${REGION}/keyRings/${KEY_RING}/cryptoKeys/${KEY}
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer
+
+---
+# PD-Balanced Storage Class (cost-effective)
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: eleanor-pd-balanced
+provisioner: pd.csi.storage.gke.io
+parameters:
+  type: pd-balanced
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer
+
+---
+# Extreme PD Storage Class (high performance)
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: eleanor-pd-extreme
+provisioner: pd.csi.storage.gke.io
+parameters:
+  type: pd-extreme
+  # Provisioned IOPS (100-120000)
+  provisioned-iops-on-create: "10000"
+  # Provisioned throughput in MiB/s (1-2400)
+  provisioned-throughput-on-create: "500"
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer
+
+---
+# Filestore Storage Class (RWX)
+# Used for evidence storage that needs to be accessed by multiple pods
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: eleanor-filestore
+provisioner: filestore.csi.storage.gke.io
+parameters:
+  tier: standard
+  # network: projects/${PROJECT_ID}/global/networks/${VPC_NAME}
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+volumeBindingMode: Immediate
+
+---
+# Filestore Enterprise (high performance NFS)
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: eleanor-filestore-enterprise
+provisioner: filestore.csi.storage.gke.io
+parameters:
+  tier: enterprise
+  # network: projects/${PROJECT_ID}/global/networks/${VPC_NAME}
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+volumeBindingMode: Immediate
+
+---
+# Hyperdisk Balanced (next-gen block storage)
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: eleanor-hyperdisk-balanced
+provisioner: pd.csi.storage.gke.io
+parameters:
+  type: hyperdisk-balanced
+  provisioned-iops-on-create: "10000"
+  provisioned-throughput-on-create: "500"
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer
