@@ -1,9 +1,6 @@
 @use '@angular/material' as mat;
 @use 'sass:color';
 
-// Include core first
-@include mat.core();
-
 // Steel & Sapphire dark theme colors (complementing silver/blue horse logo)
 $bg-primary: #0a0e14;      // Deep navy-black
 $bg-secondary: #12171f;    // Charcoal with blue undertone
@@ -22,39 +19,25 @@ $danger: #f85149;          // Red for errors/critical
 $info: #4a9eff;            // Blue for info
 $border-color: #1e2a3a;    // Blue-tinted borders
 
-// Use predefined Material palettes for Sentinel-style theme
-$eleanor-primary: mat.define-palette(mat.$blue-palette);
-$eleanor-accent: mat.define-palette(mat.$light-blue-palette, A200, A100, A400);
-$eleanor-warn: mat.define-palette(mat.$red-palette);
-
-// Custom typography using Syne and Manrope
-$eleanor-typography: mat.define-typography-config(
-  $font-family: 'Manrope, sans-serif',
-  $headline-1: mat.define-typography-level(96px, 1.2, 700, 'Syne, sans-serif'),
-  $headline-2: mat.define-typography-level(60px, 1.2, 700, 'Syne, sans-serif'),
-  $headline-3: mat.define-typography-level(48px, 1.2, 600, 'Syne, sans-serif'),
-  $headline-4: mat.define-typography-level(34px, 1.2, 600, 'Syne, sans-serif'),
-  $headline-5: mat.define-typography-level(24px, 1.2, 600, 'Syne, sans-serif'),
-  $headline-6: mat.define-typography-level(20px, 1.2, 600, 'Syne, sans-serif'),
-  $subtitle-1: mat.define-typography-level(16px, 1.5, 500),
-  $subtitle-2: mat.define-typography-level(14px, 1.5, 500),
-  $body-1: mat.define-typography-level(16px, 1.5, 400),
-  $body-2: mat.define-typography-level(14px, 1.5, 400),
-  $caption: mat.define-typography-level(12px, 1.5, 400),
-  $button: mat.define-typography-level(14px, 1.5, 600),
-);
-
-$eleanor-theme: mat.define-dark-theme((
+// Angular Material v18+ M3 theming
+$eleanor-theme: mat.define-theme((
   color: (
-    primary: $eleanor-primary,
-    accent: $eleanor-accent,
-    warn: $eleanor-warn,
+    theme-type: dark,
+    primary: mat.$azure-palette,
+    tertiary: mat.$blue-palette,
   ),
-  typography: $eleanor-typography,
-  density: 0,
+  typography: (
+    plain-family: 'Manrope, sans-serif',
+    brand-family: 'Syne, sans-serif',
+  ),
+  density: (
+    scale: 0,
+  ),
 ));
 
-@include mat.all-component-themes($eleanor-theme);
+html {
+  @include mat.all-component-themes($eleanor-theme);
+}
 
 // CSS Variables for easy access
 :root {
