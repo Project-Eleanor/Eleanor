@@ -21,13 +21,13 @@ packer {
 # Variables
 variable "iso_url" {
   type        = string
-  default     = "https://releases.ubuntu.com/22.04/ubuntu-22.04.3-live-server-amd64.iso"
+  default     = "https://releases.ubuntu.com/22.04/ubuntu-22.04.5-live-server-amd64.iso"
   description = "Ubuntu 22.04 Server ISO URL"
 }
 
 variable "iso_checksum" {
   type        = string
-  default     = "sha256:a4acfda10b18da50e2ec50ccaf860d7f20b389df8765611142305c0e911d16fd"
+  default     = "sha256:9bc6028870aef3f74f4e16b900008179e78b130e6b0b9a140635434a46aa98b0"
   description = "ISO checksum"
 }
 
