@@ -1,0 +1,83 @@
+{
+  "releases": [
+    {
+      "version": "v2.1.0",
+      "date": "January 25, 2025",
+      "size": "18.4 GB",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "changelog": [
+        "Enhanced Velociraptor integration",
+        "New IRIS case management UI",
+        "Improved threat hunting workflows",
+        "Updated to Ubuntu 24.04 LTS base"
+      ],
+      "isLatest": true,
+      "assets": [
+        {
+          "name": "eleanor-dfir-v2.1.0-vmware.ova",
+          "downloadUrl": "https://github.com/Project-Eleanor/Eleanor/releases/download/v2.1.0/eleanor-dfir-v2.1.0-vmware.ova",
+          "size": 19755221401,
+          "platform": "vmware"
+        },
+        {
+          "name": "eleanor-dfir-v2.1.0-virtualbox.ova",
+          "downloadUrl": "https://github.com/Project-Eleanor/Eleanor/releases/download/v2.1.0/eleanor-dfir-v2.1.0-virtualbox.ova",
+          "size": 19755221401,
+          "platform": "virtualbox"
+        }
+      ]
+    },
+    {
+      "version": "v2.0.0",
+      "date": "December 15, 2024",
+      "size": "17.8 GB",
+      "sha256": "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456",
+      "changelog": [
+        "Major platform redesign",
+        "New Steel & Sapphire UI theme",
+        "Elasticsearch 8.x upgrade",
+        "New collector framework"
+      ],
+      "assets": [
+        {
+          "name": "eleanor-dfir-v2.0.0-vmware.ova",
+          "downloadUrl": "https://github.com/Project-Eleanor/Eleanor/releases/download/v2.0.0/eleanor-dfir-v2.0.0-vmware.ova",
+          "size": 19105291264,
+          "platform": "vmware"
+        },
+        {
+          "name": "eleanor-dfir-v2.0.0-virtualbox.ova",
+          "downloadUrl": "https://github.com/Project-Eleanor/Eleanor/releases/download/v2.0.0/eleanor-dfir-v2.0.0-virtualbox.ova",
+          "size": 19105291264,
+          "platform": "virtualbox"
+        }
+      ]
+    },
+    {
+      "version": "v1.5.0",
+      "date": "October 1, 2024",
+      "size": "16.2 GB",
+      "sha256": "b2c3d4e5f67890123456789012345678901234567890abcdef1234567890abcd",
+      "changelog": [
+        "Added YARA scanning capabilities",
+        "Improved memory forensics",
+        "New detection rules engine"
+      ],
+      "assets": [
+        {
+          "name": "eleanor-dfir-v1.5.0-vmware.ova",
+          "downloadUrl": "https://github.com/Project-Eleanor/Eleanor/releases/download/v1.5.0/eleanor-dfir-v1.5.0-vmware.ova",
+          "size": 17398805299,
+          "platform": "vmware"
+        },
+        {
+          "name": "eleanor-dfir-v1.5.0-virtualbox.ova",
+          "downloadUrl": "https://github.com/Project-Eleanor/Eleanor/releases/download/v1.5.0/eleanor-dfir-v1.5.0-virtualbox.ova",
+          "size": 17398805299,
+          "platform": "virtualbox"
+        }
+      ]
+    }
+  ],
+  "latest": "v2.1.0"
+}

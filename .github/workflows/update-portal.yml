@@ -1,0 +1,60 @@
+# Update Release Portal Workflow
+# Automatically rebuilds and deploys the portal when a new release is published
+
+name: Update Release Portal
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  deploy-portal:
+    name: Build and Deploy Portal
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Fetch releases from GitHub API
+        run: |
+          gh api /repos/${{ github.repository }}/releases > github-releases.json
+          echo "Fetched $(jq length github-releases.json) releases"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend-releases/package-lock.json
+
+      - name: Generate releases.json
+        run: node frontend-releases/scripts/generate-releases.js
+
+      - name: Install dependencies
+        working-directory: frontend-releases
+        run: npm ci
+
+      - name: Build Angular app
+        working-directory: frontend-releases
+        run: npm run build
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: e92c16534cd4ca837ea2a39f6e857539
+          command: pages deploy frontend-releases/dist/eleanor-releases/browser --project-name=eleanor-releases
+
+      - name: Summary
+        run: |
+          echo "## Portal Update Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Deployed to: https://project-eleanor.com" >> $GITHUB_STEP_SUMMARY
+          echo "- Triggered by: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ github.event_name }}" == "release" ]; then
+            echo "- Release: ${{ github.event.release.tag_name }}" >> $GITHUB_STEP_SUMMARY
+          fi
