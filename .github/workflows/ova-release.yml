@@ -64,7 +64,7 @@ jobs:
         run: |
           export PATH="$HOME/bin:$PATH"
           packer build \
-            -only=virtualbox-iso.eleanor \
+            -only='*.virtualbox-iso.*' \
             -var "version=${{ steps.version.outputs.VERSION }}" \
             eleanor.pkr.hcl
         continue-on-error: true
