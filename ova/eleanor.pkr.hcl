@@ -74,6 +74,12 @@ variable "version" {
   description = "Eleanor version"
 }
 
+variable "headless" {
+  type        = bool
+  default     = true
+  description = "Run build in headless mode (no GUI)"
+}
+
 # Local variables
 locals {
   build_timestamp = formatdate("YYYYMMDD-hhmm", timestamp())
@@ -127,6 +133,7 @@ source "virtualbox-iso" "eleanor" {
   memory               = var.memory
   disk_size            = var.disk_size
   hard_drive_interface = "sata"
+  headless             = var.headless
 
   iso_url      = var.iso_url
   iso_checksum = var.iso_checksum

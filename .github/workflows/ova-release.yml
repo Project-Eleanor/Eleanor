@@ -65,8 +65,7 @@ jobs:
           export PATH="$HOME/bin:$PATH"
           packer build \
             -only=virtualbox-iso.eleanor \
-            -var "eleanor_version=${{ steps.version.outputs.VERSION }}" \
-            -var "headless=true" \
+            -var "version=${{ steps.version.outputs.VERSION }}" \
             eleanor.pkr.hcl
         continue-on-error: true
         id: vbox-build
