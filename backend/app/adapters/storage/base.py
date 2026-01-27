@@ -81,10 +81,10 @@ class UploadResult:
 
     key: str
     size: int
-    etag: str | None = None
     sha256: str
     sha1: str
     md5: str
+    etag: str | None = None
     content_type: str | None = None
     storage_url: str | None = None  # Full URL if applicable
 

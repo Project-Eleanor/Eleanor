@@ -97,7 +97,7 @@ class TestEvidenceChainOfCustody:
             assert event["actor_name"] is not None
 
     async def test_evidence_integrity_verification(
-        self, authenticated_client, test_evidence, test_session
+        self, authenticated_client_with_evidence, test_evidence
     ):
         """Test evidence integrity verification workflow.
 
@@ -109,7 +109,7 @@ class TestEvidenceChainOfCustody:
         evidence_id = test_evidence.id
 
         # Get original evidence details
-        original_response = await authenticated_client.get(
+        original_response = await authenticated_client_with_evidence.get(
             f"/api/v1/evidence/{evidence_id}"
         )
 
@@ -121,7 +121,7 @@ class TestEvidenceChainOfCustody:
         # For unit testing purposes, we verify the custody chain
 
         # View custody chain
-        custody_response = await authenticated_client.get(
+        custody_response = await authenticated_client_with_evidence.get(
             f"/api/v1/evidence/{evidence_id}/custody"
         )
 
@@ -187,17 +187,17 @@ class TestEvidenceSecurity:
     """Tests for evidence access control and security."""
 
     async def test_evidence_access_logging(
-        self, authenticated_client, test_evidence
+        self, authenticated_client_with_evidence, test_evidence
     ):
         """Test that all evidence access is logged."""
         evidence_id = test_evidence.id
 
         # Access evidence multiple times
         for _ in range(3):
-            await authenticated_client.get(f"/api/v1/evidence/{evidence_id}")
+            await authenticated_client_with_evidence.get(f"/api/v1/evidence/{evidence_id}")
 
         # Check custody chain
-        custody_response = await authenticated_client.get(
+        custody_response = await authenticated_client_with_evidence.get(
             f"/api/v1/evidence/{evidence_id}/custody"
         )
 

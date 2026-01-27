@@ -272,13 +272,13 @@ async def update_evidence(
     )
 
 
-@router.get("/{evidence_id}/download")
+@router.get("/{evidence_id}/download", response_model=None)
 async def download_evidence(
     evidence_id: UUID,
     request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user)],
-) -> FileResponse | StreamingResponse:
+):
     """Download evidence file."""
     query = select(Evidence).where(Evidence.id == evidence_id)
     result = await db.execute(query)

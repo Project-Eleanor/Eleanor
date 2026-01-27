@@ -24,6 +24,7 @@ import pytest_asyncio
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
+from app.adapters.storage import init_storage_adapter
 from app.config import Settings, get_settings
 from app.database import get_db, get_elasticsearch, get_redis
 from app.models.user import AuthProvider
@@ -694,6 +695,9 @@ def _create_app_fixture(mock_session_fixture):
     async def _app_fixture(test_settings, mock_elasticsearch, mock_redis, request) -> FastAPI:
         from app.main import app as main_app
 
+        # Initialize storage adapter for tests
+        await init_storage_adapter(test_settings)
+
         # Get the mock session from the provided fixture
         mock_session = request.getfixturevalue(mock_session_fixture)
 
@@ -728,6 +732,9 @@ async def app(test_settings, mock_session, mock_elasticsearch, mock_redis) -> Fa
     """Create test FastAPI application with mocked dependencies."""
     from app.main import app as main_app
 
+    # Initialize storage adapter for tests
+    await init_storage_adapter(test_settings)
+
     # Override dependencies
     async def override_get_db():
         yield mock_session
@@ -756,6 +763,9 @@ async def app(test_settings, mock_session, mock_elasticsearch, mock_redis) -> Fa
 async def app_with_case(test_settings, mock_session_with_case, mock_elasticsearch, mock_redis) -> FastAPI:
     """Create test FastAPI application with test case pre-populated."""
     from app.main import app as main_app
+
+    # Initialize storage adapter for tests
+    await init_storage_adapter(test_settings)
 
     # Override dependencies
     async def override_get_db():
@@ -786,6 +796,9 @@ async def app_with_cases(test_settings, mock_session_with_cases, mock_elasticsea
     """Create test FastAPI application with multiple test cases pre-populated."""
     from app.main import app as main_app
 
+    # Initialize storage adapter for tests
+    await init_storage_adapter(test_settings)
+
     # Override dependencies
     async def override_get_db():
         yield mock_session_with_cases
@@ -814,6 +827,9 @@ async def app_with_cases(test_settings, mock_session_with_cases, mock_elasticsea
 async def app_with_evidence(test_settings, mock_session_with_evidence, mock_elasticsearch, mock_redis) -> FastAPI:
     """Create test FastAPI application with test evidence pre-populated."""
     from app.main import app as main_app
+
+    # Initialize storage adapter for tests
+    await init_storage_adapter(test_settings)
 
     # Override dependencies
     async def override_get_db():
