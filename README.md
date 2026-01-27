@@ -44,8 +44,6 @@
 
 Eleanor is an open-source, self-hosted **Digital Forensics and Incident Response (DFIR)** platform that brings the entire investigation lifecycle into a single, unified interface. No more juggling a dozen browser tabs, copy-pasting IOCs between tools, or losing context during critical investigations.
 
-> **Named after the unicorn 1967 Shelby GT500 from *Gone in 60 Seconds*** — Eleanor is the all-in-one DFIR solution the community has long sought.
-
 ### The Problem Eleanor Solves
 
 Modern DFIR teams use 10+ separate tools: SIEM for detection, case management for tracking, endpoint agents for collection, forensic tools for analysis, threat intel platforms for enrichment, and SOAR for response. Each tool has its own interface, data format, and learning curve. Context-switching kills investigation velocity.
