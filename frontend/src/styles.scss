@@ -474,9 +474,16 @@ a {
 // Dialog centering - override CDK overlay positioning
 .cdk-overlay-container {
   .cdk-global-overlay-wrapper {
+    display: flex !important;
     justify-content: center !important;
     align-items: flex-start !important;
     padding-top: 5vh !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  .cdk-overlay-pane.mat-mdc-dialog-panel {
+    margin: 0 auto !important;
   }
 }
 
