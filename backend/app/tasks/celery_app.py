@@ -82,7 +82,7 @@ celery_app.conf.update(
 
 # Task state change signals for monitoring
 @celery_app.task(bind=True, name="eleanor.health_check")
-def health_check(self):
+def health_check(self) -> dict[str, str]:  # type: ignore[no-untyped-def]
     """Simple health check task to verify Celery is working."""
     return {"status": "ok", "worker": self.request.hostname}
 

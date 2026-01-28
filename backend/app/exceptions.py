@@ -1,8 +1,9 @@
 """Standardized exceptions and error handling for Eleanor API."""
 
+from collections.abc import Awaitable, Callable
 from uuid import uuid4
 
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, Request, Response, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -319,7 +320,9 @@ async def generic_exception_handler(request: Request, exc: Exception) -> JSONRes
 # =============================================================================
 
 
-async def request_id_middleware(request: Request, call_next):
+async def request_id_middleware(
+    request: Request, call_next: Callable[[Request], Awaitable[Response]]
+) -> Response:
     """Add request ID to each request for tracing."""
     request_id = request.headers.get("X-Request-ID", str(uuid4()))
     request.state.request_id = request_id

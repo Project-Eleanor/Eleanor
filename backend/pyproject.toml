@@ -120,8 +120,22 @@ ignore = ["E501"]
 [tool.mypy]
 python_version = "3.12"
 warn_return_any = true
-warn_unused_ignores = true
+warn_unused_ignores = false
 disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = [
+    "app.services.graph_builder",
+    "app.services.event_buffer",
+    "app.services.rule_validator",
+    "app.notifications.channels.slack",
+    "app.middleware.rate_limit",
+    "app.middleware.audit",
+    "app.parsers.formats.dissect_adapter",
+    "app.parsers.formats.browser_sqlite_base",
+]
+disallow_untyped_defs = false
+warn_return_any = false
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

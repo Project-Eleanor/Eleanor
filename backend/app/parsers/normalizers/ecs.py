@@ -170,7 +170,7 @@ class ECSNormalizer:
         if not event.process_name and not event.process_pid:
             return None
 
-        fields = {}
+        fields: dict[str, Any] = {}
         if event.process_name:
             fields["name"] = event.process_name
         if event.process_pid is not None:
@@ -192,7 +192,7 @@ class ECSNormalizer:
         if not event.file_name and not event.file_path:
             return None
 
-        fields = {}
+        fields: dict[str, Any] = {}
         if event.file_name:
             fields["name"] = event.file_name
         if event.file_path:
@@ -201,11 +201,11 @@ class ECSNormalizer:
             parts = event.file_path.rsplit("/", 1)
             if len(parts) > 1:
                 fields["directory"] = parts[0]
-            if "." in event.file_name:
+            if event.file_name and "." in event.file_name:
                 fields["extension"] = event.file_name.rsplit(".", 1)[1]
 
         # File hashes
-        hashes = {}
+        hashes: dict[str, str] = {}
         if event.file_hash_sha256:
             hashes["sha256"] = event.file_hash_sha256.lower()
         if event.file_hash_sha1:
@@ -219,11 +219,11 @@ class ECSNormalizer:
 
     def _build_network_fields(
         self, event: ParsedEvent
-    ) -> tuple[dict | None, dict | None, dict | None]:
+    ) -> tuple[dict[str, Any] | None, dict[str, Any] | None, dict[str, Any] | None]:
         """Build ECS source.*, destination.*, and network.* fields."""
-        source = None
-        destination = None
-        network = None
+        source: dict[str, Any] | None = None
+        destination: dict[str, Any] | None = None
+        network: dict[str, Any] | None = None
 
         if event.source_ip:
             source = {"ip": event.source_ip}
@@ -249,7 +249,7 @@ class ECSNormalizer:
         if not event.url_full:
             return None
 
-        fields = {"full": event.url_full}
+        fields: dict[str, Any] = {"full": event.url_full}
 
         if event.url_domain:
             fields["domain"] = event.url_domain
