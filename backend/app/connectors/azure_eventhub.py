@@ -214,7 +214,9 @@ class AzureEventHubConnector(StreamingConnector):
                         "sequence_number": event.sequence_number,
                         "offset": event.offset,
                         "properties": dict(event.properties) if event.properties else {},
-                        "system_properties": dict(event.system_properties) if event.system_properties else {},
+                        "system_properties": (
+                            dict(event.system_properties) if event.system_properties else {}
+                        ),
                     },
                 )
 
@@ -262,9 +264,11 @@ class AzureEventHubConnector(StreamingConnector):
         starting_position = self.eventhub_config.starting_position
         if starting_position == "latest":
             from azure.eventhub import STARTING_POSITION_LATEST
+
             start_pos = STARTING_POSITION_LATEST
         elif starting_position == "earliest":
             from azure.eventhub import STARTING_POSITION_EARLIEST
+
             start_pos = STARTING_POSITION_EARLIEST
         else:
             # Assume ISO timestamp
@@ -272,6 +276,7 @@ class AzureEventHubConnector(StreamingConnector):
                 start_pos = datetime.fromisoformat(starting_position.replace("Z", "+00:00"))
             except ValueError:
                 from azure.eventhub import STARTING_POSITION_LATEST
+
                 start_pos = STARTING_POSITION_LATEST
 
         # Start receiving
@@ -295,6 +300,7 @@ class AzureEventHubConnector(StreamingConnector):
 
 
 # Batch processing support
+
 
 class AzureEventHubBatchConnector(AzureEventHubConnector):
     """Azure Event Hub connector with batch processing support.
