@@ -2,6 +2,7 @@
 
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from typing import Any
 
 from elasticsearch import AsyncElasticsearch
 from redis.asyncio import Redis
@@ -94,7 +95,7 @@ async def close_redis() -> None:
 
 
 @asynccontextmanager
-async def lifespan_context():
+async def lifespan_context() -> AsyncGenerator[None, Any]:
     """Context manager for application lifespan."""
     # Startup
     yield

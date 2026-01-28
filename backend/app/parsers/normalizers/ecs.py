@@ -112,7 +112,7 @@ class ECSNormalizer:
 
     def _build_event_fields(self, event: ParsedEvent) -> dict[str, Any]:
         """Build ECS event.* fields."""
-        fields = {
+        fields: dict[str, Any] = {
             "kind": event.event_kind,
             "category": event.event_category if event.event_category else ["process"],
             "type": event.event_type if event.event_type else ["info"],
@@ -136,16 +136,17 @@ class ECSNormalizer:
         if not event.host_name:
             return None
 
-        fields = {"name": event.host_name}
+        fields: dict[str, Any] = {"name": event.host_name}
 
         if event.host_ip:
             fields["ip"] = self._normalize_ip_list(event.host_ip)
         if event.host_mac:
             fields["mac"] = [self._normalize_mac(m) for m in event.host_mac]
         if event.host_os_name:
-            fields["os"] = {"name": event.host_os_name}
+            os_fields: dict[str, Any] = {"name": event.host_os_name}
+            fields["os"] = os_fields
             if event.host_os_version:
-                fields["os"]["version"] = event.host_os_version
+                os_fields["version"] = event.host_os_version
 
         return fields
 

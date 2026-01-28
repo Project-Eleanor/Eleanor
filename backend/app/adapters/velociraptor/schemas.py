@@ -27,12 +27,14 @@ class VelociraptorClient(BaseModel):
     @property
     def os(self) -> str:
         """Get OS name."""
-        return self.os_info.get("system", "Unknown")
+        value = self.os_info.get("system", "Unknown")
+        return str(value) if value else "Unknown"
 
     @property
     def os_version(self) -> str:
         """Get OS version."""
-        return self.os_info.get("release", "")
+        value = self.os_info.get("release", "")
+        return str(value) if value else ""
 
     @property
     def is_online(self) -> bool:
@@ -81,7 +83,8 @@ class VelociraptorFlow(BaseModel):
     @property
     def artifact_names(self) -> list[str]:
         """Get artifact names from request."""
-        return self.request.get("artifacts", [])
+        artifacts = self.request.get("artifacts", [])
+        return list(artifacts) if artifacts else []
 
 
 class VelociraptorHunt(BaseModel):
@@ -101,17 +104,20 @@ class VelociraptorHunt(BaseModel):
     @property
     def total_clients_scheduled(self) -> int:
         """Get total clients scheduled."""
-        return self.stats.get("total_clients_scheduled", 0)
+        value = self.stats.get("total_clients_scheduled", 0)
+        return int(value) if value else 0
 
     @property
     def total_clients_with_results(self) -> int:
         """Get clients that have returned results."""
-        return self.stats.get("total_clients_with_results", 0)
+        value = self.stats.get("total_clients_with_results", 0)
+        return int(value) if value else 0
 
     @property
     def artifact_names(self) -> list[str]:
         """Get artifact names from start request."""
-        return self.start_request.get("artifacts", [])
+        artifacts = self.start_request.get("artifacts", [])
+        return list(artifacts) if artifacts else []
 
 
 class VelociraptorFlowResult(BaseModel):

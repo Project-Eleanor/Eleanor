@@ -113,7 +113,7 @@ class ParsedEvent:
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
-        result = {
+        result: dict[str, Any] = {
             "@timestamp": self.timestamp.isoformat(),
             "message": self.message,
             "event": {
@@ -123,83 +123,94 @@ class ParsedEvent:
             },
         }
 
+        event_dict: dict[str, Any] = result["event"]
         if self.event_action:
-            result["event"]["action"] = self.event_action
+            event_dict["action"] = self.event_action
         if self.event_outcome:
-            result["event"]["outcome"] = self.event_outcome
+            event_dict["outcome"] = self.event_outcome
         if self.event_severity is not None:
-            result["event"]["severity"] = self.event_severity
+            event_dict["severity"] = self.event_severity
 
         # Host
         if self.host_name:
-            result["host"] = {"name": self.host_name}
+            host_dict: dict[str, Any] = {"name": self.host_name}
+            result["host"] = host_dict
             if self.host_ip:
-                result["host"]["ip"] = self.host_ip
+                host_dict["ip"] = self.host_ip
             if self.host_mac:
-                result["host"]["mac"] = self.host_mac
+                host_dict["mac"] = self.host_mac
             if self.host_os_name:
-                result["host"]["os"] = {"name": self.host_os_name}
+                os_dict: dict[str, Any] = {"name": self.host_os_name}
+                host_dict["os"] = os_dict
                 if self.host_os_version:
-                    result["host"]["os"]["version"] = self.host_os_version
+                    os_dict["version"] = self.host_os_version
 
         # User
         if self.user_name:
-            result["user"] = {"name": self.user_name}
+            user_dict: dict[str, Any] = {"name": self.user_name}
+            result["user"] = user_dict
             if self.user_domain:
-                result["user"]["domain"] = self.user_domain
+                user_dict["domain"] = self.user_domain
             if self.user_id:
-                result["user"]["id"] = self.user_id
+                user_dict["id"] = self.user_id
 
         # Process
         if self.process_name or self.process_pid:
-            result["process"] = {}
+            process_dict: dict[str, Any] = {}
+            result["process"] = process_dict
             if self.process_name:
-                result["process"]["name"] = self.process_name
+                process_dict["name"] = self.process_name
             if self.process_pid:
-                result["process"]["pid"] = self.process_pid
+                process_dict["pid"] = self.process_pid
             if self.process_ppid:
-                result["process"]["parent"] = {"pid": self.process_ppid}
+                process_dict["parent"] = {"pid": self.process_ppid}
             if self.process_command_line:
-                result["process"]["command_line"] = self.process_command_line
+                process_dict["command_line"] = self.process_command_line
             if self.process_executable:
-                result["process"]["executable"] = self.process_executable
+                process_dict["executable"] = self.process_executable
 
         # File
         if self.file_name or self.file_path:
-            result["file"] = {}
+            file_dict: dict[str, Any] = {}
+            result["file"] = file_dict
             if self.file_name:
-                result["file"]["name"] = self.file_name
+                file_dict["name"] = self.file_name
             if self.file_path:
-                result["file"]["path"] = self.file_path
+                file_dict["path"] = self.file_path
             if self.file_hash_sha256 or self.file_hash_sha1 or self.file_hash_md5:
-                result["file"]["hash"] = {}
+                hash_dict: dict[str, Any] = {}
+                file_dict["hash"] = hash_dict
                 if self.file_hash_sha256:
-                    result["file"]["hash"]["sha256"] = self.file_hash_sha256
+                    hash_dict["sha256"] = self.file_hash_sha256
                 if self.file_hash_sha1:
-                    result["file"]["hash"]["sha1"] = self.file_hash_sha1
+                    hash_dict["sha1"] = self.file_hash_sha1
                 if self.file_hash_md5:
-                    result["file"]["hash"]["md5"] = self.file_hash_md5
+                    hash_dict["md5"] = self.file_hash_md5
 
         # Network
         if self.source_ip or self.destination_ip:
             if self.source_ip:
-                result["source"] = {"ip": self.source_ip}
+                source_dict: dict[str, Any] = {"ip": self.source_ip}
+                result["source"] = source_dict
                 if self.source_port:
-                    result["source"]["port"] = self.source_port
+                    source_dict["port"] = self.source_port
             if self.destination_ip:
-                result["destination"] = {"ip": self.destination_ip}
+                dest_dict: dict[str, Any] = {"ip": self.destination_ip}
+                result["destination"] = dest_dict
                 if self.destination_port:
-                    result["destination"]["port"] = self.destination_port
+                    dest_dict["port"] = self.destination_port
             if self.network_protocol:
-                result["network"] = {"protocol": self.network_protocol}
+                network_dict: dict[str, Any] = {"protocol": self.network_protocol}
+                result["network"] = network_dict
                 if self.network_direction:
-                    result["network"]["direction"] = self.network_direction
+                    network_dict["direction"] = self.network_direction
 
         # URL
         if self.url_full:
-            result["url"] = {"full": self.url_full}
+            url_dict: dict[str, Any] = {"full": self.url_full}
+            result["url"] = url_dict
             if self.url_domain:
-                result["url"]["domain"] = self.url_domain
+                url_dict["domain"] = self.url_domain
 
         # Custom fields
         if self.labels:
@@ -209,12 +220,13 @@ class ParsedEvent:
         if self.raw:
             result["_raw"] = self.raw
 
-        result["_source"] = {
+        source_meta: dict[str, Any] = {
             "type": self.source_type,
             "file": self.source_file,
         }
+        result["_source"] = source_meta
         if self.source_line:
-            result["_source"]["line"] = self.source_line
+            source_meta["line"] = self.source_line
 
         return result
 

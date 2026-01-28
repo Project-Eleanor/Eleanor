@@ -8,7 +8,7 @@ def hash_password(password: str) -> str:
     # bcrypt 5.0+ enforces 72-byte limit strictly - truncate to be safe
     password_bytes = password.encode("utf-8")[:72]
     salt = bcrypt.gensalt(rounds=12)
-    hashed = bcrypt.hashpw(password_bytes, salt)
+    hashed: bytes = bcrypt.hashpw(password_bytes, salt)
     return hashed.decode("utf-8")
 
 
@@ -17,4 +17,5 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     # bcrypt 5.0+ enforces 72-byte limit strictly - truncate to be safe
     password_bytes = plain_password.encode("utf-8")[:72]
     hashed_bytes = hashed_password.encode("utf-8")
-    return bcrypt.checkpw(password_bytes, hashed_bytes)
+    result: bool = bcrypt.checkpw(password_bytes, hashed_bytes)
+    return result

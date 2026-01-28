@@ -24,13 +24,15 @@ class TimesketchSketch(BaseModel):
     @property
     def owner(self) -> str:
         """Get sketch owner username."""
-        return self.user.get("username", "")
+        value = self.user.get("username", "")
+        return str(value) if value else ""
 
     @property
     def status_name(self) -> str:
         """Get current status name."""
         if self.status:
-            return self.status[0].get("status", "")
+            value = self.status[0].get("status", "")
+            return str(value) if value else ""
         return "unknown"
 
     @property
@@ -56,13 +58,15 @@ class TimesketchTimeline(BaseModel):
     @property
     def index_name(self) -> str:
         """Get Elasticsearch index name."""
-        return self.searchindex.get("index_name", "")
+        value = self.searchindex.get("index_name", "")
+        return str(value) if value else ""
 
     @property
     def status_name(self) -> str:
         """Get current status name."""
         if self.status:
-            return self.status[0].get("status", "")
+            value = self.status[0].get("status", "")
+            return str(value) if value else ""
         return "unknown"
 
 
@@ -96,27 +100,32 @@ class TimesketchEvent(BaseModel):
     @property
     def message(self) -> str:
         """Get event message."""
-        return self.es_source.get("message", "")
+        value = self.es_source.get("message", "")
+        return str(value) if value else ""
 
     @property
     def source_name(self) -> str:
         """Get data source name."""
-        return self.es_source.get("data_type", self.es_source.get("source_name", ""))
+        value = self.es_source.get("data_type", self.es_source.get("source_name", ""))
+        return str(value) if value else ""
 
     @property
     def source_short(self) -> str:
         """Get short source description."""
-        return self.es_source.get("source_short", "")
+        value = self.es_source.get("source_short", "")
+        return str(value) if value else ""
 
     @property
     def timestamp_desc(self) -> str:
         """Get timestamp description."""
-        return self.es_source.get("timestamp_desc", "")
+        value = self.es_source.get("timestamp_desc", "")
+        return str(value) if value else ""
 
     @property
     def tags(self) -> list[str]:
         """Get event tags."""
-        return self.es_source.get("tag", [])
+        tags = self.es_source.get("tag", [])
+        return list(tags) if tags else []
 
     @property
     def starred(self) -> bool:
@@ -126,7 +135,8 @@ class TimesketchEvent(BaseModel):
     @property
     def comments(self) -> list[str]:
         """Get event comments."""
-        return self.es_source.get("__ts_comments", [])
+        comments = self.es_source.get("__ts_comments", [])
+        return list(comments) if comments else []
 
     @property
     def attributes(self) -> dict[str, Any]:
@@ -155,7 +165,8 @@ class TimesketchSavedView(BaseModel):
     @property
     def owner(self) -> str:
         """Get view owner username."""
-        return self.user.get("username", "")
+        value = self.user.get("username", "")
+        return str(value) if value else ""
 
 
 class TimesketchSearchResult(BaseModel):
@@ -167,7 +178,8 @@ class TimesketchSearchResult(BaseModel):
     @property
     def total_count(self) -> int:
         """Get total matching events."""
-        return self.meta.get("total_count", len(self.objects))
+        value = self.meta.get("total_count", len(self.objects))
+        return int(value) if value is not None else len(self.objects)
 
     @property
     def events(self) -> list[TimesketchEvent]:

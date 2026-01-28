@@ -41,10 +41,10 @@ class IOCMatch:
     original: str  # Original matched text (before normalization)
     context: str = ""  # Surrounding context
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash((self.value, self.ioc_type))
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, IOCMatch):
             return self.value == other.value and self.ioc_type == other.ioc_type
         return False

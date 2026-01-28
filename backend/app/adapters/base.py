@@ -1810,13 +1810,10 @@ class SIEMAdapter(TimelineAdapter):
         Returns:
             Matching events
         """
-        # Default implementation - override for better performance
-        query = f'"{ioc_value}"'
-        return await self.search_events(
-            query=query,
-            start_time=earliest_time,
-            end_time=latest_time,
-            limit=limit,
+        # SIEMAdapter subclasses should override this method
+        # Base implementation not available - SIEM search requires index context
+        raise NotImplementedError(
+            "query_by_ioc must be implemented by SIEM adapter subclasses"
         )
 
     async def get_field_summary(

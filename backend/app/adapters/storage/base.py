@@ -258,7 +258,8 @@ class StorageAdapter(ABC):
         Yields:
             Chunks of file content.
         """
-        ...
+        # Yield statement makes this an async generator
+        yield b""  # pragma: no cover
 
     @abstractmethod
     async def get_download_url(

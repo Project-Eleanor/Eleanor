@@ -44,7 +44,7 @@ class Settings(BaseSettings):
     def parse_cors_origins(cls, v: Any) -> list[str]:
         if isinstance(v, str):
             return [origin.strip() for origin in v.split(",")]
-        return v
+        return list(v) if v else []
 
     # Authentication Providers
     # OIDC
