@@ -1,0 +1,1822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eleanor DFIR - Setup Wizard</title>
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: #1a1a24;
+            --bg-input: #0f0f14;
+            --text-primary: #e4e4e7;
+            --text-secondary: #a1a1aa;
+            --text-muted: #71717a;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --accent-light: rgba(99, 102, 241, 0.1);
+            --success: #22c55e;
+            --success-light: rgba(34, 197, 94, 0.1);
+            --warning: #f59e0b;
+            --warning-light: rgba(245, 158, 11, 0.1);
+            --error: #ef4444;
+            --error-light: rgba(239, 68, 68, 0.1);
+            --border: #27272a;
+            --border-light: #3f3f46;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .logo-icon {
+            width: 72px;
+            height: 72px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .logo {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent), #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .welcome-card {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.1));
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem 2rem;
+            margin-bottom: 2rem;
+            text-align: left;
+        }
+
+        .welcome-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: var(--text-primary);
+        }
+
+        .welcome-text {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.7;
+            margin-bottom: 1rem;
+        }
+
+        .welcome-features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0.75rem;
+        }
+
+        .welcome-feature {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .welcome-feature-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent-light);
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            flex-shrink: 0;
+        }
+
+        /* Step Indicator */
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+            position: relative;
+            padding: 0 1rem;
+        }
+
+        .step-indicator::before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 50px;
+            right: 50px;
+            height: 2px;
+            background: var(--border);
+            z-index: 0;
+        }
+
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+            flex: 1;
+        }
+
+        .step-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            transition: all 0.3s;
+        }
+
+        .step.active .step-number {
+            border-color: var(--accent);
+            background: var(--accent);
+            color: white;
+        }
+
+        .step.complete .step-number {
+            border-color: var(--success);
+            background: var(--success);
+            color: white;
+        }
+
+        .step-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-align: center;
+            max-width: 80px;
+        }
+
+        .step.active .step-label,
+        .step.complete .step-label {
+            color: var(--text-secondary);
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .card-description {
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        label .required {
+            color: var(--error);
+        }
+
+        input[type="text"],
+        input[type="password"],
+        input[type="email"],
+        input[type="number"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-family: inherit;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        input:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-light);
+        }
+
+        input:disabled,
+        textarea:disabled,
+        select:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .hint {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        /* Radio/Checkbox Cards */
+        .option-cards {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .option-cards.cols-3 {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .option-cards.cols-2 {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .option-card {
+            background: var(--bg-secondary);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .option-card:hover {
+            border-color: var(--border-light);
+        }
+
+        .option-card.selected {
+            border-color: var(--accent);
+            background: var(--accent-light);
+        }
+
+        .option-card input {
+            display: none;
+        }
+
+        .option-card-title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .option-card-desc {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .option-card-specs {
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid var(--border);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--accent-hover);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-secondary);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            background: #16a34a;
+        }
+
+        .btn-small {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+
+        .actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border);
+        }
+
+        /* Check Items */
+        .check-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .check-item {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+        }
+
+        .check-status {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .check-status.ok {
+            background: var(--success-light);
+            color: var(--success);
+        }
+
+        .check-status.warn {
+            background: var(--warning-light);
+            color: var(--warning);
+        }
+
+        .check-status.error {
+            background: var(--error-light);
+            color: var(--error);
+        }
+
+        .check-status.loading {
+            background: var(--accent-light);
+            color: var(--accent);
+        }
+
+        .check-info {
+            flex: 1;
+        }
+
+        .check-title {
+            font-weight: 500;
+        }
+
+        .check-detail {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        /* Test Button */
+        .input-with-button {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .input-with-button input {
+            flex: 1;
+        }
+
+        .test-result {
+            margin-top: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            display: none;
+        }
+
+        .test-result.success {
+            display: block;
+            background: var(--success-light);
+            color: var(--success);
+        }
+
+        .test-result.error {
+            display: block;
+            background: var(--error-light);
+            color: var(--error);
+        }
+
+        /* Collapsible Sections */
+        .section {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+
+        .section-header {
+            padding: 1rem;
+            background: var(--bg-secondary);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+        }
+
+        .section-header:hover {
+            background: var(--bg-input);
+        }
+
+        .section-title {
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .section-toggle {
+            color: var(--text-muted);
+            transition: transform 0.3s;
+        }
+
+        .section.open .section-toggle {
+            transform: rotate(180deg);
+        }
+
+        .section-content {
+            padding: 1rem;
+            display: none;
+            background: var(--bg-card);
+        }
+
+        .section.open .section-content {
+            display: block;
+        }
+
+        /* Progress */
+        .progress-container {
+            margin: 2rem 0;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), #a855f7);
+            transition: width 0.5s ease;
+            border-radius: 4px;
+        }
+
+        .progress-message {
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        /* Summary */
+        .summary-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .summary-title {
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .summary-item:last-child {
+            border-bottom: none;
+        }
+
+        .summary-label {
+            color: var(--text-secondary);
+        }
+
+        .summary-value {
+            font-weight: 500;
+        }
+
+        .summary-value.masked {
+            font-family: monospace;
+            letter-spacing: 0.1em;
+        }
+
+        /* Success Screen */
+        .success-screen {
+            text-align: center;
+            padding: 3rem 2rem;
+        }
+
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: var(--success-light);
+            color: var(--success);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            margin: 0 auto 1.5rem;
+        }
+
+        .success-title {
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .success-message {
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+        }
+
+        .access-url {
+            background: var(--bg-secondary);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+        }
+
+        .access-url a {
+            color: var(--accent);
+            text-decoration: none;
+            font-size: 1.1rem;
+        }
+
+        .access-url a:hover {
+            text-decoration: underline;
+        }
+
+        /* Utilities */
+        .hidden {
+            display: none !important;
+        }
+
+        .mt-1 { margin-top: 0.5rem; }
+        .mt-2 { margin-top: 1rem; }
+        .mb-1 { margin-bottom: 0.5rem; }
+        .mb-2 { margin-bottom: 1rem; }
+
+        .text-success { color: var(--success); }
+        .text-warning { color: var(--warning); }
+        .text-error { color: var(--error); }
+        .text-muted { color: var(--text-muted); }
+
+        /* Spinner */
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .option-cards.cols-3,
+            .option-cards.cols-2 {
+                grid-template-columns: 1fr;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .step-indicator {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+
+            .step-label {
+                display: none;
+            }
+
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo-container">
+                <div class="logo-icon">
+                    <img src="logo.png" alt="Eleanor" />
+                </div>
+                <h1 class="logo">Eleanor</h1>
+            </div>
+            <p class="subtitle">Digital Forensics & Incident Response Platform</p>
+            <p class="version-tag">Build: b259919</p>
+        </div>
+
+        <div class="welcome-card" id="welcome-card">
+            <h2 class="welcome-title">Welcome to Eleanor Setup</h2>
+            <p class="welcome-text">
+                This wizard will guide you through configuring your Eleanor DFIR platform.
+                You'll set up storage, authentication, and create your administrator account.
+                The process takes just a few minutes.
+            </p>
+            <div class="welcome-features">
+                <div class="welcome-feature">
+                    <span class="welcome-feature-icon">&#10003;</span>
+                    <span>Enterprise storage options</span>
+                </div>
+                <div class="welcome-feature">
+                    <span class="welcome-feature-icon">&#10003;</span>
+                    <span>SSO / OIDC integration</span>
+                </div>
+                <div class="welcome-feature">
+                    <span class="welcome-feature-icon">&#10003;</span>
+                    <span>Flexible deployment sizing</span>
+                </div>
+                <div class="welcome-feature">
+                    <span class="welcome-feature-icon">&#10003;</span>
+                    <span>External database support</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="step-indicator">
+            <div class="step active" data-step="1">
+                <div class="step-number">1</div>
+                <span class="step-label">Requirements</span>
+            </div>
+            <div class="step" data-step="2">
+                <div class="step-number">2</div>
+                <span class="step-label">Deployment</span>
+            </div>
+            <div class="step" data-step="3">
+                <div class="step-number">3</div>
+                <span class="step-label">Database</span>
+            </div>
+            <div class="step" data-step="4">
+                <div class="step-number">4</div>
+                <span class="step-label">Storage</span>
+            </div>
+            <div class="step" data-step="5">
+                <div class="step-number">5</div>
+                <span class="step-label">Auth</span>
+            </div>
+            <div class="step" data-step="6">
+                <div class="step-number">6</div>
+                <span class="step-label">Admin</span>
+            </div>
+            <div class="step" data-step="7">
+                <div class="step-number">7</div>
+                <span class="step-label">Install</span>
+            </div>
+        </div>
+
+        <!-- Step 1: Requirements -->
+        <div id="step-1" class="card step-content">
+            <h2 class="card-title">System Requirements</h2>
+            <p class="card-description">Checking if your system meets the minimum requirements for Eleanor.</p>
+
+            <div id="requirements-loading" class="check-list">
+                <div class="check-item">
+                    <div class="check-status loading"><span class="spinner"></span></div>
+                    <div class="check-info">
+                        <div class="check-title">Checking system resources...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="requirements-list" class="check-list hidden"></div>
+
+            <div class="actions">
+                <div></div>
+                <button class="btn btn-primary" id="btn-step1-next" disabled>Next</button>
+            </div>
+        </div>
+
+        <!-- Step 2: Deployment Profile -->
+        <div id="step-2" class="card step-content hidden">
+            <h2 class="card-title">Deployment Size</h2>
+            <p class="card-description">Choose a deployment profile based on your team size and workload.</p>
+
+            <div class="option-cards cols-3" id="profile-cards">
+                <label class="option-card" data-profile="small">
+                    <input type="radio" name="profile" value="small">
+                    <div class="option-card-title">Small</div>
+                    <div class="option-card-desc">Single analyst, light workload</div>
+                    <div class="option-card-specs">8GB RAM, 2 CPU, 50GB disk</div>
+                </label>
+                <label class="option-card" data-profile="medium">
+                    <input type="radio" name="profile" value="medium">
+                    <div class="option-card-title">Medium</div>
+                    <div class="option-card-desc">Small team (2-5 analysts)</div>
+                    <div class="option-card-specs">16GB RAM, 4 CPU, 200GB disk</div>
+                </label>
+                <label class="option-card" data-profile="large">
+                    <input type="radio" name="profile" value="large">
+                    <div class="option-card-title">Large</div>
+                    <div class="option-card-desc">Enterprise (5+ analysts)</div>
+                    <div class="option-card-specs">32GB RAM, 8 CPU, 500GB disk</div>
+                </label>
+            </div>
+
+            <div class="actions">
+                <button class="btn btn-secondary" onclick="showStep(1)">Back</button>
+                <button class="btn btn-primary" id="btn-step2-next">Next</button>
+            </div>
+        </div>
+
+        <!-- Step 3: Database -->
+        <div id="step-3" class="card step-content hidden">
+            <h2 class="card-title">Database Configuration</h2>
+            <p class="card-description">Choose between embedded PostgreSQL or connect to an external database.</p>
+
+            <div class="option-cards cols-2" id="db-type-cards">
+                <label class="option-card selected" data-db="embedded">
+                    <input type="radio" name="db_type" value="embedded" checked>
+                    <div class="option-card-title">Embedded PostgreSQL</div>
+                    <div class="option-card-desc">Runs in Docker, managed automatically. Recommended for most deployments.</div>
+                </label>
+                <label class="option-card" data-db="external">
+                    <input type="radio" name="db_type" value="external">
+                    <div class="option-card-title">External Database</div>
+                    <div class="option-card-desc">Connect to an existing PostgreSQL server (RDS, Azure, Cloud SQL, etc.)</div>
+                </label>
+            </div>
+
+            <div id="external-db-config" class="section hidden mt-2">
+                <div class="section-content" style="display: block;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Host <span class="required">*</span></label>
+                            <input type="text" id="db_host" placeholder="db.example.com">
+                        </div>
+                        <div class="form-group">
+                            <label>Port</label>
+                            <input type="number" id="db_port" value="5432">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Username <span class="required">*</span></label>
+                            <input type="text" id="db_user" placeholder="eleanor">
+                        </div>
+                        <div class="form-group">
+                            <label>Password <span class="required">*</span></label>
+                            <input type="password" id="db_password">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Database Name</label>
+                        <input type="text" id="db_name" value="eleanor">
+                    </div>
+                    <button class="btn btn-secondary btn-small" onclick="testDatabase()">
+                        <span id="db-test-spinner" class="hidden"><span class="spinner"></span></span>
+                        Test Connection
+                    </button>
+                    <div id="db-test-result" class="test-result"></div>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button class="btn btn-secondary" onclick="showStep(2)">Back</button>
+                <button class="btn btn-primary" id="btn-step3-next">Next</button>
+            </div>
+        </div>
+
+        <!-- Step 4: Storage -->
+        <div id="step-4" class="card step-content hidden">
+            <h2 class="card-title">Evidence Storage</h2>
+            <p class="card-description">Configure where forensic evidence files will be stored.</p>
+
+            <div class="option-cards cols-2" id="storage-type-cards">
+                <label class="option-card selected" data-storage="local">
+                    <input type="radio" name="storage_backend" value="local" checked>
+                    <div class="option-card-title">Local Storage</div>
+                    <div class="option-card-desc">Store files on the local filesystem. Simple and fast.</div>
+                </label>
+                <label class="option-card" data-storage="s3">
+                    <input type="radio" name="storage_backend" value="s3">
+                    <div class="option-card-title">Amazon S3</div>
+                    <div class="option-card-desc">AWS S3 or S3-compatible storage (MinIO, etc.)</div>
+                </label>
+                <label class="option-card" data-storage="azure">
+                    <input type="radio" name="storage_backend" value="azure">
+                    <div class="option-card-title">Azure Blob</div>
+                    <div class="option-card-desc">Microsoft Azure Blob Storage</div>
+                </label>
+                <label class="option-card" data-storage="gcs">
+                    <input type="radio" name="storage_backend" value="gcs">
+                    <div class="option-card-title">Google Cloud Storage</div>
+                    <div class="option-card-desc">Google Cloud Storage buckets</div>
+                </label>
+            </div>
+
+            <!-- Local Storage Config -->
+            <div id="storage-local-config" class="section mt-2">
+                <div class="section-content" style="display: block;">
+                    <div class="form-group">
+                        <label>Storage Path</label>
+                        <input type="text" id="storage_path" value="/var/lib/eleanor/evidence">
+                        <p class="hint">Local directory for evidence files</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- S3 Config -->
+            <div id="storage-s3-config" class="section hidden mt-2">
+                <div class="section-content" style="display: block;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Bucket Name <span class="required">*</span></label>
+                            <input type="text" id="s3_bucket" placeholder="my-evidence-bucket">
+                        </div>
+                        <div class="form-group">
+                            <label>Region</label>
+                            <input type="text" id="s3_region" value="us-east-1">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Access Key <span class="required">*</span></label>
+                            <input type="text" id="s3_access_key">
+                        </div>
+                        <div class="form-group">
+                            <label>Secret Key <span class="required">*</span></label>
+                            <input type="password" id="s3_secret_key">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Endpoint URL (for S3-compatible)</label>
+                        <input type="text" id="s3_endpoint" placeholder="https://minio.example.com">
+                        <p class="hint">Leave empty for AWS S3</p>
+                    </div>
+                    <button class="btn btn-secondary btn-small" onclick="testStorage('s3')">
+                        <span id="s3-test-spinner" class="hidden"><span class="spinner"></span></span>
+                        Test Connection
+                    </button>
+                    <div id="s3-test-result" class="test-result"></div>
+                </div>
+            </div>
+
+            <!-- Azure Config -->
+            <div id="storage-azure-config" class="section hidden mt-2">
+                <div class="section-content" style="display: block;">
+                    <div class="form-group">
+                        <label>Connection String <span class="required">*</span></label>
+                        <input type="password" id="azure_connection_string" placeholder="DefaultEndpointsProtocol=https;...">
+                        <p class="hint">From Azure Portal &gt; Storage Account &gt; Access Keys</p>
+                    </div>
+                    <div class="form-group">
+                        <label>Container Name</label>
+                        <input type="text" id="azure_container" value="evidence">
+                    </div>
+                    <button class="btn btn-secondary btn-small" onclick="testStorage('azure')">
+                        <span id="azure-test-spinner" class="hidden"><span class="spinner"></span></span>
+                        Test Connection
+                    </button>
+                    <div id="azure-test-result" class="test-result"></div>
+                </div>
+            </div>
+
+            <!-- GCS Config -->
+            <div id="storage-gcs-config" class="section hidden mt-2">
+                <div class="section-content" style="display: block;">
+                    <div class="form-group">
+                        <label>Bucket Name <span class="required">*</span></label>
+                        <input type="text" id="gcs_bucket" placeholder="my-evidence-bucket">
+                    </div>
+                    <div class="form-group">
+                        <label>Service Account JSON <span class="required">*</span></label>
+                        <textarea id="gcs_credentials" placeholder='{"type": "service_account", "project_id": "...", ...}'></textarea>
+                        <p class="hint">Paste the full JSON contents of your service account key file</p>
+                    </div>
+                    <button class="btn btn-secondary btn-small" onclick="testStorage('gcs')">
+                        <span id="gcs-test-spinner" class="hidden"><span class="spinner"></span></span>
+                        Test Connection
+                    </button>
+                    <div id="gcs-test-result" class="test-result"></div>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button class="btn btn-secondary" onclick="showStep(3)">Back</button>
+                <button class="btn btn-primary" id="btn-step4-next">Next</button>
+            </div>
+        </div>
+
+        <!-- Step 5: Authentication -->
+        <div id="step-5" class="card step-content hidden">
+            <h2 class="card-title">Authentication</h2>
+            <p class="card-description">Configure how users will authenticate to Eleanor.</p>
+
+            <div class="section open">
+                <div class="section-header" onclick="toggleSection(this.parentElement)">
+                    <div class="section-title">
+                        <input type="checkbox" id="auth_local" checked style="margin-right: 0.5rem;">
+                        Local Accounts
+                    </div>
+                    <span class="section-toggle">&#9660;</span>
+                </div>
+                <div class="section-content">
+                    <p class="text-muted">Users are stored in the Eleanor database with username/password authentication.</p>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-header" onclick="toggleSection(this.parentElement)">
+                    <div class="section-title">
+                        <input type="checkbox" id="auth_oidc" style="margin-right: 0.5rem;">
+                        OIDC / SSO
+                    </div>
+                    <span class="section-toggle">&#9660;</span>
+                </div>
+                <div class="section-content">
+                    <p class="text-muted mb-2">Integrate with Azure AD, Okta, Keycloak, or any OIDC provider.</p>
+
+                    <div class="form-group">
+                        <label>Issuer URL <span class="required">*</span></label>
+                        <div class="input-with-button">
+                            <input type="text" id="oidc_issuer" placeholder="https://login.microsoftonline.com/{tenant}/v2.0">
+                            <button class="btn btn-secondary btn-small" onclick="discoverOIDC()">
+                                <span id="oidc-discover-spinner" class="hidden"><span class="spinner"></span></span>
+                                Discover
+                            </button>
+                        </div>
+                        <div id="oidc-discover-result" class="test-result"></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Client ID <span class="required">*</span></label>
+                            <input type="text" id="oidc_client_id">
+                        </div>
+                        <div class="form-group">
+                            <label>Client Secret <span class="required">*</span></label>
+                            <input type="password" id="oidc_client_secret">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Scopes</label>
+                        <input type="text" id="oidc_scopes" value="openid profile email">
+                        <p class="hint">Space-separated list of OAuth scopes</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button class="btn btn-secondary" onclick="showStep(4)">Back</button>
+                <button class="btn btn-primary" id="btn-step5-next">Next</button>
+            </div>
+        </div>
+
+        <!-- Step 6: Admin Account -->
+        <div id="step-6" class="card step-content hidden">
+            <h2 class="card-title">Administrator Account</h2>
+            <p class="card-description">Create the initial administrator account for Eleanor.</p>
+
+            <div id="admin-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Username <span class="required">*</span></label>
+                        <input type="text" id="admin_username" value="admin">
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="admin_email" placeholder="admin@example.com">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Password <span class="required">*</span></label>
+                        <input type="password" id="admin_password" minlength="12">
+                        <p class="hint">Minimum 12 characters, mix of upper/lower/digits</p>
+                    </div>
+                    <div class="form-group">
+                        <label>Confirm Password <span class="required">*</span></label>
+                        <input type="password" id="admin_password_confirm" minlength="12">
+                    </div>
+                </div>
+                <div id="password-errors" class="test-result error hidden"></div>
+            </div>
+
+            <div id="admin-skip-notice" class="hidden" style="padding: 2rem; text-align: center; background: var(--bg-secondary); border-radius: 8px;">
+                <p class="text-muted">Local authentication is disabled. Users will authenticate via OIDC.</p>
+                <p class="mt-1">The first OIDC user to log in with admin claims will become the administrator.</p>
+            </div>
+
+            <div class="actions">
+                <button class="btn btn-secondary" onclick="showStep(5)">Back</button>
+                <button class="btn btn-primary" id="btn-step6-next">Next</button>
+            </div>
+        </div>
+
+        <!-- Step 7: Review & Install -->
+        <div id="step-7" class="card step-content hidden">
+            <h2 class="card-title">Review & Install</h2>
+            <p class="card-description">Review your configuration and start the installation.</p>
+
+            <div id="review-content">
+                <div class="summary-section">
+                    <div class="summary-title">Deployment</div>
+                    <div class="summary-item">
+                        <span class="summary-label">Profile</span>
+                        <span class="summary-value" id="summary-profile">-</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Hostname</span>
+                        <span class="summary-value" id="summary-hostname">-</span>
+                    </div>
+                </div>
+
+                <div class="summary-section">
+                    <div class="summary-title">Database</div>
+                    <div class="summary-item">
+                        <span class="summary-label">Type</span>
+                        <span class="summary-value" id="summary-db-type">-</span>
+                    </div>
+                    <div class="summary-item" id="summary-db-host-row">
+                        <span class="summary-label">Host</span>
+                        <span class="summary-value" id="summary-db-host">-</span>
+                    </div>
+                </div>
+
+                <div class="summary-section">
+                    <div class="summary-title">Storage</div>
+                    <div class="summary-item">
+                        <span class="summary-label">Backend</span>
+                        <span class="summary-value" id="summary-storage">-</span>
+                    </div>
+                    <div class="summary-item" id="summary-storage-detail-row">
+                        <span class="summary-label">Location</span>
+                        <span class="summary-value" id="summary-storage-detail">-</span>
+                    </div>
+                </div>
+
+                <div class="summary-section">
+                    <div class="summary-title">Authentication</div>
+                    <div class="summary-item">
+                        <span class="summary-label">Methods</span>
+                        <span class="summary-value" id="summary-auth">-</span>
+                    </div>
+                    <div class="summary-item" id="summary-oidc-row" class="hidden">
+                        <span class="summary-label">OIDC Issuer</span>
+                        <span class="summary-value" id="summary-oidc-issuer">-</span>
+                    </div>
+                </div>
+
+                <div class="summary-section" id="summary-admin-section">
+                    <div class="summary-title">Administrator</div>
+                    <div class="summary-item">
+                        <span class="summary-label">Username</span>
+                        <span class="summary-value" id="summary-admin-user">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="install-progress" class="hidden">
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+                    </div>
+                    <p class="progress-message" id="progress-message">Starting installation...</p>
+                </div>
+            </div>
+
+            <div id="install-complete" class="success-screen hidden">
+                <div style="width: 100px; height: 100px; margin: 0 auto 1.5rem;">
+                    <img src="logo.png" alt="Eleanor" style="width: 100%; height: 100%; object-fit: contain;" />
+                </div>
+                <div class="success-icon">&#10004;</div>
+                <h2 class="success-title">Eleanor is Ready!</h2>
+                <p class="success-message">Your DFIR platform has been successfully installed and configured. You can now start investigating incidents and managing cases.</p>
+                <div class="access-url">
+                    <p class="text-muted mb-1">Access Eleanor at:</p>
+                    <a href="#" id="access-url-link">https://<span id="access-url-host"></span></a>
+                </div>
+                <button class="btn btn-success" onclick="window.location.href='/'">Launch Eleanor</button>
+            </div>
+
+            <div id="install-error" class="hidden" style="text-align: center; padding: 2rem;">
+                <div style="width: 80px; height: 80px; border-radius: 50%; background: var(--error-light); color: var(--error); display: flex; align-items: center; justify-content: center; font-size: 2.5rem; margin: 0 auto 1.5rem;">&#10006;</div>
+                <h3>Installation Failed</h3>
+                <p class="text-muted mt-1" id="error-message"></p>
+                <button class="btn btn-secondary mt-2" onclick="retrySetup()">Retry</button>
+            </div>
+
+            <div class="actions" id="install-actions">
+                <button class="btn btn-secondary" onclick="showStep(6)">Back</button>
+                <button class="btn btn-success" id="btn-install" onclick="startInstall()">
+                    Install Eleanor
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration state
+        const config = {
+            profile: 'small',
+            hostname: '',
+            db_type: 'embedded',
+            db_host: '',
+            db_port: 5432,
+            db_user: 'eleanor',
+            db_password: '',
+            db_name: 'eleanor',
+            storage_backend: 'local',
+            storage_path: '/var/lib/eleanor/evidence',
+            storage_bucket: '',
+            storage_region: 'us-east-1',
+            storage_access_key: '',
+            storage_secret_key: '',
+            storage_endpoint_url: '',
+            storage_connection_string: '',
+            storage_container: 'evidence',
+            gcs_credentials_json: '',
+            auth_local_enabled: true,
+            auth_oidc_enabled: false,
+            oidc_issuer: '',
+            oidc_client_id: '',
+            oidc_client_secret: '',
+            oidc_scopes: 'openid profile email',
+            admin_username: 'admin',
+            admin_email: '',
+            admin_password: ''
+        };
+
+        let currentStep = 1;
+        let systemInfo = {};
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            checkConfigured();
+            checkRequirements();
+            setupEventListeners();
+        });
+
+        async function checkConfigured() {
+            try {
+                const response = await fetch('/api/configured');
+                const data = await response.json();
+                if (data.configured) {
+                    window.location.href = '/';
+                }
+            } catch (e) {
+                console.error('Failed to check configuration status:', e);
+            }
+        }
+
+        async function checkRequirements() {
+            try {
+                const response = await fetch('/api/system-info');
+                systemInfo = await response.json();
+
+                document.getElementById('requirements-loading').classList.add('hidden');
+                const list = document.getElementById('requirements-list');
+                list.classList.remove('hidden');
+
+                config.hostname = systemInfo.hostname || 'eleanor';
+
+                list.innerHTML = `
+                    <div class="check-item">
+                        <div class="check-status ${systemInfo.memory_ok ? 'ok' : 'warn'}">
+                            ${systemInfo.memory_ok ? '&#10004;' : '&#9888;'}
+                        </div>
+                        <div class="check-info">
+                            <div class="check-title">Memory: ${systemInfo.memory_gb} GB</div>
+                            <div class="check-detail">${systemInfo.memory_ok ? 'Meets minimum requirement' : 'Minimum 8 GB recommended'}</div>
+                        </div>
+                    </div>
+                    <div class="check-item">
+                        <div class="check-status ${systemInfo.disk_ok ? 'ok' : 'warn'}">
+                            ${systemInfo.disk_ok ? '&#10004;' : '&#9888;'}
+                        </div>
+                        <div class="check-info">
+                            <div class="check-title">Disk Space: ${systemInfo.disk_free_gb} GB free</div>
+                            <div class="check-detail">${systemInfo.disk_ok ? 'Meets minimum requirement' : 'Minimum 50 GB free recommended'}</div>
+                        </div>
+                    </div>
+                    <div class="check-item">
+                        <div class="check-status ${systemInfo.cpu_ok ? 'ok' : 'warn'}">
+                            ${systemInfo.cpu_ok ? '&#10004;' : '&#9888;'}
+                        </div>
+                        <div class="check-info">
+                            <div class="check-title">CPU: ${systemInfo.cpu_count} cores</div>
+                            <div class="check-detail">${systemInfo.cpu_ok ? 'Meets minimum requirement' : 'Minimum 2 cores recommended'}</div>
+                        </div>
+                    </div>
+                    <div class="check-item">
+                        <div class="check-status ${systemInfo.docker_ok ? 'ok' : 'error'}">
+                            ${systemInfo.docker_ok ? '&#10004;' : '&#10006;'}
+                        </div>
+                        <div class="check-info">
+                            <div class="check-title">Docker: ${systemInfo.docker_ok ? 'Running' : 'Not Running'}</div>
+                            <div class="check-detail">${systemInfo.docker_ok ? 'Docker is available' : 'Docker is required for Eleanor'}</div>
+                        </div>
+                    </div>
+                `;
+
+                // Enable next button if Docker is running
+                document.getElementById('btn-step1-next').disabled = !systemInfo.docker_ok;
+
+                // Pre-select suggested profile
+                if (systemInfo.suggested_profile) {
+                    selectProfile(systemInfo.suggested_profile);
+                }
+
+            } catch (e) {
+                console.error('Failed to check requirements:', e);
+                document.getElementById('requirements-loading').innerHTML = `
+                    <div class="check-item">
+                        <div class="check-status error">&#10006;</div>
+                        <div class="check-info">
+                            <div class="check-title">Failed to check system requirements</div>
+                            <div class="check-detail">${e.message}</div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function setupEventListeners() {
+            // Step navigation buttons
+            document.getElementById('btn-step1-next').addEventListener('click', () => showStep(2));
+            document.getElementById('btn-step2-next').addEventListener('click', () => showStep(3));
+            document.getElementById('btn-step3-next').addEventListener('click', () => showStep(4));
+            document.getElementById('btn-step4-next').addEventListener('click', () => showStep(5));
+            document.getElementById('btn-step5-next').addEventListener('click', () => {
+                updateAuthConfig();
+                showStep(6);
+            });
+            document.getElementById('btn-step6-next').addEventListener('click', () => {
+                if (validateAdminForm()) {
+                    showStep(7);
+                }
+            });
+
+            // Profile selection
+            document.querySelectorAll('#profile-cards .option-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    selectProfile(card.dataset.profile);
+                });
+            });
+
+            // Database type selection
+            document.querySelectorAll('#db-type-cards .option-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    selectDbType(card.dataset.db);
+                });
+            });
+
+            // Storage type selection
+            document.querySelectorAll('#storage-type-cards .option-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    selectStorageType(card.dataset.storage);
+                });
+            });
+
+            // Auth checkboxes
+            document.getElementById('auth_local').addEventListener('change', (e) => {
+                config.auth_local_enabled = e.target.checked;
+            });
+            document.getElementById('auth_oidc').addEventListener('change', (e) => {
+                config.auth_oidc_enabled = e.target.checked;
+                const section = e.target.closest('.section');
+                if (e.target.checked && !section.classList.contains('open')) {
+                    toggleSection(section);
+                }
+            });
+        }
+
+        function showStep(step) {
+            // Update step indicator
+            document.querySelectorAll('.step-indicator .step').forEach((el, idx) => {
+                el.classList.remove('active', 'complete');
+                if (idx + 1 < step) {
+                    el.classList.add('complete');
+                } else if (idx + 1 === step) {
+                    el.classList.add('active');
+                }
+            });
+
+            // Show/hide step content
+            document.querySelectorAll('.step-content').forEach(el => {
+                el.classList.add('hidden');
+            });
+            document.getElementById(`step-${step}`).classList.remove('hidden');
+
+            // Hide welcome card after step 1
+            const welcomeCard = document.getElementById('welcome-card');
+            if (welcomeCard) {
+                welcomeCard.style.display = step > 1 ? 'none' : 'block';
+            }
+
+            // Update state before showing step
+            if (step === 6) {
+                updateAdminStepVisibility();
+            } else if (step === 7) {
+                updateSummary();
+            }
+
+            currentStep = step;
+        }
+
+        function selectProfile(profile) {
+            config.profile = profile;
+            document.querySelectorAll('#profile-cards .option-card').forEach(card => {
+                card.classList.toggle('selected', card.dataset.profile === profile);
+                card.querySelector('input').checked = card.dataset.profile === profile;
+            });
+        }
+
+        function selectDbType(type) {
+            config.db_type = type;
+            document.querySelectorAll('#db-type-cards .option-card').forEach(card => {
+                card.classList.toggle('selected', card.dataset.db === type);
+                card.querySelector('input').checked = card.dataset.db === type;
+            });
+            document.getElementById('external-db-config').classList.toggle('hidden', type !== 'external');
+        }
+
+        function selectStorageType(type) {
+            config.storage_backend = type;
+            document.querySelectorAll('#storage-type-cards .option-card').forEach(card => {
+                card.classList.toggle('selected', card.dataset.storage === type);
+                card.querySelector('input').checked = card.dataset.storage === type;
+            });
+
+            // Show/hide storage config sections
+            ['local', 's3', 'azure', 'gcs'].forEach(st => {
+                document.getElementById(`storage-${st}-config`).classList.toggle('hidden', st !== type);
+            });
+        }
+
+        function toggleSection(section) {
+            section.classList.toggle('open');
+        }
+
+        async function testDatabase() {
+            const spinner = document.getElementById('db-test-spinner');
+            const result = document.getElementById('db-test-result');
+
+            spinner.classList.remove('hidden');
+            result.className = 'test-result';
+
+            const testConfig = {
+                db_type: 'external',
+                host: document.getElementById('db_host').value,
+                port: parseInt(document.getElementById('db_port').value) || 5432,
+                user: document.getElementById('db_user').value,
+                password: document.getElementById('db_password').value,
+                database: document.getElementById('db_name').value
+            };
+
+            try {
+                const response = await fetch('/api/db/test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(testConfig)
+                });
+                const data = await response.json();
+
+                result.textContent = data.message;
+                result.className = `test-result ${data.success ? 'success' : 'error'}`;
+            } catch (e) {
+                result.textContent = `Test failed: ${e.message}`;
+                result.className = 'test-result error';
+            } finally {
+                spinner.classList.add('hidden');
+            }
+        }
+
+        async function testStorage(type) {
+            const spinner = document.getElementById(`${type}-test-spinner`);
+            const result = document.getElementById(`${type}-test-result`);
+
+            spinner.classList.remove('hidden');
+            result.className = 'test-result';
+
+            let testConfig = { backend: type };
+
+            if (type === 's3') {
+                testConfig = {
+                    ...testConfig,
+                    bucket: document.getElementById('s3_bucket').value,
+                    region: document.getElementById('s3_region').value,
+                    access_key: document.getElementById('s3_access_key').value,
+                    secret_key: document.getElementById('s3_secret_key').value,
+                    endpoint_url: document.getElementById('s3_endpoint').value
+                };
+            } else if (type === 'azure') {
+                testConfig = {
+                    ...testConfig,
+                    connection_string: document.getElementById('azure_connection_string').value,
+                    container: document.getElementById('azure_container').value
+                };
+            } else if (type === 'gcs') {
+                testConfig = {
+                    ...testConfig,
+                    bucket: document.getElementById('gcs_bucket').value,
+                    credentials_json: document.getElementById('gcs_credentials').value
+                };
+            }
+
+            try {
+                const response = await fetch('/api/storage/test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(testConfig)
+                });
+                const data = await response.json();
+
+                result.textContent = data.message;
+                result.className = `test-result ${data.success ? 'success' : 'error'}`;
+            } catch (e) {
+                result.textContent = `Test failed: ${e.message}`;
+                result.className = 'test-result error';
+            } finally {
+                spinner.classList.add('hidden');
+            }
+        }
+
+        async function discoverOIDC() {
+            const spinner = document.getElementById('oidc-discover-spinner');
+            const result = document.getElementById('oidc-discover-result');
+            const issuer = document.getElementById('oidc_issuer').value;
+
+            if (!issuer) {
+                result.textContent = 'Please enter an issuer URL';
+                result.className = 'test-result error';
+                return;
+            }
+
+            spinner.classList.remove('hidden');
+            result.className = 'test-result';
+
+            try {
+                const response = await fetch('/api/oidc/discover', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ issuer })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    result.textContent = data.message;
+                    result.className = 'test-result success';
+                } else {
+                    result.textContent = data.message;
+                    result.className = 'test-result error';
+                }
+            } catch (e) {
+                result.textContent = `Discovery failed: ${e.message}`;
+                result.className = 'test-result error';
+            } finally {
+                spinner.classList.add('hidden');
+            }
+        }
+
+        function updateAuthConfig() {
+            config.auth_local_enabled = document.getElementById('auth_local').checked;
+            config.auth_oidc_enabled = document.getElementById('auth_oidc').checked;
+
+            if (config.auth_oidc_enabled) {
+                config.oidc_issuer = document.getElementById('oidc_issuer').value;
+                config.oidc_client_id = document.getElementById('oidc_client_id').value;
+                config.oidc_client_secret = document.getElementById('oidc_client_secret').value;
+                config.oidc_scopes = document.getElementById('oidc_scopes').value;
+            }
+        }
+
+        function updateAdminStepVisibility() {
+            const localAuth = document.getElementById('auth_local').checked;
+            document.getElementById('admin-form').classList.toggle('hidden', !localAuth);
+            document.getElementById('admin-skip-notice').classList.toggle('hidden', localAuth);
+        }
+
+        function validateAdminForm() {
+            if (!config.auth_local_enabled) {
+                return true; // Skip validation if local auth disabled
+            }
+
+            const username = document.getElementById('admin_username').value;
+            const password = document.getElementById('admin_password').value;
+            const confirm = document.getElementById('admin_password_confirm').value;
+            const errorDiv = document.getElementById('password-errors');
+
+            const errors = [];
+
+            if (!username) {
+                errors.push('Username is required');
+            }
+
+            if (!password) {
+                errors.push('Password is required');
+            } else if (password.length < 12) {
+                errors.push('Password must be at least 12 characters');
+            }
+
+            if (password !== confirm) {
+                errors.push('Passwords do not match');
+            }
+
+            if (errors.length > 0) {
+                errorDiv.textContent = errors.join('. ');
+                errorDiv.classList.remove('hidden');
+                return false;
+            }
+
+            // Update config
+            config.admin_username = username;
+            config.admin_email = document.getElementById('admin_email').value;
+            config.admin_password = password;
+
+            errorDiv.classList.add('hidden');
+            return true;
+        }
+
+        function collectConfig() {
+            // Collect all form values into config
+            config.hostname = systemInfo.hostname || 'eleanor';
+
+            if (config.db_type === 'external') {
+                config.db_host = document.getElementById('db_host').value;
+                config.db_port = parseInt(document.getElementById('db_port').value) || 5432;
+                config.db_user = document.getElementById('db_user').value;
+                config.db_password = document.getElementById('db_password').value;
+                config.db_name = document.getElementById('db_name').value;
+            }
+
+            if (config.storage_backend === 'local') {
+                config.storage_path = document.getElementById('storage_path').value;
+            } else if (config.storage_backend === 's3') {
+                config.storage_bucket = document.getElementById('s3_bucket').value;
+                config.storage_region = document.getElementById('s3_region').value;
+                config.storage_access_key = document.getElementById('s3_access_key').value;
+                config.storage_secret_key = document.getElementById('s3_secret_key').value;
+                config.storage_endpoint_url = document.getElementById('s3_endpoint').value;
+            } else if (config.storage_backend === 'azure') {
+                config.storage_connection_string = document.getElementById('azure_connection_string').value;
+                config.storage_container = document.getElementById('azure_container').value;
+            } else if (config.storage_backend === 'gcs') {
+                config.storage_bucket = document.getElementById('gcs_bucket').value;
+                config.gcs_credentials_json = document.getElementById('gcs_credentials').value;
+            }
+
+            return config;
+        }
+
+        function updateSummary() {
+            collectConfig();
+
+            // Profile
+            const profileNames = { small: 'Small', medium: 'Medium', large: 'Large' };
+            document.getElementById('summary-profile').textContent = profileNames[config.profile] || config.profile;
+            document.getElementById('summary-hostname').textContent = config.hostname;
+
+            // Database
+            document.getElementById('summary-db-type').textContent = config.db_type === 'embedded' ? 'Embedded PostgreSQL' : 'External';
+            const dbHostRow = document.getElementById('summary-db-host-row');
+            if (config.db_type === 'external') {
+                dbHostRow.classList.remove('hidden');
+                document.getElementById('summary-db-host').textContent = `${config.db_host}:${config.db_port}`;
+            } else {
+                dbHostRow.classList.add('hidden');
+            }
+
+            // Storage
+            const storageNames = { local: 'Local', s3: 'Amazon S3', azure: 'Azure Blob', gcs: 'Google Cloud Storage' };
+            document.getElementById('summary-storage').textContent = storageNames[config.storage_backend];
+
+            let storageDetail = '';
+            if (config.storage_backend === 'local') {
+                storageDetail = config.storage_path;
+            } else if (config.storage_backend === 's3') {
+                storageDetail = config.storage_bucket;
+            } else if (config.storage_backend === 'azure') {
+                storageDetail = config.storage_container;
+            } else if (config.storage_backend === 'gcs') {
+                storageDetail = config.storage_bucket;
+            }
+            document.getElementById('summary-storage-detail').textContent = storageDetail;
+
+            // Authentication
+            const authMethods = [];
+            if (config.auth_local_enabled) authMethods.push('Local');
+            if (config.auth_oidc_enabled) authMethods.push('OIDC');
+            document.getElementById('summary-auth').textContent = authMethods.join(' + ') || 'None';
+
+            const oidcRow = document.getElementById('summary-oidc-row');
+            if (config.auth_oidc_enabled) {
+                oidcRow.classList.remove('hidden');
+                document.getElementById('summary-oidc-issuer').textContent = config.oidc_issuer;
+            } else {
+                oidcRow.classList.add('hidden');
+            }
+
+            // Admin
+            const adminSection = document.getElementById('summary-admin-section');
+            if (config.auth_local_enabled) {
+                adminSection.classList.remove('hidden');
+                document.getElementById('summary-admin-user').textContent = config.admin_username;
+            } else {
+                adminSection.classList.add('hidden');
+            }
+        }
+
+        async function startInstall() {
+            collectConfig();
+
+            // Hide review content and show progress
+            document.getElementById('review-content').classList.add('hidden');
+            document.getElementById('install-actions').classList.add('hidden');
+            document.getElementById('install-progress').classList.remove('hidden');
+
+            try {
+                const response = await fetch('/api/setup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+
+                const data = await response.json();
+
+                if (data.status === 'error') {
+                    showError(data.errors.join('. '));
+                    return;
+                }
+
+                // Start polling for progress
+                pollProgress();
+
+            } catch (e) {
+                showError(`Failed to start setup: ${e.message}`);
+            }
+        }
+
+        async function pollProgress() {
+            try {
+                const response = await fetch('/api/setup/progress');
+                const data = await response.json();
+
+                document.getElementById('progress-fill').style.width = `${Math.max(0, data.progress)}%`;
+                document.getElementById('progress-message').textContent = data.message;
+
+                if (data.progress === 100) {
+                    showSuccess();
+                } else if (data.error) {
+                    showError(data.error);
+                } else {
+                    setTimeout(pollProgress, 2000);
+                }
+            } catch (e) {
+                setTimeout(pollProgress, 3000);
+            }
+        }
+
+        function showSuccess() {
+            document.getElementById('install-progress').classList.add('hidden');
+            document.getElementById('install-complete').classList.remove('hidden');
+
+            const host = config.hostname || window.location.hostname;
+            document.getElementById('access-url-host').textContent = host;
+            document.getElementById('access-url-link').href = `https://${host}`;
+        }
+
+        function showError(message) {
+            document.getElementById('install-progress').classList.add('hidden');
+            document.getElementById('install-error').classList.remove('hidden');
+            document.getElementById('error-message').textContent = message;
+        }
+
+        function retrySetup() {
+            document.getElementById('install-error').classList.add('hidden');
+            document.getElementById('review-content').classList.remove('hidden');
+            document.getElementById('install-actions').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>

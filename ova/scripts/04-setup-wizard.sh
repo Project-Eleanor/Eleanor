@@ -1,15 +1,36 @@
 #!/bin/bash
-# Eleanor DFIR Platform - Setup Wizard Installation
-# This script installs the web-based setup wizard
+# Eleanor DFIR Platform - Enhanced Setup Wizard Installation
+# This script installs the web-based setup wizard with enterprise features:
+# - Storage: Local, S3, Azure Blob, GCS
+# - Authentication: Local + OIDC
+# - Database: Embedded PostgreSQL or external managed DB
 
 set -e
 
-echo "=== Installing Setup Wizard ==="
+echo "=== Installing Enhanced Setup Wizard ==="
 
 WIZARD_DIR="/opt/eleanor-setup"
+ELEANOR_DIR="/opt/eleanor"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SOURCE_WIZARD_DIR="${SCRIPT_DIR}/../setup-wizard"
 
-# Copy wizard files
-cp -r /tmp/eleanor-wizard/* ${WIZARD_DIR}/ 2>/dev/null || true
+# Create directories
+mkdir -p ${WIZARD_DIR}/static
+mkdir -p ${ELEANOR_DIR}
+
+# Copy wizard files from source
+echo "Copying wizard files..."
+if [ -d "${SOURCE_WIZARD_DIR}" ]; then
+    # Copy from repository during build
+    cp -f "${SOURCE_WIZARD_DIR}/wizard-server.py" "${WIZARD_DIR}/" 2>/dev/null || true
+    cp -rf "${SOURCE_WIZARD_DIR}/static/"* "${WIZARD_DIR}/static/" 2>/dev/null || true
+fi
+
+# Also check /tmp for staged files (used during packer builds)
+if [ -d "/tmp/eleanor-wizard" ]; then
+    cp -f "/tmp/eleanor-wizard/wizard-server.py" "${WIZARD_DIR}/" 2>/dev/null || true
+    cp -rf "/tmp/eleanor-wizard/static/"* "${WIZARD_DIR}/static/" 2>/dev/null || true
+fi
 
 # Create Python virtual environment
 echo "Creating virtual environment..."
@@ -17,7 +38,10 @@ python3 -m venv ${WIZARD_DIR}/venv
 source ${WIZARD_DIR}/venv/bin/activate
 
 # Install dependencies
+echo "Installing Python dependencies..."
 pip install --upgrade pip
+
+# Core dependencies
 pip install \
     flask>=3.0.0 \
     gunicorn>=21.0.0 \
@@ -26,902 +50,37 @@ pip install \
     psutil>=5.9.0 \
     requests>=2.31.0
 
-# Create wizard server if not present
-if [ ! -f "${WIZARD_DIR}/wizard-server.py" ]; then
-    echo "Creating wizard server..."
-    cat > ${WIZARD_DIR}/wizard-server.py << 'WIZARDEOF'
-#!/usr/bin/env python3
-"""Eleanor DFIR Platform - Setup Wizard Server"""
-
-import os
-import json
-import secrets
-import subprocess
-import threading
-import time
-from pathlib import Path
-
-import psutil
-from flask import Flask, jsonify, render_template_string, request, send_from_directory
-from dotenv import set_key
-
-app = Flask(__name__, static_folder='static')
-
-ELEANOR_DIR = Path('/opt/eleanor')
-SETUP_DIR = Path('/opt/eleanor-setup')
-CONFIGURED_FLAG = ELEANOR_DIR / '.configured'
-
-
-@app.route('/')
-def index():
-    """Serve setup wizard UI."""
-    return send_from_directory(app.static_folder, 'index.html')
-
-
-@app.route('/api/system-info')
-def system_info():
-    """Get system information and requirements check."""
-    mem = psutil.virtual_memory()
-    disk = psutil.disk_usage('/var/lib/eleanor')
-    cpu_count = psutil.cpu_count()
-
-    checks = {
-        'memory_gb': round(mem.total / (1024**3), 1),
-        'memory_ok': mem.total >= 12 * (1024**3),  # 12GB minimum
-        'disk_gb': round(disk.total / (1024**3), 1),
-        'disk_free_gb': round(disk.free / (1024**3), 1),
-        'disk_ok': disk.free >= 50 * (1024**3),  # 50GB free minimum
-        'cpu_count': cpu_count,
-        'cpu_ok': cpu_count >= 2,  # 2 cores minimum
-        'docker_ok': check_docker(),
-    }
-
-    checks['all_ok'] = all([
-        checks['memory_ok'],
-        checks['disk_ok'],
-        checks['cpu_ok'],
-        checks['docker_ok'],
-    ])
-
-    return jsonify(checks)
-
-
-def check_docker():
-    """Check if Docker is running."""
-    try:
-        result = subprocess.run(
-            ['docker', 'info'],
-            capture_output=True,
-            timeout=10
-        )
-        return result.returncode == 0
-    except Exception:
-        return False
-
-
-@app.route('/api/validate', methods=['POST'])
-def validate_config():
-    """Validate setup configuration."""
-    config = request.json
-    errors = []
-
-    # Validate required fields
-    if not config.get('admin_username'):
-        errors.append('Admin username is required')
-    if not config.get('admin_password'):
-        errors.append('Admin password is required')
-    elif len(config['admin_password']) < 12:
-        errors.append('Admin password must be at least 12 characters')
-    if not config.get('hostname'):
-        errors.append('Hostname is required')
-
-    return jsonify({
-        'valid': len(errors) == 0,
-        'errors': errors
-    })
-
-
-@app.route('/api/setup', methods=['POST'])
-def start_setup():
-    """Start the setup process."""
-    config = request.json
-
-    # Start setup in background
-    thread = threading.Thread(target=run_setup, args=(config,))
-    thread.start()
-
-    return jsonify({'status': 'started'})
-
-
-def run_setup(config):
-    """Run the setup process."""
-    status_file = SETUP_DIR / 'setup-status.json'
-
-    def update_status(step, progress, message, error=None):
-        with open(status_file, 'w') as f:
-            json.dump({
-                'step': step,
-                'progress': progress,
-                'message': message,
-                'error': error,
-                'timestamp': time.time()
-            }, f)
-
-    try:
-        # Step 1: Generate secrets
-        update_status('secrets', 10, 'Generating security keys...')
-        secret_key = secrets.token_hex(32)
-        jwt_secret = secrets.token_hex(32)
-        db_password = secrets.token_urlsafe(24)
-
-        # Step 2: Create .env file
-        update_status('config', 20, 'Creating configuration...')
-        env_file = ELEANOR_DIR / '.env'
-
-        env_content = f"""# Eleanor DFIR Platform Configuration
-# Generated by Setup Wizard
-
-# Database
-POSTGRES_USER=eleanor
-POSTGRES_PASSWORD={db_password}
-POSTGRES_DB=eleanor
-
-# Security Keys
-SECRET_KEY={secret_key}
-JWT_SECRET={jwt_secret}
-
-# Eleanor Version
-ELEANOR_VERSION=1.0.0
-
-# Admin Account
-ADMIN_USERNAME={config.get('admin_username', 'admin')}
-ADMIN_EMAIL={config.get('admin_email', '')}
-"""
-
-        # Add integrations if configured
-        if config.get('velociraptor_url'):
-            env_content += f"\nVELOCIRAPTOR_URL={config['velociraptor_url']}"
-            env_content += f"\nVELOCIRAPTOR_API_KEY={config.get('velociraptor_api_key', '')}"
-
-        if config.get('iris_url'):
-            env_content += f"\nIRIS_URL={config['iris_url']}"
-            env_content += f"\nIRIS_API_KEY={config.get('iris_api_key', '')}"
-
-        if config.get('opencti_url'):
-            env_content += f"\nOPENCTI_URL={config['opencti_url']}"
-            env_content += f"\nOPENCTI_API_KEY={config.get('opencti_api_key', '')}"
-
-        with open(env_file, 'w') as f:
-            f.write(env_content)
-        os.chmod(env_file, 0o600)
-
-        # Step 3: Set hostname
-        update_status('hostname', 30, f"Setting hostname to {config.get('hostname', 'eleanor')}...")
-        hostname = config.get('hostname', 'eleanor')
-        subprocess.run(['hostnamectl', 'set-hostname', hostname], check=True)
-
-        # Step 4: Start services
-        update_status('services', 40, 'Starting Docker services...')
-        os.chdir(ELEANOR_DIR)
-        subprocess.run(['docker', 'compose', 'up', '-d'], check=True)
-
-        # Step 5: Wait for services to be healthy
-        update_status('health', 60, 'Waiting for services to start...')
-        for i in range(30):
-            time.sleep(10)
-            update_status('health', 60 + i, f'Waiting for services... ({i*10}s)')
-
-            result = subprocess.run(
-                ['docker', 'compose', 'ps', '--format', 'json'],
-                capture_output=True,
-                text=True
-            )
-            if result.returncode == 0:
-                try:
-                    services = json.loads(result.stdout)
-                    if all(s.get('State') == 'running' for s in services):
-                        break
-                except json.JSONDecodeError:
-                    pass
-
-        # Step 6: Run database migrations
-        update_status('migrations', 80, 'Running database migrations...')
-        subprocess.run(
-            ['docker', 'exec', 'eleanor-backend', 'alembic', 'upgrade', 'head'],
-            check=True
-        )
-
-        # Step 7: Create admin user
-        update_status('admin', 90, 'Creating admin user...')
-        admin_cmd = f"""
-from app.database import async_session_maker
-from app.models.user import User
-from app.core.security import get_password_hash
-import asyncio
-
-async def create_admin():
-    async with async_session_maker() as db:
-        user = User(
-            username='{config.get("admin_username", "admin")}',
-            email='{config.get("admin_email", "admin@eleanor.local")}',
-            hashed_password=get_password_hash('{config.get("admin_password")}'),
-            is_active=True,
-            is_superuser=True,
-        )
-        db.add(user)
-        await db.commit()
-
-asyncio.run(create_admin())
-"""
-        subprocess.run(
-            ['docker', 'exec', 'eleanor-backend', 'python', '-c', admin_cmd],
-            check=True
-        )
-
-        # Step 8: Enable and configure nginx
-        update_status('nginx', 95, 'Configuring nginx...')
-        subprocess.run(['systemctl', 'enable', 'nginx'], check=True)
-        subprocess.run(['systemctl', 'restart', 'nginx'], check=True)
-
-        # Step 9: Enable Eleanor service
-        subprocess.run(['systemctl', 'enable', 'eleanor'], check=True)
-
-        # Step 10: Mark as configured
-        update_status('complete', 100, 'Setup complete!')
-        CONFIGURED_FLAG.touch()
-
-        # Disable setup wizard after completion
-        subprocess.run(['systemctl', 'disable', 'eleanor-setup'], check=False)
-
-    except Exception as e:
-        update_status('error', -1, 'Setup failed', str(e))
-
-
-@app.route('/api/setup/progress')
-def get_progress():
-    """Get setup progress."""
-    status_file = SETUP_DIR / 'setup-status.json'
-
-    if status_file.exists():
-        with open(status_file) as f:
-            return jsonify(json.load(f))
-
-    return jsonify({
-        'step': 'idle',
-        'progress': 0,
-        'message': 'Ready to start setup'
-    })
-
-
-@app.route('/api/configured')
-def is_configured():
-    """Check if Eleanor is already configured."""
-    return jsonify({
-        'configured': CONFIGURED_FLAG.exists()
-    })
-
-
-if __name__ == '__main__':
-    # Run with SSL on port 9443
-    app.run(
-        host='0.0.0.0',
-        port=9443,
-        ssl_context=('/etc/nginx/ssl/eleanor.crt', '/etc/nginx/ssl/eleanor.key')
-    )
-WIZARDEOF
-fi
-
-# Create static directory if not exists
-mkdir -p ${WIZARD_DIR}/static
-
-# Create wizard UI if not present
-if [ ! -f "${WIZARD_DIR}/static/index.html" ]; then
-    echo "Creating wizard UI..."
-    cat > ${WIZARD_DIR}/static/index.html << 'HTMLEOF'
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Eleanor DFIR - Setup Wizard</title>
-    <style>
-        :root {
-            --bg-primary: #0a0a0f;
-            --bg-secondary: #12121a;
-            --bg-card: #1a1a24;
-            --text-primary: #e4e4e7;
-            --text-secondary: #a1a1aa;
-            --accent: #6366f1;
-            --accent-hover: #4f46e5;
-            --success: #22c55e;
-            --warning: #f59e0b;
-            --error: #ef4444;
-            --border: #27272a;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            min-height: 100vh;
-            line-height: 1.6;
-        }
-
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 3rem;
-        }
-
-        .logo {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-            background: linear-gradient(135deg, var(--accent), #a855f7);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .subtitle {
-            color: var(--text-secondary);
-            font-size: 1.1rem;
-        }
-
-        .card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 2rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .card-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .step-indicator {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 2rem;
-        }
-
-        .step {
-            flex: 1;
-            text-align: center;
-            padding: 1rem;
-            border-bottom: 3px solid var(--border);
-            color: var(--text-secondary);
-            transition: all 0.3s;
-        }
-
-        .step.active {
-            border-color: var(--accent);
-            color: var(--text-primary);
-        }
-
-        .step.complete {
-            border-color: var(--success);
-            color: var(--success);
-        }
-
-        .check-item {
-            display: flex;
-            align-items: center;
-            padding: 0.75rem 0;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .check-item:last-child {
-            border-bottom: none;
-        }
-
-        .check-status {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 1rem;
-        }
-
-        .check-status.ok {
-            background: var(--success);
-        }
-
-        .check-status.warn {
-            background: var(--warning);
-        }
-
-        .check-status.error {
-            background: var(--error);
-        }
-
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-
-        label {
-            display: block;
-            font-weight: 500;
-            margin-bottom: 0.5rem;
-            color: var(--text-primary);
-        }
-
-        input[type="text"],
-        input[type="password"],
-        input[type="email"] {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            color: var(--text-primary);
-            font-size: 1rem;
-            transition: border-color 0.3s;
-        }
-
-        input:focus {
-            outline: none;
-            border-color: var(--accent);
-        }
-
-        .checkbox-group {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 0;
-        }
-
-        .btn {
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s;
-            border: none;
-        }
-
-        .btn-primary {
-            background: var(--accent);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: var(--accent-hover);
-        }
-
-        .btn-primary:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .btn-secondary {
-            background: transparent;
-            border: 1px solid var(--border);
-            color: var(--text-primary);
-        }
-
-        .btn-secondary:hover {
-            background: var(--bg-secondary);
-        }
-
-        .actions {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 2rem;
-        }
-
-        .progress-bar {
-            height: 8px;
-            background: var(--bg-secondary);
-            border-radius: 4px;
-            overflow: hidden;
-            margin-bottom: 1rem;
-        }
-
-        .progress-bar .fill {
-            height: 100%;
-            background: var(--accent);
-            transition: width 0.5s;
-        }
-
-        .progress-message {
-            text-align: center;
-            color: var(--text-secondary);
-        }
-
-        .success-message {
-            text-align: center;
-            padding: 2rem;
-        }
-
-        .success-message h2 {
-            color: var(--success);
-            margin-bottom: 1rem;
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        .hint {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            margin-top: 0.25rem;
-        }
-
-        .collapsible {
-            margin-top: 1rem;
-        }
-
-        .collapsible-header {
-            cursor: pointer;
-            padding: 0.75rem;
-            background: var(--bg-secondary);
-            border-radius: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .collapsible-content {
-            padding: 1rem;
-            display: none;
-        }
-
-        .collapsible-content.open {
-            display: block;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1 class="logo">Eleanor</h1>
-            <p class="subtitle">DFIR Platform Setup Wizard</p>
-        </div>
-
-        <div class="step-indicator">
-            <div class="step active" id="step1-indicator">1. Requirements</div>
-            <div class="step" id="step2-indicator">2. Configuration</div>
-            <div class="step" id="step3-indicator">3. Integrations</div>
-            <div class="step" id="step4-indicator">4. Install</div>
-        </div>
-
-        <!-- Step 1: System Requirements -->
-        <div id="step1" class="card">
-            <h2 class="card-title">System Requirements Check</h2>
-            <div id="requirements-loading">Checking system requirements...</div>
-            <div id="requirements-list" class="hidden"></div>
-            <div class="actions">
-                <div></div>
-                <button class="btn btn-primary" id="btn-next-1" disabled>Next</button>
-            </div>
-        </div>
-
-        <!-- Step 2: Configuration -->
-        <div id="step2" class="card hidden">
-            <h2 class="card-title">Basic Configuration</h2>
-            <form id="config-form">
-                <div class="form-group">
-                    <label for="hostname">Hostname</label>
-                    <input type="text" id="hostname" name="hostname" value="eleanor" required>
-                    <p class="hint">The hostname for this server</p>
-                </div>
-                <div class="form-group">
-                    <label for="admin_username">Admin Username</label>
-                    <input type="text" id="admin_username" name="admin_username" value="admin" required>
-                </div>
-                <div class="form-group">
-                    <label for="admin_email">Admin Email</label>
-                    <input type="email" id="admin_email" name="admin_email" required>
-                </div>
-                <div class="form-group">
-                    <label for="admin_password">Admin Password</label>
-                    <input type="password" id="admin_password" name="admin_password" required minlength="12">
-                    <p class="hint">Minimum 12 characters</p>
-                </div>
-                <div class="form-group">
-                    <label for="admin_password_confirm">Confirm Password</label>
-                    <input type="password" id="admin_password_confirm" required minlength="12">
-                </div>
-            </form>
-            <div class="actions">
-                <button class="btn btn-secondary" onclick="showStep(1)">Back</button>
-                <button class="btn btn-primary" id="btn-next-2">Next</button>
-            </div>
-        </div>
-
-        <!-- Step 3: Integrations -->
-        <div id="step3" class="card hidden">
-            <h2 class="card-title">Integrations (Optional)</h2>
-            <p style="color: var(--text-secondary); margin-bottom: 1rem;">
-                Configure integrations with other DFIR tools. You can skip this and configure later.
-            </p>
-
-            <div class="collapsible">
-                <div class="collapsible-header" onclick="toggleCollapsible(this)">
-                    <span>Velociraptor</span>
-                    <span>+</span>
-                </div>
-                <div class="collapsible-content">
-                    <div class="form-group">
-                        <label for="velociraptor_url">Velociraptor URL</label>
-                        <input type="text" id="velociraptor_url" placeholder="https://velociraptor.example.com">
-                    </div>
-                    <div class="form-group">
-                        <label for="velociraptor_api_key">API Key</label>
-                        <input type="password" id="velociraptor_api_key">
-                    </div>
-                </div>
-            </div>
-
-            <div class="collapsible">
-                <div class="collapsible-header" onclick="toggleCollapsible(this)">
-                    <span>DFIR-IRIS</span>
-                    <span>+</span>
-                </div>
-                <div class="collapsible-content">
-                    <div class="form-group">
-                        <label for="iris_url">IRIS URL</label>
-                        <input type="text" id="iris_url" placeholder="https://iris.example.com">
-                    </div>
-                    <div class="form-group">
-                        <label for="iris_api_key">API Key</label>
-                        <input type="password" id="iris_api_key">
-                    </div>
-                </div>
-            </div>
-
-            <div class="collapsible">
-                <div class="collapsible-header" onclick="toggleCollapsible(this)">
-                    <span>OpenCTI</span>
-                    <span>+</span>
-                </div>
-                <div class="collapsible-content">
-                    <div class="form-group">
-                        <label for="opencti_url">OpenCTI URL</label>
-                        <input type="text" id="opencti_url" placeholder="https://opencti.example.com">
-                    </div>
-                    <div class="form-group">
-                        <label for="opencti_api_key">API Key</label>
-                        <input type="password" id="opencti_api_key">
-                    </div>
-                </div>
-            </div>
-
-            <div class="actions">
-                <button class="btn btn-secondary" onclick="showStep(2)">Back</button>
-                <button class="btn btn-primary" onclick="startSetup()">Install Eleanor</button>
-            </div>
-        </div>
-
-        <!-- Step 4: Installation Progress -->
-        <div id="step4" class="card hidden">
-            <h2 class="card-title">Installing Eleanor</h2>
-            <div id="install-progress">
-                <div class="progress-bar">
-                    <div class="fill" id="progress-fill" style="width: 0%"></div>
-                </div>
-                <p class="progress-message" id="progress-message">Starting installation...</p>
-            </div>
-            <div id="install-complete" class="success-message hidden">
-                <h2>Setup Complete!</h2>
-                <p>Eleanor DFIR Platform has been successfully installed.</p>
-                <p style="margin-top: 1rem;">
-                    Access the platform at: <a href="/" style="color: var(--accent);">https://<span id="access-url"></span></a>
-                </p>
-                <button class="btn btn-primary" onclick="window.location.href='/'">Open Eleanor</button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        let currentStep = 1;
-        let config = {};
-
-        // Check if already configured
-        async function checkConfigured() {
-            const response = await fetch('/api/configured');
-            const data = await response.json();
-            if (data.configured) {
-                window.location.href = '/';
-            }
-        }
-
-        // Check system requirements
-        async function checkRequirements() {
-            const response = await fetch('/api/system-info');
-            const data = await response.json();
-
-            const list = document.getElementById('requirements-list');
-            list.innerHTML = `
-                <div class="check-item">
-                    <div class="check-status ${data.memory_ok ? 'ok' : 'warn'}">
-                        ${data.memory_ok ? '✓' : '!'}
-                    </div>
-                    <div>
-                        <strong>Memory:</strong> ${data.memory_gb} GB
-                        ${data.memory_ok ? '' : '(12 GB recommended)'}
-                    </div>
-                </div>
-                <div class="check-item">
-                    <div class="check-status ${data.disk_ok ? 'ok' : 'warn'}">
-                        ${data.disk_ok ? '✓' : '!'}
-                    </div>
-                    <div>
-                        <strong>Disk Space:</strong> ${data.disk_free_gb} GB free of ${data.disk_gb} GB
-                        ${data.disk_ok ? '' : '(50 GB free recommended)'}
-                    </div>
-                </div>
-                <div class="check-item">
-                    <div class="check-status ${data.cpu_ok ? 'ok' : 'warn'}">
-                        ${data.cpu_ok ? '✓' : '!'}
-                    </div>
-                    <div>
-                        <strong>CPU Cores:</strong> ${data.cpu_count}
-                        ${data.cpu_ok ? '' : '(2+ recommended)'}
-                    </div>
-                </div>
-                <div class="check-item">
-                    <div class="check-status ${data.docker_ok ? 'ok' : 'error'}">
-                        ${data.docker_ok ? '✓' : '✗'}
-                    </div>
-                    <div>
-                        <strong>Docker:</strong> ${data.docker_ok ? 'Running' : 'Not Running'}
-                    </div>
-                </div>
-            `;
-
-            document.getElementById('requirements-loading').classList.add('hidden');
-            list.classList.remove('hidden');
-
-            if (data.docker_ok) {
-                document.getElementById('btn-next-1').disabled = false;
-            }
-        }
-
-        function showStep(step) {
-            for (let i = 1; i <= 4; i++) {
-                document.getElementById(`step${i}`).classList.add('hidden');
-                document.getElementById(`step${i}-indicator`).classList.remove('active', 'complete');
-            }
-
-            document.getElementById(`step${step}`).classList.remove('hidden');
-            document.getElementById(`step${step}-indicator`).classList.add('active');
-
-            for (let i = 1; i < step; i++) {
-                document.getElementById(`step${i}-indicator`).classList.add('complete');
-            }
-
-            currentStep = step;
-        }
-
-        function toggleCollapsible(header) {
-            const content = header.nextElementSibling;
-            content.classList.toggle('open');
-            header.querySelector('span:last-child').textContent =
-                content.classList.contains('open') ? '-' : '+';
-        }
-
-        async function validateStep2() {
-            const password = document.getElementById('admin_password').value;
-            const confirm = document.getElementById('admin_password_confirm').value;
-
-            if (password !== confirm) {
-                alert('Passwords do not match');
-                return false;
-            }
-
-            config = {
-                hostname: document.getElementById('hostname').value,
-                admin_username: document.getElementById('admin_username').value,
-                admin_email: document.getElementById('admin_email').value,
-                admin_password: password,
-            };
-
-            const response = await fetch('/api/validate', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(config)
-            });
-
-            const result = await response.json();
-            if (!result.valid) {
-                alert('Validation errors:\n' + result.errors.join('\n'));
-                return false;
-            }
-
-            return true;
-        }
-
-        async function startSetup() {
-            // Collect integration config
-            config.velociraptor_url = document.getElementById('velociraptor_url').value;
-            config.velociraptor_api_key = document.getElementById('velociraptor_api_key').value;
-            config.iris_url = document.getElementById('iris_url').value;
-            config.iris_api_key = document.getElementById('iris_api_key').value;
-            config.opencti_url = document.getElementById('opencti_url').value;
-            config.opencti_api_key = document.getElementById('opencti_api_key').value;
-
-            showStep(4);
-
-            // Start setup
-            await fetch('/api/setup', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(config)
-            });
-
-            // Poll for progress
-            pollProgress();
-        }
-
-        async function pollProgress() {
-            const response = await fetch('/api/setup/progress');
-            const data = await response.json();
-
-            document.getElementById('progress-fill').style.width = `${data.progress}%`;
-            document.getElementById('progress-message').textContent = data.message;
-
-            if (data.progress === 100) {
-                document.getElementById('install-progress').classList.add('hidden');
-                document.getElementById('install-complete').classList.remove('hidden');
-                document.getElementById('access-url').textContent = window.location.hostname;
-            } else if (data.error) {
-                document.getElementById('progress-message').textContent = `Error: ${data.error}`;
-                document.getElementById('progress-message').style.color = 'var(--error)';
-            } else {
-                setTimeout(pollProgress, 2000);
-            }
-        }
-
-        // Event listeners
-        document.getElementById('btn-next-1').addEventListener('click', () => showStep(2));
-        document.getElementById('btn-next-2').addEventListener('click', async () => {
-            if (await validateStep2()) {
-                showStep(3);
-            }
-        });
-
-        // Initialize
-        checkConfigured();
-        checkRequirements();
-    </script>
-</body>
-</html>
-HTMLEOF
-fi
+# Database driver (for connection testing)
+pip install \
+    psycopg2-binary>=2.9.0
+
+# Cloud storage dependencies (for credential testing)
+echo "Installing cloud storage libraries..."
+pip install \
+    boto3>=1.34.0 \
+    azure-storage-blob>=12.19.0 \
+    google-cloud-storage>=2.14.0
+
+deactivate
+
+# Set permissions
+echo "Setting permissions..."
+chown -R eleanor:eleanor ${WIZARD_DIR} 2>/dev/null || true
+chmod +x ${WIZARD_DIR}/wizard-server.py
 
 # Create systemd service for setup wizard
 echo "Creating setup wizard service..."
 cat > /etc/systemd/system/eleanor-setup.service << 'EOF'
 [Unit]
 Description=Eleanor DFIR Setup Wizard
-After=network.target
+After=network.target docker.service
+Requires=docker.service
 
 [Service]
 Type=simple
 User=root
 WorkingDirectory=/opt/eleanor-setup
+Environment="PATH=/opt/eleanor-setup/venv/bin:/usr/local/bin:/usr/bin:/bin"
 ExecStart=/opt/eleanor-setup/venv/bin/python /opt/eleanor-setup/wizard-server.py
 Restart=on-failure
 RestartSec=5
@@ -930,14 +89,40 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-# Enable and start setup wizard
-systemctl daemon-reload
-systemctl enable eleanor-setup
-systemctl start eleanor-setup
+# Create a service to generate SSL certs on first boot (if not present)
+cat > /etc/systemd/system/eleanor-ssl-init.service << 'EOF'
+[Unit]
+Description=Eleanor SSL Certificate Initialization
+Before=eleanor-setup.service
+ConditionPathExists=!/etc/nginx/ssl/eleanor.crt
 
-# Set permissions
-chown -R eleanor:eleanor ${WIZARD_DIR}
-chmod +x ${WIZARD_DIR}/wizard-server.py
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c 'mkdir -p /etc/nginx/ssl && openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/nginx/ssl/eleanor.key -out /etc/nginx/ssl/eleanor.crt -subj "/CN=eleanor/O=DFIR/C=US"'
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Enable services
+systemctl daemon-reload
+systemctl enable eleanor-ssl-init
+systemctl enable eleanor-setup
+
+# Start SSL init if certs don't exist
+if [ ! -f /etc/nginx/ssl/eleanor.crt ]; then
+    systemctl start eleanor-ssl-init
+fi
+
+# Start setup wizard (for testing/development)
+# In production OVA, this will start on boot
+systemctl start eleanor-setup || echo "Note: Wizard will start on next boot"
 
 echo "=== Setup Wizard Installation Complete ==="
 echo "Setup wizard available at: https://[IP]:9443"
+echo ""
+echo "Enterprise features enabled:"
+echo "  - Storage backends: Local, S3, Azure Blob, GCS"
+echo "  - Authentication: Local accounts, OIDC/SSO"
+echo "  - Database: Embedded or external PostgreSQL"
