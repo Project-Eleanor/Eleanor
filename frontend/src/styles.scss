@@ -19,21 +19,20 @@ $danger: #f85149;          // Red for errors/critical
 $info: #4a9eff;            // Blue for info
 $border-color: #1e2a3a;    // Blue-tinted borders
 
-// Angular Material v17 theming
-$eleanor-primary: mat.define-palette(mat.$blue-palette, 500, 300, 700);
-$eleanor-accent: mat.define-palette(mat.$light-blue-palette, A200, A100, A400);
-$eleanor-warn: mat.define-palette(mat.$red-palette);
-
-$eleanor-theme: mat.define-dark-theme((
+// Angular Material v20 M3 theming
+$eleanor-theme: mat.define-theme((
   color: (
-    primary: $eleanor-primary,
-    accent: $eleanor-accent,
-    warn: $eleanor-warn,
+    theme-type: dark,
+    primary: mat.$blue-palette,
+    tertiary: mat.$cyan-palette,
   ),
-  typography: mat.define-typography-config(
-    $font-family: 'Manrope, sans-serif',
+  typography: (
+    plain-family: 'Manrope, sans-serif',
+    brand-family: 'Manrope, sans-serif',
   ),
-  density: 0,
+  density: (
+    scale: 0,
+  ),
 ));
 
 html {
@@ -102,7 +101,12 @@ html, body {
 
 body {
   font-family: var(--font-body);
-  background-color: $bg-primary;
+  // Gradient mesh for glassmorphism visibility
+  background:
+    radial-gradient(ellipse at 20% 30%, rgba(74, 158, 255, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 70%, rgba(99, 102, 241, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 100%, rgba(6, 182, 212, 0.05) 0%, transparent 40%),
+    $bg-primary;
   color: $text-primary;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -457,37 +461,26 @@ a {
 .w-full { width: 100%; }
 .h-full { height: 100%; }
 
-// Dialog centering and glassmorphism
-.centered-dialog {
-  .mat-mdc-dialog-container {
-    .mdc-dialog__surface {
-      background: rgba(20, 26, 36, 0.85) !important;
-      backdrop-filter: blur(16px) !important;
-      -webkit-backdrop-filter: blur(16px) !important;
-      border: 1px solid rgba(74, 158, 255, 0.15) !important;
-      border-radius: 16px !important;
-      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4), 0 0 40px rgba(74, 158, 255, 0.1) !important;
-    }
+// Dialog centering - target the pane directly with fixed positioning
+.cdk-overlay-pane.centered-dialog {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  max-height: 85vh !important;
+
+  // Glassmorphism styling for dialog surface
+  .mat-mdc-dialog-container .mdc-dialog__surface {
+    background: rgba(20, 26, 36, 0.85) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    border: 1px solid rgba(74, 158, 255, 0.15) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4), 0 0 40px rgba(74, 158, 255, 0.1) !important;
   }
 }
 
-// Dialog centering - override CDK overlay positioning
-.cdk-overlay-container {
-  .cdk-global-overlay-wrapper {
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-    width: 100% !important;
-    height: 100% !important;
-  }
-
-  .cdk-overlay-pane.mat-mdc-dialog-panel {
-    margin: 0 auto !important;
-    max-height: 85vh !important;
-  }
-}
-
-// Dialog styling
+// Dialog backdrop
 .cdk-overlay-backdrop.cdk-overlay-dark-backdrop {
   background: rgba(0, 0, 0, 0.6);
 }

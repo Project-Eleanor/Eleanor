@@ -205,16 +205,25 @@ import { CommonModule } from '@angular/common';
     }
 
     .audience-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-subtle);
+      background: rgba(15, 20, 30, 0.5);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 12px;
       padding: 2rem;
+      box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.25),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.05);
       transition: all 0.3s ease;
 
       &:hover {
-        border-color: var(--accent);
+        background: rgba(20, 26, 40, 0.65);
+        border-color: rgba(255, 255, 255, 0.12);
         transform: translateY(-4px);
-        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+        box-shadow:
+          0 12px 40px rgba(0, 0, 0, 0.35),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+          0 0 30px rgba(74, 158, 255, 0.15);
       }
 
       h3 {
@@ -269,10 +278,24 @@ import { CommonModule } from '@angular/common';
     }
 
     .capability {
-      background: var(--bg-secondary);
-      border: 1px solid var(--border-subtle);
+      background: rgba(15, 20, 30, 0.4);
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.06);
       border-radius: 8px;
       padding: 1.5rem;
+      box-shadow:
+        0 4px 20px rgba(0, 0, 0, 0.2),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+      transition: all 0.3s ease;
+
+      &:hover {
+        background: rgba(20, 26, 40, 0.55);
+        border-color: rgba(255, 255, 255, 0.1);
+        box-shadow:
+          0 8px 30px rgba(0, 0, 0, 0.3),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+      }
 
       p {
         color: var(--text-secondary);
@@ -300,13 +323,18 @@ import { CommonModule } from '@angular/common';
       color: var(--text-primary);
     }
 
-    // Unique Section
+    // Unique Section - Glassmorphism
     .unique-section {
       margin-bottom: 5rem;
       padding: 3rem;
-      background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-card) 100%);
-      border: 1px solid var(--border-subtle);
+      background: rgba(15, 20, 30, 0.5);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 16px;
+      box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.25),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.05);
     }
 
     .unique-title {
@@ -377,16 +405,20 @@ import { CommonModule } from '@angular/common';
 
     .integration-item {
       padding: 0.75rem 1.5rem;
-      background: var(--bg-secondary);
-      border: 1px solid var(--border-subtle);
+      background: rgba(15, 20, 30, 0.4);
+      backdrop-filter: blur(12px) saturate(180%);
+      -webkit-backdrop-filter: blur(12px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.06);
       border-radius: 8px;
       font-size: 0.875rem;
       font-weight: 500;
       color: var(--text-secondary);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
       transition: all 0.2s ease;
 
       &:hover {
-        border-color: var(--accent);
+        background: rgba(20, 26, 40, 0.55);
+        border-color: rgba(255, 255, 255, 0.12);
         color: var(--accent);
       }
     }

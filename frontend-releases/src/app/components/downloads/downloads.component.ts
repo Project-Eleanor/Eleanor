@@ -256,29 +256,38 @@ import { ReleaseService, Release } from '../../services/release.service';
       }
     }
 
-    // Release card
+    // Release card - Glassmorphism
     .release-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-subtle);
+      background: rgba(15, 20, 30, 0.5);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 20px;
       padding: 2rem;
       position: relative;
-      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+      box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.25),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+      transition: border-color 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
       will-change: transform;
       transform-style: preserve-3d;
 
       &:hover {
-        border-color: var(--border-hover);
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        background: rgba(20, 26, 40, 0.65);
+        border-color: rgba(255, 255, 255, 0.12);
+        box-shadow:
+          0 20px 60px rgba(0, 0, 0, 0.4),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+          0 0 40px rgba(74, 158, 255, 0.1);
       }
 
       &.latest {
-        border-color: var(--accent);
-        background: linear-gradient(
-          135deg,
-          var(--bg-card) 0%,
-          rgba(74, 158, 255, 0.05) 100%
-        );
+        border-color: rgba(74, 158, 255, 0.3);
+        background: rgba(15, 20, 30, 0.55);
+        box-shadow:
+          0 8px 32px rgba(0, 0, 0, 0.25),
+          inset 0 0 0 1px rgba(74, 158, 255, 0.1),
+          0 0 30px rgba(74, 158, 255, 0.08);
       }
     }
 
@@ -529,11 +538,16 @@ import { ReleaseService, Release } from '../../services/release.service';
     .coming-soon-card {
       max-width: 600px;
       width: 100%;
-      background: var(--bg-card);
-      border: 1px solid var(--border-subtle);
+      background: rgba(15, 20, 30, 0.5);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 24px;
       padding: 3rem 2.5rem;
       text-align: center;
+      box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.25),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.05);
     }
 
     .coming-soon-icon {
@@ -619,9 +633,14 @@ import { ReleaseService, Release } from '../../services/release.service';
       display: flex;
       gap: 1.5rem;
       padding: 2rem;
-      background: var(--bg-card);
-      border: 1px solid var(--border-subtle);
+      background: rgba(15, 20, 30, 0.5);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 16px;
+      box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.25),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.05);
 
       @media (max-width: 640px) {
         flex-direction: column;

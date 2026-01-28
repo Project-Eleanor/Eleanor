@@ -259,29 +259,38 @@ import { AnimationService } from '../../services/animation.service';
       }
     }
 
-    // Spec card
+    // Spec card - Glassmorphism
     .spec-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-subtle);
+      background: rgba(15, 20, 30, 0.5);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 20px;
       padding: 2rem;
       position: relative;
-      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+      box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.25),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+      transition: border-color 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
       will-change: transform;
       transform-style: preserve-3d;
 
       &:hover {
-        border-color: var(--border-hover);
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        background: rgba(20, 26, 40, 0.65);
+        border-color: rgba(255, 255, 255, 0.12);
+        box-shadow:
+          0 20px 60px rgba(0, 0, 0, 0.35),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+          0 0 30px rgba(74, 158, 255, 0.1);
       }
 
       &.recommended {
-        border-color: var(--accent);
-        background: linear-gradient(
-          135deg,
-          var(--bg-card) 0%,
-          rgba(74, 158, 255, 0.05) 100%
-        );
+        border-color: rgba(74, 158, 255, 0.3);
+        background: rgba(15, 20, 30, 0.55);
+        box-shadow:
+          0 8px 32px rgba(0, 0, 0, 0.25),
+          inset 0 0 0 1px rgba(74, 158, 255, 0.1),
+          0 0 30px rgba(74, 158, 255, 0.08);
       }
     }
 
@@ -377,15 +386,24 @@ import { AnimationService } from '../../services/animation.service';
       align-items: center;
       text-align: center;
       padding: 2rem 1.5rem;
-      background: var(--bg-card);
-      border: 1px solid var(--border-subtle);
+      background: rgba(15, 20, 30, 0.5);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 16px;
-      transition: border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+      box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.25),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+      transition: border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
       will-change: transform;
 
       &:hover {
-        border-color: var(--border-hover);
-        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+        background: rgba(20, 26, 40, 0.65);
+        border-color: rgba(255, 255, 255, 0.12);
+        box-shadow:
+          0 12px 40px rgba(0, 0, 0, 0.35),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+          0 0 20px rgba(74, 158, 255, 0.1);
       }
     }
 
@@ -488,17 +506,26 @@ import { AnimationService } from '../../services/animation.service';
       align-items: center;
       gap: 1rem;
       padding: 1.25rem 1.5rem;
-      background: var(--bg-card);
-      border: 1px solid var(--border-subtle);
+      background: rgba(15, 20, 30, 0.5);
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 12px;
       text-decoration: none;
       color: inherit;
-      transition: border-color 0.3s ease, background 0.3s ease;
+      box-shadow:
+        0 4px 20px rgba(0, 0, 0, 0.2),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+      transition: border-color 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
       will-change: transform;
 
       &:hover {
-        border-color: var(--border-hover);
-        background: var(--bg-card-hover);
+        background: rgba(20, 26, 40, 0.65);
+        border-color: rgba(255, 255, 255, 0.12);
+        box-shadow:
+          0 8px 30px rgba(0, 0, 0, 0.3),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+          0 0 20px rgba(74, 158, 255, 0.08);
       }
 
       @media (max-width: 767px) {

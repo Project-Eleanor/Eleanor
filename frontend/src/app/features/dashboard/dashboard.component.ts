@@ -253,17 +253,23 @@ import { IntegrationStatus, Case, Hunt, ApprovalRequest } from '../../shared/mod
     }
 
     .integration-card {
-      background: rgba(20, 26, 36, 0.6);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(74, 158, 255, 0.1);
+      background: rgba(15, 20, 30, 0.5);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 12px;
+      box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.25),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.05);
       transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.3s ease;
 
       &:hover {
-        border-color: rgba(74, 158, 255, 0.25);
-        background: rgba(20, 26, 36, 0.75);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 20px rgba(74, 158, 255, 0.1);
+        background: rgba(20, 26, 40, 0.65);
+        border-color: rgba(255, 255, 255, 0.12);
+        box-shadow:
+          0 12px 40px rgba(0, 0, 0, 0.35),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+          0 0 30px rgba(74, 158, 255, 0.1);
       }
 
       &.healthy {
@@ -271,7 +277,10 @@ import { IntegrationStatus, Case, Hunt, ApprovalRequest } from '../../shared/mod
 
         &:hover {
           border-color: var(--success);
-          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 30px var(--glow-success);
+          box-shadow:
+            0 12px 40px rgba(0, 0, 0, 0.35),
+            inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+            0 0 30px var(--glow-success);
         }
       }
 
@@ -280,7 +289,10 @@ import { IntegrationStatus, Case, Hunt, ApprovalRequest } from '../../shared/mod
 
         &:hover {
           border-color: var(--danger);
-          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 30px var(--glow-danger);
+          box-shadow:
+            0 12px 40px rgba(0, 0, 0, 0.35),
+            inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+            0 0 30px var(--glow-danger);
         }
       }
 
@@ -363,19 +375,25 @@ import { IntegrationStatus, Case, Hunt, ApprovalRequest } from '../../shared/mod
       align-items: center;
       gap: 20px;
       padding: 24px;
-      background: rgba(20, 26, 36, 0.6);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(74, 158, 255, 0.1);
+      background: rgba(15, 20, 30, 0.5);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 12px;
+      box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.25),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.05);
       position: relative;
       overflow: hidden;
       transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.3s ease;
 
       &:hover {
-        border-color: rgba(74, 158, 255, 0.25);
-        background: rgba(20, 26, 36, 0.75);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 20px rgba(74, 158, 255, 0.1);
+        background: rgba(20, 26, 40, 0.65);
+        border-color: rgba(255, 255, 255, 0.12);
+        box-shadow:
+          0 12px 40px rgba(0, 0, 0, 0.35),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+          0 0 30px rgba(74, 158, 255, 0.1);
 
         .stat-accent {
           opacity: 1;
@@ -463,20 +481,26 @@ import { IntegrationStatus, Case, Hunt, ApprovalRequest } from '../../shared/mod
 
     .case-card {
       padding: 20px;
-      background: rgba(20, 26, 36, 0.6);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(74, 158, 255, 0.1);
+      background: rgba(15, 20, 30, 0.5);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 12px;
+      box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.25),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.05);
       cursor: pointer;
       position: relative;
       overflow: hidden;
       transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.3s ease;
 
       &:hover {
-        border-color: rgba(74, 158, 255, 0.25);
-        background: rgba(20, 26, 36, 0.75);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 20px rgba(74, 158, 255, 0.1);
+        background: rgba(20, 26, 40, 0.65);
+        border-color: rgba(255, 255, 255, 0.12);
+        box-shadow:
+          0 12px 40px rgba(0, 0, 0, 0.35),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+          0 0 30px rgba(74, 158, 255, 0.1);
 
         .case-accent {
           opacity: 1;
@@ -550,17 +574,23 @@ import { IntegrationStatus, Case, Hunt, ApprovalRequest } from '../../shared/mod
 
     .hunt-card {
       padding: 20px;
-      background: rgba(20, 26, 36, 0.6);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(74, 158, 255, 0.1);
+      background: rgba(15, 20, 30, 0.5);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 12px;
+      box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.25),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.05);
       transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.3s ease;
 
       &:hover {
-        border-color: rgba(74, 158, 255, 0.25);
-        background: rgba(20, 26, 36, 0.75);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 20px rgba(74, 158, 255, 0.1);
+        background: rgba(20, 26, 40, 0.65);
+        border-color: rgba(255, 255, 255, 0.12);
+        box-shadow:
+          0 12px 40px rgba(0, 0, 0, 0.35),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+          0 0 30px rgba(74, 158, 255, 0.1);
       }
     }
 
@@ -621,11 +651,14 @@ import { IntegrationStatus, Case, Hunt, ApprovalRequest } from '../../shared/mod
       align-items: center;
       justify-content: center;
       padding: 64px;
-      background: rgba(20, 26, 36, 0.5);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(74, 158, 255, 0.08);
+      background: rgba(15, 20, 30, 0.5);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 12px;
+      box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.25),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.05);
       color: var(--text-muted);
 
       mat-icon {

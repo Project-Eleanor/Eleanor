@@ -164,14 +164,17 @@ interface NavGroup {
       overflow: hidden;
     }
 
-    /* Sidebar - Glassmorphism style */
+    /* Sidebar - Enhanced Glassmorphism style */
     .sidebar {
       width: 240px;
       min-width: 240px;
-      background: rgba(18, 23, 31, 0.85);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border-right: 1px solid rgba(74, 158, 255, 0.1);
+      background: rgba(15, 20, 30, 0.6);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+        4px 0 24px rgba(0, 0, 0, 0.3);
       display: flex;
       flex-direction: column;
       transition: width 0.2s ease, min-width 0.2s ease;
@@ -379,17 +382,18 @@ interface NavGroup {
       background: var(--bg-primary);
     }
 
-    /* Header - Glassmorphism style */
+    /* Header - Enhanced Glassmorphism style */
     .header {
       display: flex;
       align-items: center;
       justify-content: space-between;
       height: 68px;
       padding: 0 28px;
-      background: rgba(18, 23, 31, 0.85);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border-bottom: 1px solid rgba(74, 158, 255, 0.1);
+      background: rgba(15, 20, 30, 0.6);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
       position: relative;
     }
 
