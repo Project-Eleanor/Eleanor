@@ -488,6 +488,15 @@ import { ConnectorDialogComponent } from './connector-dialog.component';
     .connector-icon.api_polling { background: rgba(76, 175, 80, 0.15); color: #4CAF50; }
     .connector-icon.file_upload { background: rgba(121, 85, 72, 0.15); color: #795548; }
     .connector-icon.custom { background: rgba(158, 158, 158, 0.15); color: #9E9E9E; }
+    /* Phase 4 connector types */
+    .connector-icon.gcp_cloud_logging { background: rgba(66, 133, 244, 0.15); color: #4285F4; }
+    .connector-icon.aws_security_hub { background: rgba(255, 153, 0, 0.15); color: #FF9900; }
+    .connector-icon.azure_event_hub { background: rgba(0, 120, 212, 0.15); color: #0078D4; }
+    .connector-icon.fluentd { background: rgba(0, 150, 136, 0.15); color: #009688; }
+    .connector-icon.wef { background: rgba(33, 150, 243, 0.15); color: #2196F3; }
+    .connector-icon.okta { background: rgba(0, 123, 255, 0.15); color: #007BFF; }
+    .connector-icon.crowdstrike_fdr { background: rgba(244, 67, 54, 0.15); color: #F44336; }
+    .connector-icon.splunk_hec { background: rgba(139, 195, 74, 0.15); color: #8BC34A; }
 
     .connector-info {
       flex: 1;
@@ -688,7 +697,10 @@ export class ConnectorsComponent implements OnInit {
 
   connectorTypes: ConnectorType[] = [
     'syslog', 'windows_event', 'cloud_trail', 'azure_ad', 'office_365',
-    'aws_s3', 'beats', 'kafka', 'webhook', 'api_polling', 'file_upload', 'custom'
+    'aws_s3', 'beats', 'kafka', 'webhook', 'api_polling', 'file_upload', 'custom',
+    // Phase 4 connector types
+    'gcp_cloud_logging', 'aws_security_hub', 'azure_event_hub', 'fluentd',
+    'wef', 'okta', 'crowdstrike_fdr', 'splunk_hec'
   ];
 
   ngOnInit(): void {
@@ -831,7 +843,16 @@ export class ConnectorsComponent implements OnInit {
       webhook: 'Webhook',
       api_polling: 'API Polling',
       file_upload: 'File Upload',
-      custom: 'Custom'
+      custom: 'Custom',
+      // Phase 4 connector types
+      gcp_cloud_logging: 'GCP Cloud Logging',
+      aws_security_hub: 'AWS Security Hub',
+      azure_event_hub: 'Azure Event Hub',
+      fluentd: 'Fluentd/Fluent Bit',
+      wef: 'Windows Event Forwarding',
+      okta: 'Okta',
+      crowdstrike_fdr: 'CrowdStrike FDR',
+      splunk_hec: 'Splunk HEC'
     };
     return labels[type] || type;
   }
@@ -849,7 +870,16 @@ export class ConnectorsComponent implements OnInit {
       webhook: 'webhook',
       api_polling: 'sync',
       file_upload: 'upload_file',
-      custom: 'extension'
+      custom: 'extension',
+      // Phase 4 connector types
+      gcp_cloud_logging: 'cloud_queue',
+      aws_security_hub: 'security',
+      azure_event_hub: 'hub',
+      fluentd: 'route',
+      wef: 'dns',
+      okta: 'fingerprint',
+      crowdstrike_fdr: 'radar',
+      splunk_hec: 'data_exploration'
     };
     return icons[type] || 'cable';
   }

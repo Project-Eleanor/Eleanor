@@ -15,7 +15,16 @@ export type ConnectorType =
   | 'webhook'
   | 'api_polling'
   | 'file_upload'
-  | 'custom';
+  | 'custom'
+  // Phase 4 connector types
+  | 'gcp_cloud_logging'
+  | 'aws_security_hub'
+  | 'azure_event_hub'
+  | 'fluentd'
+  | 'wef'
+  | 'okta'
+  | 'crowdstrike_fdr'
+  | 'splunk_hec';
 
 export type ConnectorStatus = 'enabled' | 'disabled' | 'error' | 'configuring';
 export type ConnectorHealth = 'healthy' | 'degraded' | 'unhealthy' | 'unknown';
