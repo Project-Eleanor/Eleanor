@@ -50,15 +50,16 @@ export class ReleaseService {
   private releases$: Observable<Release[]> | null = null;
 
   /**
-   * Get all releases, fetching from GitHub API with fallback to static JSON
+   * Get all releases from static JSON file.
+   *
+   * NOTE: GitHub API fetch is disabled during development.
+   * The static releases.json gives full control over what's displayed.
+   * Re-enable GitHub fetch when ready for production releases.
    */
   getReleases(): Observable<Release[]> {
     if (!this.releases$) {
-      this.releases$ = this.fetchFromGitHub().pipe(
-        catchError(error => {
-          console.warn('GitHub API fetch failed, falling back to static releases.json:', error.message);
-          return this.fetchFromFallback();
-        }),
+      // Use static JSON only - gives control over displayed releases
+      this.releases$ = this.fetchFromFallback().pipe(
         shareReplay(1)
       );
     }
