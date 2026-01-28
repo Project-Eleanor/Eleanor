@@ -476,14 +476,14 @@ a {
   .cdk-global-overlay-wrapper {
     display: flex !important;
     justify-content: center !important;
-    align-items: flex-start !important;
-    padding-top: 5vh !important;
+    align-items: center !important;
     width: 100% !important;
     height: 100% !important;
   }
 
   .cdk-overlay-pane.mat-mdc-dialog-panel {
     margin: 0 auto !important;
+    max-height: 85vh !important;
   }
 }
 
