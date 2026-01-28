@@ -1812,9 +1812,8 @@ class SIEMAdapter(TimelineAdapter):
         """
         # SIEMAdapter subclasses should override this method
         # Base implementation not available - SIEM search requires index context
-        raise NotImplementedError(
-            "query_by_ioc must be implemented by SIEM adapter subclasses"
-        )
+        msg = "query_by_ioc must be implemented by SIEM adapter subclasses"
+        raise NotImplementedError(msg)
 
     async def get_field_summary(
         self,
