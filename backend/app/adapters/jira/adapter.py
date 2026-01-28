@@ -13,7 +13,7 @@ Provides:
 """
 
 import logging
-from datetime import datetime, UTC
+from datetime import datetime
 from typing import Any
 
 from app.adapters.base import (

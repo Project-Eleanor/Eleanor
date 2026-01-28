@@ -1470,3 +1470,375 @@ class TicketingAdapter(BaseAdapter):
         if ticket and ticket.case_id:
             return [ticket.case_id]
         return []
+
+
+# =============================================================================
+# SIEM ADAPTER
+# =============================================================================
+
+
+@dataclass
+class SavedSearch:
+    """Representation of a saved search/query in a SIEM.
+
+    PATTERN: Data Transfer Object (DTO)
+    Normalizes saved search representation across SIEM platforms.
+    """
+
+    search_id: str
+    name: str
+    query: str
+    description: str = ""
+    owner: str | None = None
+    is_scheduled: bool = False
+    schedule: str | None = None  # Cron expression
+    last_run: datetime | None = None
+    next_run: datetime | None = None
+    enabled: bool = True
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class SIEMAlert:
+    """Representation of an alert from a SIEM.
+
+    PATTERN: Data Transfer Object (DTO)
+    Normalizes alert representation across SIEM platforms.
+    """
+
+    alert_id: str
+    name: str
+    description: str = ""
+    severity: Severity = Severity.MEDIUM
+    status: str = "new"
+    trigger_time: datetime | None = None
+    source_search: str | None = None
+    result_count: int = 0
+    tags: list[str] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class IndexInfo:
+    """Information about a SIEM index/data source.
+
+    PATTERN: Data Transfer Object (DTO)
+    """
+
+    name: str
+    event_count: int = 0
+    size_bytes: int = 0
+    earliest_time: datetime | None = None
+    latest_time: datetime | None = None
+    fields: list[str] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+
+class SIEMAdapter(TimelineAdapter):
+    """Abstract base for SIEM integration with bidirectional data flow.
+
+    PATTERN: Adapter Pattern
+    Extends TimelineAdapter to provide bidirectional SIEM integration,
+    allowing Eleanor to both query events from and send events to SIEM platforms.
+
+    EXTENSION POINT: Implement this class to add new SIEM integrations.
+    See adapters/splunk/adapter.py for reference implementation.
+
+    Capabilities:
+    - Bidirectional event flow (query and ingest)
+    - Saved search management
+    - Alert retrieval and management
+    - Index/data source management
+    """
+
+    # Event sending
+
+    @abstractmethod
+    async def send_events(
+        self,
+        events: list[dict[str, Any]],
+        index: str | None = None,
+        source: str = "eleanor",
+        sourcetype: str = "eleanor:events",
+    ) -> int:
+        """Send events to the SIEM.
+
+        Args:
+            events: List of event dictionaries
+            index: Target index (uses default if not specified)
+            source: Source identifier
+            sourcetype: Source type for the events
+
+        Returns:
+            Number of events successfully sent
+        """
+        ...
+
+    @abstractmethod
+    async def send_event(
+        self,
+        event: dict[str, Any],
+        index: str | None = None,
+        source: str = "eleanor",
+        sourcetype: str = "eleanor:events",
+    ) -> bool:
+        """Send a single event to the SIEM.
+
+        Args:
+            event: Event dictionary
+            index: Target index
+            source: Source identifier
+            sourcetype: Source type
+
+        Returns:
+            True if sent successfully
+        """
+        ...
+
+    # Saved searches
+
+    @abstractmethod
+    async def list_saved_searches(
+        self,
+        owner: str | None = None,
+        scheduled_only: bool = False,
+        limit: int = 100,
+    ) -> list[SavedSearch]:
+        """List saved searches.
+
+        Args:
+            owner: Filter by owner
+            scheduled_only: Only return scheduled searches
+            limit: Maximum results
+
+        Returns:
+            List of saved searches
+        """
+        ...
+
+    @abstractmethod
+    async def get_saved_search(self, search_id: str) -> SavedSearch | None:
+        """Get a saved search by ID or name.
+
+        Args:
+            search_id: Search ID or name
+
+        Returns:
+            Saved search or None
+        """
+        ...
+
+    @abstractmethod
+    async def create_saved_search(
+        self,
+        name: str,
+        query: str,
+        description: str | None = None,
+        schedule: str | None = None,
+        enabled: bool = True,
+    ) -> SavedSearch:
+        """Create a new saved search.
+
+        Args:
+            name: Search name
+            query: Search query in SIEM's query language
+            description: Optional description
+            schedule: Cron expression for scheduling
+            enabled: Whether the search is enabled
+
+        Returns:
+            Created saved search
+        """
+        ...
+
+    @abstractmethod
+    async def update_saved_search(
+        self,
+        search_id: str,
+        name: str | None = None,
+        query: str | None = None,
+        description: str | None = None,
+        schedule: str | None = None,
+        enabled: bool | None = None,
+    ) -> SavedSearch:
+        """Update a saved search.
+
+        Args:
+            search_id: Search ID or name
+            name: New name
+            query: New query
+            description: New description
+            schedule: New schedule
+            enabled: New enabled state
+
+        Returns:
+            Updated saved search
+        """
+        ...
+
+    @abstractmethod
+    async def delete_saved_search(self, search_id: str) -> bool:
+        """Delete a saved search.
+
+        Args:
+            search_id: Search ID or name
+
+        Returns:
+            True if deleted
+        """
+        ...
+
+    @abstractmethod
+    async def run_saved_search(
+        self,
+        search_id: str,
+        earliest_time: datetime | None = None,
+        latest_time: datetime | None = None,
+    ) -> list[dict[str, Any]]:
+        """Run a saved search and return results.
+
+        Args:
+            search_id: Search ID or name
+            earliest_time: Override earliest time
+            latest_time: Override latest time
+
+        Returns:
+            Search results
+        """
+        ...
+
+    # Alerts
+
+    @abstractmethod
+    async def list_alerts(
+        self,
+        severity: Severity | None = None,
+        status: str | None = None,
+        earliest_time: datetime | None = None,
+        latest_time: datetime | None = None,
+        limit: int = 100,
+    ) -> list[SIEMAlert]:
+        """List triggered alerts.
+
+        Args:
+            severity: Filter by severity
+            status: Filter by status
+            earliest_time: Start of time range
+            latest_time: End of time range
+            limit: Maximum results
+
+        Returns:
+            List of alerts
+        """
+        ...
+
+    @abstractmethod
+    async def get_alert(self, alert_id: str) -> SIEMAlert | None:
+        """Get an alert by ID.
+
+        Args:
+            alert_id: Alert ID
+
+        Returns:
+            Alert or None
+        """
+        ...
+
+    @abstractmethod
+    async def update_alert_status(
+        self,
+        alert_id: str,
+        status: str,
+        comment: str | None = None,
+    ) -> SIEMAlert:
+        """Update alert status.
+
+        Args:
+            alert_id: Alert ID
+            status: New status
+            comment: Optional comment
+
+        Returns:
+            Updated alert
+        """
+        ...
+
+    # Index management
+
+    @abstractmethod
+    async def list_indexes(self) -> list[IndexInfo]:
+        """List available indexes/data sources.
+
+        Returns:
+            List of index information
+        """
+        ...
+
+    @abstractmethod
+    async def get_index_info(self, index_name: str) -> IndexInfo | None:
+        """Get information about an index.
+
+        Args:
+            index_name: Index name
+
+        Returns:
+            Index info or None
+        """
+        ...
+
+    # Query helpers
+
+    async def query_by_ioc(
+        self,
+        ioc_value: str,
+        ioc_type: str,
+        earliest_time: datetime | None = None,
+        latest_time: datetime | None = None,
+        limit: int = 1000,
+    ) -> list[dict[str, Any]]:
+        """Search for events containing an IOC.
+
+        EXTENSION POINT: Override to implement SIEM-specific IOC search.
+
+        Args:
+            ioc_value: IOC value
+            ioc_type: IOC type (ip, domain, hash, etc.)
+            earliest_time: Start of time range
+            latest_time: End of time range
+            limit: Maximum results
+
+        Returns:
+            Matching events
+        """
+        # Default implementation - override for better performance
+        query = f'"{ioc_value}"'
+        return await self.search_events(
+            query=query,
+            start_time=earliest_time,
+            end_time=latest_time,
+            limit=limit,
+        )
+
+    async def get_field_summary(
+        self,
+        index: str,
+        field: str,
+        earliest_time: datetime | None = None,
+        latest_time: datetime | None = None,
+        limit: int = 100,
+    ) -> list[dict[str, Any]]:
+        """Get summary statistics for a field.
+
+        EXTENSION POINT: Override to implement SIEM-specific field summary.
+
+        Args:
+            index: Index to search
+            field: Field to summarize
+            earliest_time: Start of time range
+            latest_time: End of time range
+            limit: Maximum unique values
+
+        Returns:
+            Field value counts
+        """
+        raise NotImplementedError("Field summary not implemented")
