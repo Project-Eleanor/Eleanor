@@ -129,12 +129,9 @@ module = [
     "app.notifications.*",
     "app.middleware.*",
     "app.parsers.formats.*",
-    "app.enrichment.providers.*",
+    "app.enrichment.*",
     "app.detection.*",
-    "app.adapters.timesketch.*",
-    "app.adapters.thehive.*",
-    "app.adapters.splunk.*",
-    "app.adapters.jira.*",
+    "app.adapters.*",
     "app.connectors.*",
 ]
 disallow_untyped_defs = false
