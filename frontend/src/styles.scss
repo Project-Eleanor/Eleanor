@@ -476,13 +476,16 @@ a {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  pointer-events: auto;
 }
 
 .cdk-overlay-pane.mat-mdc-dialog-panel {
-  position: static !important;
-  margin: auto !important;
   max-height: 90vh !important;
+  position: relative !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  transform: none !important;
 }
 
 // Ensure dialog backdrop covers the whole screen
