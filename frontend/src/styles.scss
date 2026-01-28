@@ -471,24 +471,16 @@ a {
   }
 }
 
-// Force all dialog overlay panes to center (fix for misaligned dialogs)
-.cdk-global-overlay-wrapper {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
+// Dialog centering - override CDK overlay positioning
+.cdk-overlay-container {
+  .cdk-global-overlay-wrapper {
+    justify-content: center !important;
+    align-items: flex-start !important;
+    padding-top: 5vh !important;
+  }
 }
 
-.cdk-overlay-pane.mat-mdc-dialog-panel {
-  max-height: 90vh !important;
-  position: relative !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  transform: none !important;
-}
-
-// Ensure dialog backdrop covers the whole screen
+// Dialog styling
 .cdk-overlay-backdrop.cdk-overlay-dark-backdrop {
   background: rgba(0, 0, 0, 0.6);
 }

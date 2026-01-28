@@ -763,7 +763,7 @@ export class ConnectorsComponent implements OnInit {
       maxHeight: '85vh',
       data: { mode: 'create' },
       panelClass: 'centered-dialog',
-      position: { top: '50px' }
+      autoFocus: true
     });
 
     dialogRef.afterClosed().subscribe(result => {
@@ -780,7 +780,7 @@ export class ConnectorsComponent implements OnInit {
       maxHeight: '85vh',
       data: { mode: 'edit', connector },
       panelClass: 'centered-dialog',
-      position: { top: '50px' }
+      autoFocus: true
     });
 
     dialogRef.afterClosed().subscribe(result => {
