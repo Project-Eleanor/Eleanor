@@ -213,9 +213,31 @@ interface NavGroup {
       display: flex;
       align-items: center;
       gap: 12px;
+      padding: 8px 14px;
+      margin: -8px -14px;
+      background: rgba(15, 20, 30, 0.4);
+      backdrop-filter: blur(12px) saturate(180%);
+      -webkit-backdrop-filter: blur(12px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      box-shadow:
+        0 4px 16px rgba(0, 0, 0, 0.2),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+      transition: all 0.3s ease;
+
+      &:hover {
+        background: rgba(20, 26, 40, 0.5);
+        border-color: rgba(255, 255, 255, 0.1);
+        box-shadow:
+          0 6px 20px rgba(0, 0, 0, 0.25),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+          0 0 20px rgba(74, 158, 255, 0.1);
+      }
 
       &.collapsed {
         justify-content: center;
+        padding: 8px;
+        margin: -8px;
       }
     }
 
@@ -236,8 +258,24 @@ interface NavGroup {
       font-family: var(--font-display);
       font-size: 20px;
       font-weight: 700;
-      color: var(--text-primary);
       letter-spacing: -0.5px;
+      /* Silver-white for Elean, softer blue for or */
+      background: linear-gradient(
+        90deg,
+        #c8d5e4 0%,      /* Silver */
+        #c8d5e4 70%,     /* Silver through "Elean" */
+        #7eb8e8 85%,     /* Transition to softer blue */
+        #6aadd8 100%     /* Softer blue for "or" */
+      );
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      filter: drop-shadow(0 0 6px rgba(74, 158, 255, 0.2));
+      transition: filter 0.3s ease;
+
+      &:hover {
+        filter: drop-shadow(0 0 10px rgba(74, 158, 255, 0.4));
+      }
     }
 
     .collapse-btn {
