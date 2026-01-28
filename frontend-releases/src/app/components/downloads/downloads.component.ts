@@ -37,8 +37,64 @@ import { ReleaseService, Release } from '../../services/release.service';
           </div>
         }
 
-        <!-- Release cards -->
-        <div class="releases-grid" #releasesGrid [class.hidden]="loading() || error()">
+        <!-- Coming Soon state (no releases yet) -->
+        @if (!loading() && !error() && releases().length === 0) {
+          <div class="coming-soon-state" #comingSoon>
+            <div class="coming-soon-card">
+              <div class="coming-soon-icon">
+                <span class="material-icons-round">construction</span>
+              </div>
+              <h3 class="coming-soon-title">Coming Soon</h3>
+              <p class="coming-soon-description">
+                Eleanor is currently in active development. We're working hard to bring you
+                a production-ready DFIR platform with pre-configured OVA images.
+              </p>
+              <div class="coming-soon-features">
+                <div class="feature-item">
+                  <span class="material-icons-round">check_circle</span>
+                  <span>VMware & VirtualBox compatible</span>
+                </div>
+                <div class="feature-item">
+                  <span class="material-icons-round">check_circle</span>
+                  <span>Pre-configured with all integrations</span>
+                </div>
+                <div class="feature-item">
+                  <span class="material-icons-round">check_circle</span>
+                  <span>Ready-to-use forensics environment</span>
+                </div>
+              </div>
+              <div class="coming-soon-actions">
+                <a
+                  href="https://github.com/Project-Eleanor/Eleanor"
+                  class="btn btn-primary"
+                  target="_blank"
+                  rel="noopener"
+                  (mouseenter)="onButtonEnter($event)"
+                  (mousemove)="onButtonMove($event)"
+                  (mouseleave)="onButtonLeave($event)"
+                >
+                  <span class="material-icons-round">code</span>
+                  View Source on GitHub
+                </a>
+                <a
+                  href="https://github.com/Project-Eleanor/Eleanor/stargazers"
+                  class="btn btn-secondary"
+                  target="_blank"
+                  rel="noopener"
+                  (mouseenter)="onButtonEnter($event)"
+                  (mousemove)="onButtonMove($event)"
+                  (mouseleave)="onButtonLeave($event)"
+                >
+                  <span class="material-icons-round">star</span>
+                  Star to Get Notified
+                </a>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Release cards (shown when releases exist) -->
+        <div class="releases-grid" #releasesGrid [class.hidden]="loading() || error() || releases().length === 0">
           @for (release of releases(); track release.version) {
             <div
               class="release-card"
@@ -128,8 +184,8 @@ import { ReleaseService, Release } from '../../services/release.service';
           }
         </div>
 
-        <!-- Verification helper -->
-        <div class="verify-section" #verifySection>
+        <!-- Verification helper (only shown when releases exist) -->
+        <div class="verify-section" #verifySection [class.hidden]="releases().length === 0">
           <div class="verify-card">
             <span class="material-icons-round verify-icon">verified_user</span>
             <div class="verify-content">
@@ -461,6 +517,97 @@ import { ReleaseService, Release } from '../../services/release.service';
 
     .hidden {
       display: none;
+    }
+
+    // Coming soon state
+    .coming-soon-state {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 3rem;
+    }
+
+    .coming-soon-card {
+      max-width: 600px;
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 24px;
+      padding: 3rem 2.5rem;
+      text-align: center;
+    }
+
+    .coming-soon-icon {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--accent-glow) 0%, rgba(74, 158, 255, 0.15) 100%);
+      border-radius: 20px;
+
+      .material-icons-round {
+        font-size: 2.5rem;
+        color: var(--accent);
+      }
+    }
+
+    .coming-soon-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+    }
+
+    .coming-soon-description {
+      color: var(--text-secondary);
+      font-size: 1rem;
+      line-height: 1.6;
+      margin-bottom: 2rem;
+      max-width: 450px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .coming-soon-features {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-bottom: 2rem;
+      padding: 1.5rem;
+      background: var(--bg-primary);
+      border-radius: 12px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .feature-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      color: var(--text-secondary);
+      font-size: 0.9375rem;
+
+      .material-icons-round {
+        font-size: 1.25rem;
+        color: var(--success);
+      }
+    }
+
+    .coming-soon-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+
+      @media (min-width: 480px) {
+        flex-direction: row;
+        justify-content: center;
+      }
+    }
+
+    .coming-soon-actions .btn {
+      padding: 0.875rem 1.5rem;
+      justify-content: center;
+      will-change: transform;
     }
 
     // Verify section

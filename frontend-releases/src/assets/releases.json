@@ -1,26 +1,6 @@
 {
-  "releases": [
-    {
-      "version": "v1.0.0",
-      "date": "January 27, 2026",
-      "size": "Coming Soon",
-      "sha256": "",
-      "changelog": [
-        "First stable release",
-        "Unified Sentinel-style dashboard",
-        "7 integrations: Velociraptor, IRIS, OpenCTI, Shuffle, Timesketch, Defender, Sentinel",
-        "Cloud storage: S3, Azure Blob, GCS",
-        "Kubernetes cloud overlays (AWS/Azure/GCP)",
-        "185 API endpoints with multi-tenancy"
-      ],
-      "isLatest": true,
-      "ovaStatus": "building",
-      "assets": []
-    }
-  ],
-  "latest": "v1.0.0",
-  "dockerAvailable": true,
-  "kubernetesAvailable": true,
-  "ovaAvailable": false,
-  "sourceUrl": "https://github.com/Project-Eleanor/Eleanor/archive/refs/tags/v1.0.0.zip"
+  "releases": [],
+  "latest": null,
+  "status": "in-development",
+  "message": "Eleanor is currently in active development. Subscribe to be notified when the first release is available."
 }
