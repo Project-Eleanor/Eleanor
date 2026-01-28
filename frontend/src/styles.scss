@@ -471,13 +471,15 @@ a {
   }
 }
 
-// Ensure dialog overlay centers content
-.cdk-overlay-pane {
-  &:has(.centered-dialog) {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-  }
+// Force all dialog overlay panes to center (fix for left-aligned dialogs)
+.cdk-global-overlay-wrapper {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.cdk-overlay-pane:not(.mat-mdc-select-panel):not(.mat-mdc-autocomplete-panel) {
+  margin: auto !important;
 }
 
 // Glassmorphism card utility class
