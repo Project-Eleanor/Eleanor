@@ -5,9 +5,10 @@ Parses Windows Scheduled Task XML files from System32\\Tasks directory.
 
 import logging
 import xml.etree.ElementTree as ET
-from datetime import datetime, timezone
+from collections.abc import Iterator
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, BinaryIO, Iterator
+from typing import Any, BinaryIO
 
 from app.parsers.base import BaseParser, ParsedEvent, ParserCategory
 from app.parsers.registry import register_parser
@@ -95,7 +96,7 @@ class WindowsScheduledTasksParser(BaseParser):
             description = self._get_text(reg_info, "Description", ns) or self._get_text(reg_info, "{*}Description")
             date_str = self._get_text(reg_info, "Date", ns) or self._get_text(reg_info, "{*}Date")
 
-            registration_date = datetime.now(timezone.utc)
+            registration_date = datetime.now(UTC)
             if date_str:
                 try:
                     registration_date = datetime.fromisoformat(date_str.replace("Z", "+00:00"))

@@ -6,7 +6,7 @@ including response actions, case management, and user actions.
 
 import logging
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import select
@@ -28,13 +28,13 @@ class AuditService:
     async def log_action(
         self,
         action: str,
-        user_id: Optional[UUID] = None,
-        username: Optional[str] = None,
-        resource_type: Optional[str] = None,
-        resource_id: Optional[UUID] = None,
-        details: Optional[dict[str, Any]] = None,
-        ip_address: Optional[str] = None,
-        user_agent: Optional[str] = None,
+        user_id: UUID | None = None,
+        username: str | None = None,
+        resource_type: str | None = None,
+        resource_id: UUID | None = None,
+        details: dict[str, Any] | None = None,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
     ) -> AuditLog:
         """Create an audit log entry.
 
@@ -81,11 +81,11 @@ class AuditService:
         user_id: UUID,
         username: str,
         client_id: str,
-        hostname: Optional[str] = None,
-        case_id: Optional[UUID] = None,
-        reason: Optional[str] = None,
-        target_details: Optional[dict[str, Any]] = None,
-        ip_address: Optional[str] = None,
+        hostname: str | None = None,
+        case_id: UUID | None = None,
+        reason: str | None = None,
+        target_details: dict[str, Any] | None = None,
+        ip_address: str | None = None,
     ) -> AuditLog:
         """Log a response action with full context.
 
@@ -127,12 +127,12 @@ class AuditService:
         self,
         limit: int = 100,
         offset: int = 0,
-        action: Optional[str] = None,
-        user_id: Optional[UUID] = None,
-        resource_type: Optional[str] = None,
-        resource_id: Optional[UUID] = None,
-        start_time: Optional[datetime] = None,
-        end_time: Optional[datetime] = None,
+        action: str | None = None,
+        user_id: UUID | None = None,
+        resource_type: str | None = None,
+        resource_id: UUID | None = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
     ) -> list[AuditLog]:
         """Query audit logs with filters.
 
@@ -184,10 +184,10 @@ class ResponseActionService:
         user_id: UUID,
         action_type: ResponseActionType,
         client_id: str,
-        hostname: Optional[str] = None,
-        case_id: Optional[UUID] = None,
-        reason: Optional[str] = None,
-        target_details: Optional[dict[str, Any]] = None,
+        hostname: str | None = None,
+        case_id: UUID | None = None,
+        reason: str | None = None,
+        target_details: dict[str, Any] | None = None,
     ) -> ResponseAction:
         """Create a new response action record.
 
@@ -225,10 +225,10 @@ class ResponseActionService:
         self,
         action_id: UUID,
         status: ResponseActionStatus,
-        job_id: Optional[str] = None,
-        result: Optional[dict[str, Any]] = None,
-        error_message: Optional[str] = None,
-    ) -> Optional[ResponseAction]:
+        job_id: str | None = None,
+        result: dict[str, Any] | None = None,
+        error_message: str | None = None,
+    ) -> ResponseAction | None:
         """Update response action status.
 
         Args:
@@ -265,7 +265,7 @@ class ResponseActionService:
         await self.db.flush()
         return action
 
-    async def get_action(self, action_id: UUID) -> Optional[ResponseAction]:
+    async def get_action(self, action_id: UUID) -> ResponseAction | None:
         """Get a response action by ID."""
         query = select(ResponseAction).where(ResponseAction.id == action_id)
         result = await self.db.execute(query)
@@ -331,9 +331,9 @@ class ResponseActionService:
         tenant_id: UUID,
         limit: int = 100,
         offset: int = 0,
-        action_type: Optional[ResponseActionType] = None,
-        status: Optional[ResponseActionStatus] = None,
-        client_id: Optional[str] = None,
+        action_type: ResponseActionType | None = None,
+        status: ResponseActionStatus | None = None,
+        client_id: str | None = None,
     ) -> list[ResponseAction]:
         """Get response action history with filters."""
         query = (

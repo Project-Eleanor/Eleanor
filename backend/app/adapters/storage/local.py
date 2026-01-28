@@ -8,9 +8,9 @@ import hashlib
 import logging
 import os
 import shutil
+from collections.abc import AsyncIterator
 from datetime import datetime
-from io import BytesIO
-from typing import Any, AsyncIterator, BinaryIO
+from typing import Any, BinaryIO
 
 import aiofiles
 import aiofiles.os

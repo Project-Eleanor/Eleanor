@@ -11,8 +11,7 @@ IRIS API: https://docs.dfir-iris.org/operations/api/
 """
 
 import logging
-from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 from uuid import UUID
 
 import httpx
@@ -73,8 +72,8 @@ class IRISAdapter(CaseManagementAdapter):
     def __init__(self, config: AdapterConfig):
         """Initialize IRIS adapter."""
         super().__init__(config)
-        self._client: Optional[httpx.AsyncClient] = None
-        self._version: Optional[str] = None
+        self._client: httpx.AsyncClient | None = None
+        self._version: str | None = None
 
     async def _get_client(self) -> httpx.AsyncClient:
         """Get or create HTTP client."""
@@ -197,7 +196,7 @@ class IRISAdapter(CaseManagementAdapter):
         self,
         limit: int = 50,
         offset: int = 0,
-        status: Optional[str] = None,
+        status: str | None = None,
     ) -> list[ExternalCase]:
         """List cases from IRIS."""
         params = {}
@@ -222,7 +221,7 @@ class IRISAdapter(CaseManagementAdapter):
 
         return cases
 
-    async def get_case(self, external_id: str) -> Optional[ExternalCase]:
+    async def get_case(self, external_id: str) -> ExternalCase | None:
         """Get a specific case by IRIS case ID."""
         try:
             result = await self._request("GET", f"/api/v2/cases/{external_id}")
@@ -236,9 +235,9 @@ class IRISAdapter(CaseManagementAdapter):
     async def create_case(
         self,
         title: str,
-        description: Optional[str] = None,
-        severity: Optional[Severity] = None,
-        tags: Optional[list[str]] = None,
+        description: str | None = None,
+        severity: Severity | None = None,
+        tags: list[str] | None = None,
     ) -> ExternalCase:
         """Create a new case in IRIS."""
         payload = {
@@ -258,10 +257,10 @@ class IRISAdapter(CaseManagementAdapter):
     async def update_case(
         self,
         external_id: str,
-        title: Optional[str] = None,
-        description: Optional[str] = None,
-        status: Optional[str] = None,
-        severity: Optional[Severity] = None,
+        title: str | None = None,
+        description: str | None = None,
+        status: str | None = None,
+        severity: Severity | None = None,
     ) -> ExternalCase:
         """Update an existing case."""
         payload = {}
@@ -287,7 +286,7 @@ class IRISAdapter(CaseManagementAdapter):
     async def close_case(
         self,
         external_id: str,
-        resolution: Optional[str] = None,
+        resolution: str | None = None,
     ) -> ExternalCase:
         """Close a case."""
         payload = {

@@ -4,9 +4,10 @@ Parses Windows Prefetch files (.pf) which contain evidence of program execution.
 """
 
 import logging
-from datetime import datetime, timezone
+from collections.abc import Iterator
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, BinaryIO, Iterator
+from typing import Any, BinaryIO
 
 from app.parsers.base import ParsedEvent, ParserCategory
 from app.parsers.formats.dissect_adapter import DissectParserAdapter
@@ -109,7 +110,7 @@ class WindowsPrefetchParser(DissectParserAdapter):
             if last_run_times and last_run_times[0]:
                 timestamp = self._to_datetime(last_run_times[0])
             else:
-                timestamp = datetime.now(timezone.utc)
+                timestamp = datetime.now(UTC)
 
             # Get file references (loaded files/directories)
             file_references = []
@@ -265,7 +266,7 @@ class WindowsPrefetchParser(DissectParserAdapter):
             dir_path, file_name = self._extract_path_parts(executable_name)
 
             yield ParsedEvent(
-                timestamp=datetime.now(timezone.utc),
+                timestamp=datetime.now(UTC),
                 message=message,
                 source_type="windows_prefetch",
                 source_file=source_name,

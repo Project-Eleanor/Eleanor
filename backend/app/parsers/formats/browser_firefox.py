@@ -6,9 +6,10 @@ history and bookmarks.
 
 import logging
 import sqlite3
-from datetime import datetime, timezone
+from collections.abc import Iterator
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import BinaryIO, Iterator
+from typing import BinaryIO
 
 from app.parsers.base import ParsedEvent, ParserCategory
 from app.parsers.formats.browser_sqlite_base import BrowserSQLiteParser
@@ -20,14 +21,14 @@ logger = logging.getLogger(__name__)
 def moz_timestamp_to_datetime(moz_timestamp: int | None) -> datetime:
     """Convert Mozilla PRTime (microseconds since Unix epoch) to datetime."""
     if not moz_timestamp or moz_timestamp == 0:
-        return datetime.now(timezone.utc)
+        return datetime.now(UTC)
 
     try:
         # PRTime is microseconds since Unix epoch
         unix_ts = moz_timestamp / 1000000
-        return datetime.fromtimestamp(unix_ts, tz=timezone.utc)
+        return datetime.fromtimestamp(unix_ts, tz=UTC)
     except (OSError, ValueError, OverflowError):
-        return datetime.now(timezone.utc)
+        return datetime.now(UTC)
 
 
 @register_parser

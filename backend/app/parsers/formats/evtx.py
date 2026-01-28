@@ -6,9 +6,10 @@ Extracts events and normalizes to ECS format.
 
 import logging
 import xml.etree.ElementTree as ET
-from datetime import datetime, timezone
+from collections.abc import Iterator
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, BinaryIO, Iterator
+from typing import TYPE_CHECKING, BinaryIO
 
 from app.parsers.base import BaseParser, ParsedEvent, ParserCategory
 
@@ -181,9 +182,9 @@ class WindowsEvtxParser(BaseParser):
                     timestamp_str = f"{parts[0]}.{frac}{tz}"
                 timestamp = datetime.fromisoformat(timestamp_str)
             except Exception:
-                timestamp = datetime.now(timezone.utc)
+                timestamp = datetime.now(UTC)
         else:
-            timestamp = datetime.now(timezone.utc)
+            timestamp = datetime.now(UTC)
 
         computer = self._get_text(system, "e:Computer", ns)
         channel = self._get_text(system, "e:Channel", ns)
@@ -309,7 +310,7 @@ class WindowsEvtxParser(BaseParser):
             return f"Service installed: {service}"
 
         elif event_id == 4104:
-            return f"PowerShell script block executed"
+            return "PowerShell script block executed"
 
         return f"{provider_str} Event {event_id}"
 
@@ -318,7 +319,7 @@ class WindowsEvtxParser(BaseParser):
         if not path:
             return None
         try:
-            from pathlib import PureWindowsPath, PurePosixPath
+            from pathlib import PurePosixPath, PureWindowsPath
 
             # Detect Windows path
             if "\\" in path or (len(path) > 1 and path[1] == ":"):

@@ -4,7 +4,7 @@ Provides aggregated statistics, metrics, and live data for the SOC dashboard.
 """
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from elasticsearch import AsyncElasticsearch
@@ -53,7 +53,7 @@ class DashboardStats:
             "30d": timedelta(days=30),
         }
         delta = range_map.get(time_range, timedelta(hours=24))
-        since = datetime.now(timezone.utc) - delta
+        since = datetime.now(UTC) - delta
 
         # Get alert stats
         alert_stats = await self._get_alert_stats(db, tenant_id, since)
@@ -74,7 +74,7 @@ class DashboardStats:
             "cases": case_stats,
             "rules": rule_stats,
             "events": event_stats,
-            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "generated_at": datetime.now(UTC).isoformat(),
         }
 
     async def get_alert_timeline(
@@ -103,7 +103,7 @@ class DashboardStats:
             "30d": timedelta(days=30),
         }
         delta = range_map.get(time_range, timedelta(hours=24))
-        since = datetime.now(timezone.utc) - delta
+        since = datetime.now(UTC) - delta
 
         # Get index pattern
         if tenant_id:
@@ -120,7 +120,7 @@ class DashboardStats:
                     "range": {
                         "@timestamp": {
                             "gte": since.isoformat(),
-                            "lte": datetime.now(timezone.utc).isoformat(),
+                            "lte": datetime.now(UTC).isoformat(),
                         }
                     }
                 },
@@ -224,7 +224,7 @@ class DashboardStats:
             "30d": timedelta(days=30),
         }
         delta = range_map.get(time_range, timedelta(hours=24))
-        since = datetime.now(timezone.utc) - delta
+        since = datetime.now(UTC) - delta
 
         query = (
             select(Alert.severity, func.count(Alert.id))
@@ -272,7 +272,7 @@ class DashboardStats:
             "30d": timedelta(days=30),
         }
         delta = range_map.get(time_range, timedelta(days=7))
-        since = datetime.now(timezone.utc) - delta
+        since = datetime.now(UTC) - delta
 
         try:
             response = await self.es.search(

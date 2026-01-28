@@ -11,21 +11,19 @@ Designed for high-throughput event processing with minimal latency.
 
 import asyncio
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
-from uuid import uuid4
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
-from app.database import async_session_maker, get_elasticsearch
+from app.database import async_session_maker
 from app.models.alert import Alert, AlertSeverity, AlertStatus
-from app.models.analytics import DetectionRule, RuleExecution, RuleStatus, RuleType
+from app.models.analytics import DetectionRule, RuleStatus, RuleType
 from app.services.correlation_engine import CorrelationEngine, get_correlation_engine
 from app.services.event_buffer import (
     ALERT_STREAM,
-    CORRELATION_STREAM,
     EVENT_STREAM,
     EventBuffer,
     get_event_buffer,
@@ -76,7 +74,7 @@ class RealtimeProcessor:
             return
 
         self._running = True
-        self._start_time = datetime.now(timezone.utc)
+        self._start_time = datetime.now(UTC)
 
         logger.info("Starting real-time processor with %d workers", workers)
 
@@ -486,7 +484,8 @@ class RealtimeProcessor:
         while self._running:
             try:
                 async with async_session_maker() as db:
-                    from sqlalchemy import delete, and_
+                    from sqlalchemy import and_, delete
+
                     from app.models.analytics import CorrelationState, CorrelationStateStatus
 
                     now = datetime.utcnow()

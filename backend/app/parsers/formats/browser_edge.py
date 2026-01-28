@@ -13,9 +13,10 @@ Location: %LocalAppData%\\Microsoft\\Edge\\User Data\\Default\\
 import json
 import logging
 import sqlite3
-from datetime import datetime, timezone
+from collections.abc import AsyncIterator
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, AsyncIterator
+from typing import Any
 from uuid import uuid4
 
 from app.parsers.base import BaseParser, ParsedEvent, ParserMetadata
@@ -100,7 +101,7 @@ class EdgeHistoryParser(BrowserSQLiteParser):
         """Create ECS event from Edge history entry."""
         url = entry.get("url", "")
         title = entry.get("title", "")
-        timestamp = entry.get("visit_time") or entry.get("last_visit_time") or datetime.now(timezone.utc)
+        timestamp = entry.get("visit_time") or entry.get("last_visit_time") or datetime.now(UTC)
 
         return ParsedEvent(
             id=str(uuid4()),
@@ -151,7 +152,7 @@ class EdgeHistoryParser(BrowserSQLiteParser):
             # Convert to Unix timestamp (seconds since 1970-01-01)
             epoch_diff = 11644473600  # Seconds between 1601 and 1970
             unix_time = (chrome_time / 1000000) - epoch_diff
-            return datetime.fromtimestamp(unix_time, tz=timezone.utc)
+            return datetime.fromtimestamp(unix_time, tz=UTC)
         except Exception:
             return None
 
@@ -252,7 +253,7 @@ class EdgeDownloadsParser(BaseParser):
     ) -> ParsedEvent:
         """Create ECS event from Edge download entry."""
         target_path = entry.get("target_path") or entry.get("current_path", "")
-        timestamp = entry.get("start_time") or datetime.now(timezone.utc)
+        timestamp = entry.get("start_time") or datetime.now(UTC)
         tab_url = entry.get("tab_url", "")
 
         return ParsedEvent(
@@ -307,7 +308,7 @@ class EdgeDownloadsParser(BaseParser):
                 return None
             epoch_diff = 11644473600
             unix_time = (chrome_time / 1000000) - epoch_diff
-            return datetime.fromtimestamp(unix_time, tz=timezone.utc)
+            return datetime.fromtimestamp(unix_time, tz=UTC)
         except Exception:
             return None
 
@@ -337,7 +338,7 @@ class EdgeBookmarksParser(BaseParser):
     ) -> AsyncIterator[ParsedEvent]:
         """Parse Edge Bookmarks JSON file."""
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 data = json.load(f)
 
             # Parse roots
@@ -398,7 +399,7 @@ class EdgeBookmarksParser(BaseParser):
         """Create ECS event from bookmark entry."""
         url = entry.get("url", "")
         name = entry.get("name", "")
-        timestamp = entry.get("date_added") or datetime.now(timezone.utc)
+        timestamp = entry.get("date_added") or datetime.now(UTC)
 
         return ParsedEvent(
             id=str(uuid4()),
@@ -442,6 +443,6 @@ class EdgeBookmarksParser(BaseParser):
                 return None
             epoch_diff = 11644473600
             unix_time = (chrome_time / 1000000) - epoch_diff
-            return datetime.fromtimestamp(unix_time, tz=timezone.utc)
+            return datetime.fromtimestamp(unix_time, tz=UTC)
         except Exception:
             return None

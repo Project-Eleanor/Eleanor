@@ -31,10 +31,9 @@ import logging
 import re
 from datetime import datetime, timedelta
 from typing import Any
-from uuid import UUID
 
 from elasticsearch import AsyncElasticsearch
-from sqlalchemy import and_, delete, select, update
+from sqlalchemy import and_, delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings

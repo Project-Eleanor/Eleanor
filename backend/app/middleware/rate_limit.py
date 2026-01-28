@@ -6,7 +6,7 @@ Redis-backed sliding window rate limiting.
 
 import logging
 import time
-from typing import Callable, Optional
+from collections.abc import Callable
 
 from fastapi import Request, Response, status
 from fastapi.responses import JSONResponse
@@ -51,7 +51,7 @@ class RateLimiter:
         self,
         key: str,
         endpoint_weight: int = 1,
-    ) -> tuple[bool, Optional[int]]:
+    ) -> tuple[bool, int | None]:
         """Check if request is within rate limits.
 
         Args:

@@ -6,6 +6,7 @@ and sets up the tenant context for the request lifecycle.
 
 import hashlib
 import logging
+from datetime import UTC
 from uuid import UUID
 
 from fastapi import Request, Response
@@ -195,9 +196,9 @@ class TenantMiddleware(BaseHTTPMiddleware):
 
             if api_key_record and api_key_record.tenant.status == TenantStatus.ACTIVE:
                 # Update last used timestamp
-                from datetime import datetime, timezone
+                from datetime import datetime
 
-                api_key_record.last_used_at = datetime.now(timezone.utc)
+                api_key_record.last_used_at = datetime.now(UTC)
                 await session.commit()
                 return api_key_record.tenant
 

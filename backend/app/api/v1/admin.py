@@ -393,6 +393,7 @@ async def check_for_updates(
 ) -> UpdateInfo:
     """Check for available updates from GitHub releases."""
     import httpx
+
     from app.config import get_settings
 
     settings = get_settings()
@@ -453,8 +454,9 @@ async def apply_update(
     4. Restarts services
     5. Runs health check
     """
-    import subprocess
     import os
+    import subprocess
+
     from app.config import get_settings
 
     settings = get_settings()
@@ -482,6 +484,7 @@ async def apply_update(
         if result.returncode == 0:
             # Get new version (re-read settings)
             from importlib import reload
+
             from app import config
             reload(config)
             new_settings = config.get_settings()
@@ -527,7 +530,6 @@ async def get_system_health(
     admin: Annotated[User, Depends(get_current_active_admin)],
 ) -> HealthStatus:
     """Get detailed system health status."""
-    import asyncio
     from app.database import get_elasticsearch, get_redis
 
     components = {}

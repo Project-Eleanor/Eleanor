@@ -6,7 +6,6 @@ methods to find the appropriate parser for a given input.
 
 import logging
 from pathlib import Path
-from typing import Type
 
 from app.parsers.base import BaseParser, ParserCategory
 
@@ -21,11 +20,11 @@ class ParserRegistry:
     """
 
     def __init__(self):
-        self._parsers: dict[str, Type[BaseParser]] = {}
+        self._parsers: dict[str, type[BaseParser]] = {}
         self._by_extension: dict[str, list[str]] = {}
         self._by_category: dict[ParserCategory, list[str]] = {}
 
-    def register(self, parser_class: Type[BaseParser]) -> None:
+    def register(self, parser_class: type[BaseParser]) -> None:
         """Register a parser class.
 
         Args:
@@ -193,7 +192,7 @@ def get_registry() -> ParserRegistry:
     return _registry
 
 
-def register_parser(parser_class: Type[BaseParser]) -> Type[BaseParser]:
+def register_parser(parser_class: type[BaseParser]) -> type[BaseParser]:
     """Decorator to register a parser class.
 
     Usage:
@@ -231,21 +230,21 @@ def load_builtin_parsers() -> None:
     Called during application startup to register default parsers.
     """
     # Import core parser modules to trigger registration
-    from app.parsers.formats import evtx, json as json_parser  # noqa: F401
+    from app.parsers.formats import evtx  # noqa: F401
 
     # Import Dissect-based parsers
     try:
         from app.parsers.formats import (
-            registry_hive,
-            prefetch,
-            mft,
-            scheduled_tasks,
             browser_chrome,
-            linux_auth,
-            pcap,
-            usn_journal,
-            linux_syslog,
             browser_firefox,
+            linux_auth,
+            linux_syslog,
+            mft,
+            pcap,
+            prefetch,
+            registry_hive,
+            scheduled_tasks,
+            usn_journal,
         )  # noqa: F401
     except ImportError as e:
         logger.warning(f"Some Dissect parsers unavailable due to missing dependencies: {e}")
@@ -259,8 +258,8 @@ def load_builtin_parsers() -> None:
     # Import Windows execution artifact parsers
     try:
         from app.parsers.formats import (
-            shimcache,
             amcache,
+            shimcache,
             userassist,
         )  # noqa: F401
     except ImportError as e:
@@ -269,10 +268,10 @@ def load_builtin_parsers() -> None:
     # Import Windows system artifact parsers
     try:
         from app.parsers.formats import (
-            srum,
-            recyclebin,
-            lnk,
             jumplist,
+            lnk,
+            recyclebin,
+            srum,
         )  # noqa: F401
     except ImportError as e:
         logger.debug(f"Some Windows system parsers unavailable: {e}")

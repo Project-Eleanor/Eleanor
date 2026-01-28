@@ -5,8 +5,8 @@ Contains business logic services for:
 - Alert generator: Alert creation from rule matches
 """
 
-from app.services.detection_engine import DetectionEngine, get_detection_engine
 from app.services.alert_generator import AlertGenerator, get_alert_generator
+from app.services.detection_engine import DetectionEngine, get_detection_engine
 
 __all__ = [
     "DetectionEngine",

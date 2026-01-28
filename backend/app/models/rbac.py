@@ -4,12 +4,11 @@ from datetime import datetime
 from enum import Enum
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, ForeignKey, String, Table, Column, UniqueConstraint, func
+from sqlalchemy import Column, DateTime, ForeignKey, String, Table, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 from app.models.compat import UUIDType
-
 
 # Many-to-many association table for Role-Permission
 role_permissions = Table(

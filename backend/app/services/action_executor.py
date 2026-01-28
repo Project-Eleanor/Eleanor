@@ -293,7 +293,7 @@ class ActionExecutor:
     ) -> dict[str, Any]:
         """Disable a user account."""
         username = parameters.get("username")
-        reset_password = parameters.get("reset_password", False)
+        parameters.get("reset_password", False)
 
         registry = get_registry()
         shuffle = registry.get("shuffle")

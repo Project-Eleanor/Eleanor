@@ -5,11 +5,11 @@ Provides abstract base class for all storage backends (local, S3, Azure, GCS).
 
 import hashlib
 from abc import ABC, abstractmethod
+from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from io import BytesIO
-from typing import Any, AsyncIterator, BinaryIO, Optional
+from typing import Any, BinaryIO
 from uuid import UUID
 
 

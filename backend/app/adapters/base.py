@@ -9,9 +9,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 from uuid import UUID
-
 
 # =============================================================================
 # Common Data Types
@@ -62,9 +61,9 @@ class AdapterHealth:
 
     adapter_name: str
     status: AdapterStatus
-    version: Optional[str] = None
+    version: str | None = None
     last_check: datetime = field(default_factory=datetime.utcnow)
-    message: Optional[str] = None
+    message: str | None = None
     details: dict[str, Any] = field(default_factory=dict)
 
 
@@ -149,13 +148,13 @@ class ExternalCase:
 
     external_id: str
     title: str
-    description: Optional[str] = None
-    status: Optional[str] = None
-    severity: Optional[Severity] = None
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
-    closed_at: Optional[datetime] = None
-    assignee: Optional[str] = None
+    description: str | None = None
+    status: str | None = None
+    severity: Severity | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    closed_at: datetime | None = None
+    assignee: str | None = None
     tags: list[str] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
 
@@ -167,9 +166,9 @@ class ExternalAsset:
     external_id: str
     name: str
     asset_type: str  # host, account, network, etc.
-    ip_address: Optional[str] = None
-    hostname: Optional[str] = None
-    description: Optional[str] = None
+    ip_address: str | None = None
+    hostname: str | None = None
+    description: str | None = None
     compromised: bool = False
     metadata: dict[str, Any] = field(default_factory=dict)
 
@@ -181,7 +180,7 @@ class ExternalIOC:
     external_id: str
     value: str
     ioc_type: IndicatorType
-    description: Optional[str] = None
+    description: str | None = None
     tlp: str = "amber"
     tags: list[str] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -194,8 +193,8 @@ class ExternalNote:
     external_id: str
     title: str
     content: str
-    author: Optional[str] = None
-    created_at: Optional[datetime] = None
+    author: str | None = None
+    created_at: datetime | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
@@ -210,7 +209,7 @@ class CaseManagementAdapter(BaseAdapter):
         self,
         limit: int = 50,
         offset: int = 0,
-        status: Optional[str] = None,
+        status: str | None = None,
     ) -> list[ExternalCase]:
         """List cases from external system.
 
@@ -225,7 +224,7 @@ class CaseManagementAdapter(BaseAdapter):
         ...
 
     @abstractmethod
-    async def get_case(self, external_id: str) -> Optional[ExternalCase]:
+    async def get_case(self, external_id: str) -> ExternalCase | None:
         """Get a specific case by external ID.
 
         Args:
@@ -240,9 +239,9 @@ class CaseManagementAdapter(BaseAdapter):
     async def create_case(
         self,
         title: str,
-        description: Optional[str] = None,
-        severity: Optional[Severity] = None,
-        tags: Optional[list[str]] = None,
+        description: str | None = None,
+        severity: Severity | None = None,
+        tags: list[str] | None = None,
     ) -> ExternalCase:
         """Create a new case in external system.
 
@@ -261,10 +260,10 @@ class CaseManagementAdapter(BaseAdapter):
     async def update_case(
         self,
         external_id: str,
-        title: Optional[str] = None,
-        description: Optional[str] = None,
-        status: Optional[str] = None,
-        severity: Optional[Severity] = None,
+        title: str | None = None,
+        description: str | None = None,
+        status: str | None = None,
+        severity: Severity | None = None,
     ) -> ExternalCase:
         """Update an existing case.
 
@@ -284,7 +283,7 @@ class CaseManagementAdapter(BaseAdapter):
     async def close_case(
         self,
         external_id: str,
-        resolution: Optional[str] = None,
+        resolution: str | None = None,
     ) -> ExternalCase:
         """Close a case.
 
@@ -371,11 +370,11 @@ class Endpoint:
 
     client_id: str
     hostname: str
-    os: Optional[str] = None
-    os_version: Optional[str] = None
+    os: str | None = None
+    os_version: str | None = None
     ip_addresses: list[str] = field(default_factory=list)
     mac_addresses: list[str] = field(default_factory=list)
-    last_seen: Optional[datetime] = None
+    last_seen: datetime | None = None
     labels: dict[str, str] = field(default_factory=dict)
     online: bool = False
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -386,9 +385,9 @@ class CollectionArtifact:
     """Artifact definition for collection."""
 
     name: str
-    description: Optional[str] = None
+    description: str | None = None
     parameters: dict[str, Any] = field(default_factory=dict)
-    category: Optional[str] = None
+    category: str | None = None
 
 
 @dataclass
@@ -399,10 +398,10 @@ class CollectionJob:
     client_id: str
     artifact_name: str
     status: str  # pending, running, completed, failed
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
     result_count: int = 0
-    error: Optional[str] = None
+    error: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
@@ -414,10 +413,10 @@ class Hunt:
     name: str
     artifact_name: str
     state: str  # paused, running, stopped, completed
-    description: Optional[str] = None
-    created_at: Optional[datetime] = None
-    started_at: Optional[datetime] = None
-    expires_at: Optional[datetime] = None
+    description: str | None = None
+    created_at: datetime | None = None
+    started_at: datetime | None = None
+    expires_at: datetime | None = None
     total_clients: int = 0
     completed_clients: int = 0
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -435,7 +434,7 @@ class CollectionAdapter(BaseAdapter):
         self,
         limit: int = 100,
         offset: int = 0,
-        search: Optional[str] = None,
+        search: str | None = None,
         online_only: bool = False,
     ) -> list[Endpoint]:
         """List managed endpoints.
@@ -452,7 +451,7 @@ class CollectionAdapter(BaseAdapter):
         ...
 
     @abstractmethod
-    async def get_endpoint(self, client_id: str) -> Optional[Endpoint]:
+    async def get_endpoint(self, client_id: str) -> Endpoint | None:
         """Get a specific endpoint by client ID."""
         ...
 
@@ -465,7 +464,7 @@ class CollectionAdapter(BaseAdapter):
     @abstractmethod
     async def list_artifacts(
         self,
-        category: Optional[str] = None,
+        category: str | None = None,
     ) -> list[CollectionArtifact]:
         """List available collection artifacts."""
         ...
@@ -475,7 +474,7 @@ class CollectionAdapter(BaseAdapter):
         self,
         client_id: str,
         artifact_name: str,
-        parameters: Optional[dict[str, Any]] = None,
+        parameters: dict[str, Any] | None = None,
         urgent: bool = False,
     ) -> CollectionJob:
         """Trigger artifact collection on an endpoint.
@@ -510,7 +509,7 @@ class CollectionAdapter(BaseAdapter):
     async def list_hunts(
         self,
         limit: int = 50,
-        state: Optional[str] = None,
+        state: str | None = None,
     ) -> list[Hunt]:
         """List hunts."""
         ...
@@ -520,9 +519,9 @@ class CollectionAdapter(BaseAdapter):
         self,
         name: str,
         artifact_name: str,
-        description: Optional[str] = None,
-        parameters: Optional[dict[str, Any]] = None,
-        target_labels: Optional[dict[str, str]] = None,
+        description: str | None = None,
+        parameters: dict[str, Any] | None = None,
+        target_labels: dict[str, str] | None = None,
         expires_hours: int = 168,
     ) -> Hunt:
         """Create a new hunt.
@@ -605,11 +604,11 @@ class ThreatIndicator:
     value: str
     indicator_type: IndicatorType
     score: int = 0  # 0-100 risk score
-    first_seen: Optional[datetime] = None
-    last_seen: Optional[datetime] = None
+    first_seen: datetime | None = None
+    last_seen: datetime | None = None
     sources: list[str] = field(default_factory=list)
     tags: list[str] = field(default_factory=list)
-    description: Optional[str] = None
+    description: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
@@ -620,12 +619,12 @@ class ThreatActor:
     external_id: str
     name: str
     aliases: list[str] = field(default_factory=list)
-    description: Optional[str] = None
-    motivation: Optional[str] = None
-    sophistication: Optional[str] = None
-    country: Optional[str] = None
-    first_seen: Optional[datetime] = None
-    last_seen: Optional[datetime] = None
+    description: str | None = None
+    motivation: str | None = None
+    sophistication: str | None = None
+    country: str | None = None
+    first_seen: datetime | None = None
+    last_seen: datetime | None = None
     ttps: list[str] = field(default_factory=list)  # MITRE ATT&CK IDs
     associated_campaigns: list[str] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -637,10 +636,10 @@ class Campaign:
 
     external_id: str
     name: str
-    description: Optional[str] = None
-    first_seen: Optional[datetime] = None
-    last_seen: Optional[datetime] = None
-    threat_actor: Optional[str] = None
+    description: str | None = None
+    first_seen: datetime | None = None
+    last_seen: datetime | None = None
+    threat_actor: str | None = None
     targets: list[str] = field(default_factory=list)
     malware: list[str] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -691,7 +690,7 @@ class ThreatIntelAdapter(BaseAdapter):
         ...
 
     @abstractmethod
-    async def get_threat_actor(self, name: str) -> Optional[ThreatActor]:
+    async def get_threat_actor(self, name: str) -> ThreatActor | None:
         """Get threat actor profile by name."""
         ...
 
@@ -705,7 +704,7 @@ class ThreatIntelAdapter(BaseAdapter):
         ...
 
     @abstractmethod
-    async def get_campaign(self, name: str) -> Optional[Campaign]:
+    async def get_campaign(self, name: str) -> Campaign | None:
         """Get campaign by name."""
         ...
 
@@ -733,8 +732,8 @@ class ThreatIntelAdapter(BaseAdapter):
         self,
         value: str,
         indicator_type: IndicatorType,
-        description: Optional[str] = None,
-        tags: Optional[list[str]] = None,
+        description: str | None = None,
+        tags: list[str] | None = None,
         confidence: int = 50,
     ) -> ThreatIndicator:
         """Submit a new indicator to the threat intel platform."""
@@ -752,13 +751,13 @@ class Workflow:
 
     workflow_id: str
     name: str
-    description: Optional[str] = None
-    category: Optional[str] = None
+    description: str | None = None
+    category: str | None = None
     triggers: list[str] = field(default_factory=list)
     is_active: bool = True
     parameters: list[dict[str, Any]] = field(default_factory=list)
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
@@ -770,12 +769,12 @@ class WorkflowExecution:
     workflow_id: str
     workflow_name: str
     status: str  # pending, running, completed, failed, waiting_approval
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
-    triggered_by: Optional[str] = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    triggered_by: str | None = None
     parameters: dict[str, Any] = field(default_factory=dict)
     results: dict[str, Any] = field(default_factory=dict)
-    error: Optional[str] = None
+    error: str | None = None
 
 
 @dataclass
@@ -788,8 +787,8 @@ class ApprovalRequest:
     action: str
     description: str
     requested_at: datetime
-    requested_by: Optional[str] = None
-    expires_at: Optional[datetime] = None
+    requested_by: str | None = None
+    expires_at: datetime | None = None
     parameters: dict[str, Any] = field(default_factory=dict)
 
 
@@ -803,14 +802,14 @@ class SOARAdapter(BaseAdapter):
     @abstractmethod
     async def list_workflows(
         self,
-        category: Optional[str] = None,
+        category: str | None = None,
         active_only: bool = True,
     ) -> list[Workflow]:
         """List available workflows."""
         ...
 
     @abstractmethod
-    async def get_workflow(self, workflow_id: str) -> Optional[Workflow]:
+    async def get_workflow(self, workflow_id: str) -> Workflow | None:
         """Get workflow details."""
         ...
 
@@ -818,8 +817,8 @@ class SOARAdapter(BaseAdapter):
     async def trigger_workflow(
         self,
         workflow_id: str,
-        parameters: Optional[dict[str, Any]] = None,
-        triggered_by: Optional[str] = None,
+        parameters: dict[str, Any] | None = None,
+        triggered_by: str | None = None,
     ) -> WorkflowExecution:
         """Trigger a workflow execution.
 
@@ -844,8 +843,8 @@ class SOARAdapter(BaseAdapter):
     @abstractmethod
     async def list_executions(
         self,
-        workflow_id: Optional[str] = None,
-        status: Optional[str] = None,
+        workflow_id: str | None = None,
+        status: str | None = None,
         limit: int = 50,
     ) -> list[WorkflowExecution]:
         """List workflow executions."""
@@ -867,7 +866,7 @@ class SOARAdapter(BaseAdapter):
         self,
         approval_id: str,
         approved_by: str,
-        comment: Optional[str] = None,
+        comment: str | None = None,
     ) -> bool:
         """Approve an approval request."""
         ...
@@ -877,7 +876,7 @@ class SOARAdapter(BaseAdapter):
         self,
         approval_id: str,
         denied_by: str,
-        reason: Optional[str] = None,
+        reason: str | None = None,
     ) -> bool:
         """Deny an approval request."""
         ...
@@ -886,7 +885,7 @@ class SOARAdapter(BaseAdapter):
     async def isolate_host_workflow(
         self,
         hostname: str,
-        case_id: Optional[str] = None,
+        case_id: str | None = None,
     ) -> WorkflowExecution:
         """Trigger host isolation workflow."""
         return await self.trigger_workflow(
@@ -897,7 +896,7 @@ class SOARAdapter(BaseAdapter):
     async def block_ip_workflow(
         self,
         ip_address: str,
-        case_id: Optional[str] = None,
+        case_id: str | None = None,
     ) -> WorkflowExecution:
         """Trigger IP blocking workflow."""
         return await self.trigger_workflow(
@@ -908,7 +907,7 @@ class SOARAdapter(BaseAdapter):
     async def disable_user_workflow(
         self,
         username: str,
-        case_id: Optional[str] = None,
+        case_id: str | None = None,
     ) -> WorkflowExecution:
         """Trigger user disable workflow."""
         return await self.trigger_workflow(
@@ -928,10 +927,10 @@ class Sketch:
 
     sketch_id: str
     name: str
-    description: Optional[str] = None
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
-    owner: Optional[str] = None
+    description: str | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    owner: str | None = None
     status: str = "active"
     timeline_count: int = 0
     event_count: int = 0
@@ -945,9 +944,9 @@ class Timeline:
     timeline_id: str
     sketch_id: str
     name: str
-    description: Optional[str] = None
-    created_at: Optional[datetime] = None
-    source_type: Optional[str] = None  # plaso, csv, jsonl, etc.
+    description: str | None = None
+    created_at: datetime | None = None
+    source_type: str | None = None  # plaso, csv, jsonl, etc.
     event_count: int = 0
     metadata: dict[str, Any] = field(default_factory=dict)
 
@@ -959,9 +958,9 @@ class TimelineEvent:
     event_id: str
     timestamp: datetime
     message: str
-    source: Optional[str] = None
-    source_short: Optional[str] = None
-    timestamp_desc: Optional[str] = None
+    source: str | None = None
+    source_short: str | None = None
+    timestamp_desc: str | None = None
     tags: list[str] = field(default_factory=list)
     starred: bool = False
     comments: list[str] = field(default_factory=list)
@@ -976,8 +975,8 @@ class SavedView:
     sketch_id: str
     name: str
     query: str
-    created_at: Optional[datetime] = None
-    owner: Optional[str] = None
+    created_at: datetime | None = None
+    owner: str | None = None
 
 
 class TimelineAdapter(BaseAdapter):
@@ -997,7 +996,7 @@ class TimelineAdapter(BaseAdapter):
         ...
 
     @abstractmethod
-    async def get_sketch(self, sketch_id: str) -> Optional[Sketch]:
+    async def get_sketch(self, sketch_id: str) -> Sketch | None:
         """Get sketch details."""
         ...
 
@@ -1005,7 +1004,7 @@ class TimelineAdapter(BaseAdapter):
     async def create_sketch(
         self,
         name: str,
-        description: Optional[str] = None,
+        description: str | None = None,
     ) -> Sketch:
         """Create a new sketch."""
         ...
@@ -1047,10 +1046,10 @@ class TimelineAdapter(BaseAdapter):
         self,
         sketch_id: str,
         query: str,
-        start_time: Optional[datetime] = None,
-        end_time: Optional[datetime] = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
         limit: int = 500,
-        timeline_ids: Optional[list[str]] = None,
+        timeline_ids: list[str] | None = None,
     ) -> list[TimelineEvent]:
         """Search events in a sketch.
 
@@ -1072,7 +1071,7 @@ class TimelineAdapter(BaseAdapter):
         self,
         sketch_id: str,
         event_id: str,
-    ) -> Optional[TimelineEvent]:
+    ) -> TimelineEvent | None:
         """Get a specific event."""
         ...
 

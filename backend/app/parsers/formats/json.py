@@ -6,9 +6,10 @@ to ECS format. Supports common log formats like CloudTrail, Azure AD, etc.
 
 import json
 import logging
-from datetime import datetime, timezone
+from collections.abc import Iterator
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, BinaryIO, Iterator
+from typing import BinaryIO
 
 from app.parsers.base import BaseParser, ParsedEvent, ParserCategory
 from app.parsers.registry import register_parser
@@ -109,7 +110,7 @@ class GenericJSONParser(BaseParser):
         source_str = source_name or (str(source) if isinstance(source, Path) else "stream")
 
         if isinstance(source, Path):
-            with open(source, "r", encoding="utf-8", errors="replace") as f:
+            with open(source, encoding="utf-8", errors="replace") as f:
                 yield from self._parse_file(f, source_str)
         else:
             # Handle binary stream
@@ -228,12 +229,12 @@ class GenericJSONParser(BaseParser):
                     # Unix timestamp
                     try:
                         if value > 1e12:  # Milliseconds
-                            return datetime.fromtimestamp(value / 1000, tz=timezone.utc)
-                        return datetime.fromtimestamp(value, tz=timezone.utc)
+                            return datetime.fromtimestamp(value / 1000, tz=UTC)
+                        return datetime.fromtimestamp(value, tz=UTC)
                     except Exception:
                         pass
 
-        return datetime.now(timezone.utc)
+        return datetime.now(UTC)
 
     def _parse_timestamp(self, value: str) -> datetime | None:
         """Parse a timestamp string."""
@@ -241,7 +242,7 @@ class GenericJSONParser(BaseParser):
             try:
                 dt = datetime.strptime(value, fmt)
                 if dt.tzinfo is None:
-                    dt = dt.replace(tzinfo=timezone.utc)
+                    dt = dt.replace(tzinfo=UTC)
                 return dt
             except ValueError:
                 continue

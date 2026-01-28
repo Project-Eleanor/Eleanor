@@ -11,11 +11,11 @@ Provides integration with Microsoft Sentinel SIEM for:
 
 from app.adapters.sentinel.adapter import SentinelAdapter
 from app.adapters.sentinel.schemas import (
-    SentinelIncident,
     SentinelAlert,
     SentinelEntity,
-    SentinelWatchlist,
     SentinelHuntingQuery,
+    SentinelIncident,
+    SentinelWatchlist,
 )
 
 __all__ = [

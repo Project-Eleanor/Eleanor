@@ -6,8 +6,8 @@ in response to case events.
 
 import asyncio
 import logging
-from datetime import datetime, timezone
-from typing import Any, Type
+from datetime import UTC, datetime
+from typing import Any
 from uuid import UUID
 
 from app.processors.base import (
@@ -71,7 +71,7 @@ class ProcessorRunner:
 
         logger.info(f"Registered processor: {name}")
 
-    def register_class(self, processor_class: Type[BaseProcessor]) -> None:
+    def register_class(self, processor_class: type[BaseProcessor]) -> None:
         """Register a processor class (instantiates it).
 
         Args:
@@ -218,7 +218,7 @@ class ProcessorRunner:
         Returns:
             ProcessorResult
         """
-        started_at = datetime.now(timezone.utc)
+        started_at = datetime.now(UTC)
         timeout = processor.timeout_seconds or self._default_timeout
 
         logger.info(f"Executing processor: {processor.name}")
@@ -230,13 +230,13 @@ class ProcessorRunner:
                     timeout=timeout,
                 )
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.error(f"Processor {processor.name} timed out after {timeout}s")
             result = ProcessorResult(
                 processor_name=processor.name,
                 status=ProcessorStatus.FAILED,
                 started_at=started_at,
-                completed_at=datetime.now(timezone.utc),
+                completed_at=datetime.now(UTC),
                 message=f"Timeout after {timeout} seconds",
                 errors=[f"Execution timed out after {timeout}s"],
             )
@@ -248,7 +248,7 @@ class ProcessorRunner:
                 processor_name=processor.name,
                 status=ProcessorStatus.FAILED,
                 started_at=started_at,
-                completed_at=datetime.now(timezone.utc),
+                completed_at=datetime.now(UTC),
                 message=f"Error: {str(e)}",
                 errors=[str(e)],
             )
@@ -256,7 +256,7 @@ class ProcessorRunner:
 
         # Calculate duration if not set
         if result.duration_ms is None:
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             result.duration_ms = int((now - started_at).total_seconds() * 1000)
 
         # Track history

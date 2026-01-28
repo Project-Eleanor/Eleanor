@@ -11,9 +11,10 @@ Location: C:\\Windows\\System32\\sru\\SRUDB.dat (ESE database)
 """
 
 import logging
-from datetime import datetime, timezone
+from collections.abc import AsyncIterator
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, AsyncIterator
+from typing import Any
 from uuid import uuid4
 
 from app.parsers.base import BaseParser, ParsedEvent, ParserMetadata
@@ -245,7 +246,7 @@ class SRUMParser(BaseParser):
     ) -> ParsedEvent:
         """Create ECS event from SRUM entry."""
         app_name = entry.get("app_name", "unknown")
-        timestamp = entry.get("timestamp") or datetime.now(timezone.utc)
+        timestamp = entry.get("timestamp") or datetime.now(UTC)
 
         # Determine event category based on table type
         if table_type in ("NetworkDataUsage", "NetworkConnectivity"):
@@ -328,15 +329,15 @@ class SRUMParser(BaseParser):
 
         try:
             if isinstance(value, datetime):
-                return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value
+                return value.replace(tzinfo=UTC) if value.tzinfo is None else value
             elif isinstance(value, (int, float)):
                 # Could be FILETIME or Unix timestamp
                 if value > 100000000000000:  # FILETIME
                     epoch_diff = 116444736000000000
                     timestamp = (value - epoch_diff) / 10000000
-                    return datetime.fromtimestamp(timestamp, tz=timezone.utc)
+                    return datetime.fromtimestamp(timestamp, tz=UTC)
                 else:
-                    return datetime.fromtimestamp(value, tz=timezone.utc)
+                    return datetime.fromtimestamp(value, tz=UTC)
         except Exception:
             pass
 

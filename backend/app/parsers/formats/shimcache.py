@@ -8,9 +8,10 @@ Key: HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\AppCompatCache
 """
 
 import logging
-from datetime import datetime, timezone
+from collections.abc import AsyncIterator
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, AsyncIterator
+from typing import Any
 from uuid import uuid4
 
 from app.parsers.base import BaseParser, ParsedEvent, ParserMetadata
@@ -91,7 +92,7 @@ class ShimcacheParser(BaseParser):
             for idx, entry in enumerate(entries):
                 yield ParsedEvent(
                     id=str(uuid4()),
-                    timestamp=entry.get("last_modified", datetime.now(timezone.utc)),
+                    timestamp=entry.get("last_modified", datetime.now(UTC)),
                     message=f"Shimcache: {entry.get('path', 'unknown')}",
                     source="shimcache",
                     raw_data=entry,
@@ -279,6 +280,6 @@ class ShimcacheParser(BaseParser):
             # FILETIME is 100-nanosecond intervals since 1601-01-01
             epoch_diff = 116444736000000000
             timestamp = (filetime - epoch_diff) / 10000000
-            return datetime.fromtimestamp(timestamp, tz=timezone.utc)
+            return datetime.fromtimestamp(timestamp, tz=UTC)
         except Exception:
             return None

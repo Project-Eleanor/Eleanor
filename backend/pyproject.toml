@@ -96,8 +96,26 @@ target-version = ["py312"]
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+
+[tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP"]
 ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# Parser registry imports modules for side effects (registration)
+"app/parsers/registry.py" = ["F401"]
+# Parser __init__ re-exports parsers
+"app/parsers/formats/__init__.py" = ["F401"]
+# Parser format files import for availability checks and may have camelcase library imports
+"app/parsers/formats/*.py" = ["F401", "F821", "N813"]
+# Connectors may have unused variables during development
+"app/connectors/*.py" = ["F841"]
+# Base exception classes don't need Error suffix
+"app/exceptions.py" = ["N818"]
+# Rate limit exception is intentionally named
+"app/middleware/rate_limit.py" = ["N818"]
+# RBAC model has forward references
+"app/models/rbac.py" = ["F821"]
 
 [tool.mypy]
 python_version = "3.12"

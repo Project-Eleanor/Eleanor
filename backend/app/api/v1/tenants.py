@@ -4,7 +4,7 @@ import hashlib
 import logging
 import re
 import secrets
-from datetime import datetime, timezone
+from datetime import datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status

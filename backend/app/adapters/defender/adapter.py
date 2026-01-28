@@ -9,7 +9,7 @@ Provides integration with Microsoft Defender for Endpoint API for:
 
 import logging
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 
@@ -25,7 +25,6 @@ from app.adapters.base import (
 )
 from app.adapters.defender.schemas import (
     ActionStatus,
-    ActionType,
     AlertSeverity,
     AlertStatus,
     DefenderAction,

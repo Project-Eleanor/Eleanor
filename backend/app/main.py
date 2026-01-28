@@ -6,14 +6,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+# Import all models to register them with Base.metadata
+import app.models  # noqa: F401
 from app.adapters import get_registry, init_adapters
-from app.middleware.tenant import TenantMiddleware
 from app.api.v1 import router as api_v1_router
 from app.config import get_settings
 from app.database import Base, close_elasticsearch, close_redis, engine, init_elasticsearch_indices
 from app.exceptions import setup_exception_handlers
-# Import all models to register them with Base.metadata
-import app.models  # noqa: F401
+from app.middleware.tenant import TenantMiddleware
 
 settings = get_settings()
 

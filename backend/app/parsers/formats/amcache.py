@@ -10,9 +10,10 @@ Location: C:\\Windows\\AppCompat\\Programs\\Amcache.hve
 """
 
 import logging
-from datetime import datetime, timezone
+from collections.abc import AsyncIterator
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, AsyncIterator
+from typing import Any
 from uuid import uuid4
 
 from app.parsers.base import BaseParser, ParsedEvent, ParserMetadata
@@ -312,7 +313,7 @@ class AmcacheParser(BaseParser):
 
         return ParsedEvent(
             id=str(uuid4()),
-            timestamp=entry.get("modified") or entry.get("created") or datetime.now(timezone.utc),
+            timestamp=entry.get("modified") or entry.get("created") or datetime.now(UTC),
             message=f"Amcache File: {path}",
             source="amcache",
             raw_data=entry,
@@ -367,7 +368,7 @@ class AmcacheParser(BaseParser):
 
         return ParsedEvent(
             id=str(uuid4()),
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             message=f"Amcache Application: {name}",
             source="amcache",
             raw_data=entry,
@@ -415,7 +416,7 @@ class AmcacheParser(BaseParser):
 
         return ParsedEvent(
             id=str(uuid4()),
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             message=f"Amcache Driver: {name}",
             source="amcache",
             raw_data=entry,
@@ -459,6 +460,6 @@ class AmcacheParser(BaseParser):
                 return None
             epoch_diff = 116444736000000000
             timestamp = (filetime - epoch_diff) / 10000000
-            return datetime.fromtimestamp(timestamp, tz=timezone.utc)
+            return datetime.fromtimestamp(timestamp, tz=UTC)
         except Exception:
             return None

@@ -1,7 +1,7 @@
 """Timesketch timeline analysis data models."""
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -12,8 +12,8 @@ class TimesketchSketch(BaseModel):
     id: int
     name: str
     description: str = ""
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
     user: dict[str, Any] = Field(default_factory=dict)
     status: list[dict[str, Any]] = Field(default_factory=list)
     timelines: list["TimesketchTimeline"] = Field(default_factory=list)
@@ -45,8 +45,8 @@ class TimesketchTimeline(BaseModel):
     id: int
     name: str
     description: str = ""
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
     user: dict[str, Any] = Field(default_factory=dict)
     color: str = ""
     searchindex: dict[str, Any] = Field(default_factory=dict)
@@ -83,7 +83,7 @@ class TimesketchEvent(BaseModel):
         return self.es_id
 
     @property
-    def timestamp(self) -> Optional[datetime]:
+    def timestamp(self) -> datetime | None:
         """Get event timestamp."""
         ts = self.es_source.get("datetime")
         if isinstance(ts, str):
@@ -143,8 +143,8 @@ class TimesketchSavedView(BaseModel):
     query_string: str = ""
     query_filter: dict[str, Any] = Field(default_factory=dict)
     query_dsl: dict[str, Any] = Field(default_factory=dict)
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
     user: dict[str, Any] = Field(default_factory=dict)
 
     @property
@@ -189,8 +189,8 @@ class TimesketchAnalyzerSession(BaseModel):
 
     id: int
     status: str = ""
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
     analyzer_name: str = ""
     results: str = ""
     log: str = ""

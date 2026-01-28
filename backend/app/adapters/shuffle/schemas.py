@@ -1,7 +1,7 @@
 """Shuffle SOAR data models."""
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -17,8 +17,8 @@ class ShuffleWorkflow(BaseModel):
     is_valid: bool = True
     public: bool = False
     org_id: str = ""
-    created: Optional[datetime] = None
-    edited: Optional[datetime] = None
+    created: datetime | None = None
+    edited: datetime | None = None
     actions: list[dict[str, Any]] = Field(default_factory=list)
     triggers: list[dict[str, Any]] = Field(default_factory=list)
     branches: list[dict[str, Any]] = Field(default_factory=list)
@@ -44,8 +44,8 @@ class ShuffleExecution(BaseModel):
     workflow_id: str = ""
     authorization: str = ""
     status: str = ""  # EXECUTING, FINISHED, ABORTED, WAITING
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
     result: str = ""
     execution_argument: str = ""  # JSON input
     execution_source: str = ""

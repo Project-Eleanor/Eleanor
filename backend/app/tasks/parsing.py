@@ -5,10 +5,7 @@ with progress tracking and error handling.
 """
 
 import logging
-from datetime import datetime
-from pathlib import Path
 from typing import Any
-from uuid import UUID
 
 from celery import shared_task
 from celery.exceptions import SoftTimeLimitExceeded

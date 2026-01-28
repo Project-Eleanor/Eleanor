@@ -7,7 +7,6 @@ Supports IP addresses, domains, URLs, hashes, email addresses, and more.
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import Iterator
 
 
 class IOCType(str, Enum):

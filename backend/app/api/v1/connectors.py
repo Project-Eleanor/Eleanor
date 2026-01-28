@@ -179,9 +179,7 @@ async def test_connector_connectivity(
     - API-based: HTTP endpoint health check
     - Passive receivers: Configuration validation only
     """
-    import asyncio
     import socket
-    import ssl
     import time
 
     config = connector.config or {}
@@ -402,7 +400,7 @@ async def test_connector_connectivity(
             details=details,
         )
 
-    except socket.timeout:
+    except TimeoutError:
         return TestResult(
             success=False,
             message="Connection timed out",

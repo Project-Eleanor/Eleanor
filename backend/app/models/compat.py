@@ -5,8 +5,6 @@ and SQLite (testing). When running with PostgreSQL, the native types are used.
 When running with SQLite, compatible fallback types are used.
 """
 
-import os
-from typing import Any
 
 from sqlalchemy import JSON, String, TypeDecorator
 from sqlalchemy.dialects import postgresql

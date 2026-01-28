@@ -6,7 +6,6 @@ using threat intelligence sources like OpenCTI.
 
 import logging
 from typing import Any
-from uuid import UUID
 
 from celery import shared_task
 
@@ -162,8 +161,9 @@ async def _enrich_entity_async(
     case_id: str | None,
 ) -> dict[str, Any]:
     """Async implementation of entity enrichment."""
-    from app.config import get_settings
     from elasticsearch import AsyncElasticsearch
+
+    from app.config import get_settings
 
     settings = get_settings()
     es = AsyncElasticsearch(
@@ -304,8 +304,9 @@ async def _batch_enrich_events_async(
     index_name: str | None,
 ) -> dict[str, Any]:
     """Async implementation of batch event enrichment."""
-    from app.config import get_settings
     from elasticsearch import AsyncElasticsearch
+
+    from app.config import get_settings
 
     settings = get_settings()
     es = AsyncElasticsearch(

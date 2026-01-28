@@ -7,11 +7,11 @@ This module provides a high-performance event buffer that:
 - Provides backpressure handling and dead letter queues
 """
 
-import asyncio
 import json
 import logging
+from collections.abc import AsyncIterator
 from datetime import datetime
-from typing import Any, AsyncIterator, Callable
+from typing import Any
 from uuid import uuid4
 
 import redis.asyncio as redis

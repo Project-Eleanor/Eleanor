@@ -4,7 +4,7 @@ Models representing IRIS's API responses for cases, assets, IOCs, and notes.
 """
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -21,14 +21,14 @@ class IRISCase(BaseModel):
     status_name: str = ""
     severity_id: int = 0
     severity_name: str = ""
-    owner_id: Optional[int] = None
+    owner_id: int | None = None
     owner: str = ""
-    client_id: Optional[int] = None
+    client_id: int | None = None
     client_name: str = ""
-    classification_id: Optional[int] = None
+    classification_id: int | None = None
     classification_name: str = ""
-    open_date: Optional[datetime] = None
-    close_date: Optional[datetime] = None
+    open_date: datetime | None = None
+    close_date: datetime | None = None
     modification_history: dict[str, Any] = Field(default_factory=dict)
     custom_attributes: dict[str, Any] = Field(default_factory=dict)
 
@@ -79,8 +79,8 @@ class IRISNote(BaseModel):
     note_uuid: str = ""
     note_title: str
     note_content: str = ""
-    note_creationdate: Optional[datetime] = None
-    note_lastupdate: Optional[datetime] = None
+    note_creationdate: datetime | None = None
+    note_lastupdate: datetime | None = None
     group_id: int = 0
     group_title: str = ""
     case_id: int = 0
@@ -97,10 +97,10 @@ class IRISTask(BaseModel):
     task_description: str = ""
     task_status_id: int = 0
     task_status_name: str = ""
-    task_assignee_id: Optional[int] = None
+    task_assignee_id: int | None = None
     task_assignee: str = ""
-    task_open_date: Optional[datetime] = None
-    task_close_date: Optional[datetime] = None
+    task_open_date: datetime | None = None
+    task_close_date: datetime | None = None
     case_id: int = 0
     custom_attributes: dict[str, Any] = Field(default_factory=dict)
 
@@ -119,8 +119,8 @@ class IRISAlert(BaseModel):
     alert_severity_name: str = ""
     alert_status_id: int = 0
     alert_status_name: str = ""
-    alert_creation_time: Optional[datetime] = None
-    case_id: Optional[int] = None
+    alert_creation_time: datetime | None = None
+    case_id: int | None = None
     customer_id: int = 0
     custom_attributes: dict[str, Any] = Field(default_factory=dict)
 
@@ -134,8 +134,8 @@ class IRISTimelineEntry(BaseModel):
     event_content: str = ""
     event_raw: str = ""
     event_source: str = ""
-    event_date: Optional[datetime] = None
-    event_date_wtz: Optional[datetime] = None
+    event_date: datetime | None = None
+    event_date_wtz: datetime | None = None
     event_tz: str = ""
     event_tags: str = ""
     event_color: str = ""

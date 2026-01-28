@@ -5,9 +5,9 @@ Provides storage operations using Google Cloud Storage.
 
 import hashlib
 import logging
-from datetime import datetime, timedelta, timezone
-from io import BytesIO
-from typing import Any, AsyncIterator, BinaryIO
+from collections.abc import AsyncIterator
+from datetime import timedelta
+from typing import Any, BinaryIO
 
 from app.adapters.storage.base import (
     StorageAdapter,
@@ -44,7 +44,6 @@ class GCSStorageAdapter(StorageAdapter):
         try:
             from google.cloud import storage
             from google.cloud.exceptions import NotFound
-            from google.auth import default as get_default_credentials
 
             # Build client
             if self.config.access_key:

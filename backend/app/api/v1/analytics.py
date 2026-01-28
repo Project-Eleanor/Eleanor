@@ -8,7 +8,6 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.api.v1.auth import get_current_user
 from app.database import get_db
@@ -20,10 +19,10 @@ from app.models.analytics import (
     RuleType,
 )
 from app.models.user import User
-from app.services.detection_engine import get_detection_engine
 from app.services.alert_generator import get_alert_generator
 from app.services.correlation_engine import get_correlation_engine
-from app.services.event_buffer import get_event_buffer, EVENT_STREAM
+from app.services.detection_engine import get_detection_engine
+from app.services.event_buffer import EVENT_STREAM, get_event_buffer
 from app.services.realtime_processor import get_realtime_processor
 
 router = APIRouter()
@@ -845,7 +844,6 @@ async def test_correlation_config(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> CorrelationTestResponse:
     """Test a correlation configuration without creating a rule."""
-    from datetime import timedelta
     from uuid import uuid4
 
     # Create a temporary rule object
@@ -921,7 +919,7 @@ async def get_realtime_status(
             errors=stats["errors"],
             active_workers=stats["active_workers"],
         )
-    except Exception as e:
+    except Exception:
         return RealtimeProcessorStatus(
             running=False,
             uptime_seconds=None,
@@ -950,7 +948,6 @@ async def get_stream_status(
 ) -> list[EventStreamStatus]:
     """Get status of event streams."""
     from app.services.event_buffer import (
-        EVENT_STREAM,
         ALERT_STREAM,
         CORRELATION_STREAM,
         DEAD_LETTER_STREAM,

@@ -7,11 +7,11 @@ and rate limiting support.
 import asyncio
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
-from app.enrichment.extractors.ioc import IOCExtractor, IOCMatch, IOCType
+from app.enrichment.extractors.ioc import IOCExtractor, IOCType
 
 logger = logging.getLogger(__name__)
 
@@ -204,7 +204,7 @@ class EnrichmentPipeline:
         # Cache result
         await self._cache_result(result)
 
-        result.enriched_at = datetime.now(timezone.utc)
+        result.enriched_at = datetime.now(UTC)
 
         if result.sources:
             result.status = EnrichmentStatus.COMPLETED
@@ -269,7 +269,7 @@ class EnrichmentPipeline:
                 timeout=self.config.request_timeout_seconds,
             )
             return result
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.warning(f"Provider {name} timed out for {indicator}")
             return None
         except Exception as e:

@@ -11,9 +11,10 @@ Commonly found in: Recent, Desktop, Start Menu, Quick Launch
 
 import logging
 import struct
-from datetime import datetime, timezone
+from collections.abc import AsyncIterator
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, AsyncIterator
+from typing import Any
 from uuid import uuid4
 
 from app.parsers.base import BaseParser, ParsedEvent, ParserMetadata
@@ -209,7 +210,7 @@ class LnkParser(BaseParser):
             # LinkInfoFlags at offset 8
             flags = struct.unpack("<I", data[8:12])[0]
             has_volume_id = bool(flags & 0x01)
-            has_common_path = bool(flags & 0x02)
+            bool(flags & 0x02)
 
             # Volume ID offset at offset 12
             vol_id_offset = struct.unpack("<I", data[12:16])[0]
@@ -218,7 +219,7 @@ class LnkParser(BaseParser):
             base_path_offset = struct.unpack("<I", data[16:20])[0]
 
             # Common path suffix offset at offset 24
-            common_path_offset = struct.unpack("<I", data[24:28])[0]
+            struct.unpack("<I", data[24:28])[0]
 
             # Parse volume ID
             if has_volume_id and vol_id_offset > 0 and vol_id_offset + 16 <= len(data):
@@ -258,7 +259,7 @@ class LnkParser(BaseParser):
         """Create ECS event from LNK entry."""
         target_path = entry.get("target_path") or entry.get("relative_path") or "unknown"
         lnk_path = entry.get("lnk_path", "unknown")
-        modification_time = entry.get("modification_time") or datetime.now(timezone.utc)
+        modification_time = entry.get("modification_time") or datetime.now(UTC)
 
         return ParsedEvent(
             id=str(uuid4()),
@@ -323,6 +324,6 @@ class LnkParser(BaseParser):
             timestamp = (filetime - epoch_diff) / 10000000
             if timestamp < 0 or timestamp > 4102444800:
                 return None
-            return datetime.fromtimestamp(timestamp, tz=timezone.utc)
+            return datetime.fromtimestamp(timestamp, tz=UTC)
         except Exception:
             return None

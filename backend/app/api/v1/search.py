@@ -1,7 +1,8 @@
 """Search API endpoints for hunting and queries."""
 
 import re
-from typing import Annotated, Any, Callable
+from collections.abc import Callable
+from typing import Annotated, Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status

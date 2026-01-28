@@ -5,7 +5,7 @@ and other incident response actions with comprehensive audit logging.
 """
 
 from datetime import datetime
-from typing import Any, Optional, TYPE_CHECKING
+from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
@@ -32,8 +32,8 @@ class IsolateRequest(BaseModel):
 
     client_id: str = Field(..., description="Target endpoint client ID")
     reason: str = Field(..., min_length=10, description="Reason for isolation (required for audit)")
-    case_id: Optional[UUID] = Field(None, description="Associated case ID")
-    hostname: Optional[str] = Field(None, description="Target hostname for reference")
+    case_id: UUID | None = Field(None, description="Associated case ID")
+    hostname: str | None = Field(None, description="Target hostname for reference")
 
 
 class ReleaseRequest(BaseModel):
@@ -41,7 +41,7 @@ class ReleaseRequest(BaseModel):
 
     client_id: str = Field(..., description="Target endpoint client ID")
     reason: str = Field(..., min_length=10, description="Reason for release (required for audit)")
-    case_id: Optional[UUID] = Field(None, description="Associated case ID")
+    case_id: UUID | None = Field(None, description="Associated case ID")
 
 
 class QuarantineFileRequest(BaseModel):
@@ -50,7 +50,7 @@ class QuarantineFileRequest(BaseModel):
     client_id: str = Field(..., description="Target endpoint client ID")
     file_path: str = Field(..., description="Full path to file to quarantine")
     reason: str = Field(..., min_length=10, description="Reason for quarantine")
-    case_id: Optional[UUID] = Field(None, description="Associated case ID")
+    case_id: UUID | None = Field(None, description="Associated case ID")
 
 
 class KillProcessRequest(BaseModel):
@@ -59,7 +59,7 @@ class KillProcessRequest(BaseModel):
     client_id: str = Field(..., description="Target endpoint client ID")
     pid: int = Field(..., ge=1, description="Process ID to terminate")
     reason: str = Field(..., min_length=10, description="Reason for termination")
-    case_id: Optional[UUID] = Field(None, description="Associated case ID")
+    case_id: UUID | None = Field(None, description="Associated case ID")
 
 
 class ResponseActionInfo(BaseModel):
@@ -69,16 +69,16 @@ class ResponseActionInfo(BaseModel):
     action_type: str
     status: str
     client_id: str
-    hostname: Optional[str] = None
+    hostname: str | None = None
     target_details: dict[str, Any] = {}
-    reason: Optional[str] = None
-    job_id: Optional[str] = None
-    case_id: Optional[UUID] = None
+    reason: str | None = None
+    job_id: str | None = None
+    case_id: UUID | None = None
     user_id: UUID
     created_at: datetime
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
-    error_message: Optional[str] = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    error_message: str | None = None
 
 
 class IsolationStatus(BaseModel):
@@ -86,9 +86,9 @@ class IsolationStatus(BaseModel):
 
     client_id: str
     is_isolated: bool
-    last_action: Optional[str] = None
-    last_action_at: Optional[str] = None
-    last_action_by: Optional[str] = None
+    last_action: str | None = None
+    last_action_at: str | None = None
+    last_action_by: str | None = None
 
 
 class ResponseActionResult(BaseModel):
@@ -99,7 +99,7 @@ class ResponseActionResult(BaseModel):
     client_id: str
     action_type: str
     message: str
-    job_id: Optional[str] = None
+    job_id: str | None = None
 
 
 # =============================================================================
@@ -576,9 +576,9 @@ async def kill_process(
 async def list_response_actions(
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
-    action_type: Optional[str] = Query(None, description="Filter by action type"),
-    status_filter: Optional[str] = Query(None, alias="status", description="Filter by status"),
-    client_id: Optional[str] = Query(None, description="Filter by client ID"),
+    action_type: str | None = Query(None, description="Filter by action type"),
+    status_filter: str | None = Query(None, alias="status", description="Filter by status"),
+    client_id: str | None = Query(None, description="Filter by client ID"),
     current_user: User = Depends(get_current_user),
     response_service: ResponseActionService = Depends(get_response_service),
 ) -> list[ResponseActionInfo]:

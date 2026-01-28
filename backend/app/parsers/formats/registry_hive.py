@@ -5,9 +5,10 @@ and extracts forensically relevant information.
 """
 
 import logging
-from datetime import datetime, timezone
+from collections.abc import Iterator
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, BinaryIO, Iterator
+from typing import Any, BinaryIO
 
 from app.parsers.base import ParsedEvent, ParserCategory
 from app.parsers.formats.dissect_adapter import DissectParserAdapter
@@ -130,7 +131,7 @@ class WindowsRegistryParser(DissectParserAdapter):
             key_name = record.name if hasattr(record, "name") else ""
 
             # Get timestamp
-            timestamp = datetime.now(timezone.utc)
+            timestamp = datetime.now(UTC)
             if hasattr(record, "timestamp") and record.timestamp:
                 timestamp = self._to_datetime(record.timestamp)
 

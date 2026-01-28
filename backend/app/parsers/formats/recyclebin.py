@@ -9,9 +9,10 @@ Location: C:\\$Recycle.Bin\\<SID>\\
 
 import logging
 import struct
-from datetime import datetime, timezone
+from collections.abc import AsyncIterator
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, AsyncIterator
+from typing import Any
 from uuid import uuid4
 
 from app.parsers.base import BaseParser, ParsedEvent, ParserMetadata
@@ -135,7 +136,7 @@ class RecycleBinParser(BaseParser):
     ) -> ParsedEvent:
         """Create ECS event from Recycle Bin entry."""
         original_path = entry.get("original_path", "unknown")
-        deleted_time = entry.get("deleted_time") or datetime.now(timezone.utc)
+        deleted_time = entry.get("deleted_time") or datetime.now(UTC)
         file_size = entry.get("file_size", 0)
 
         return ParsedEvent(
@@ -188,6 +189,6 @@ class RecycleBinParser(BaseParser):
             timestamp = (filetime - epoch_diff) / 10000000
             if timestamp < 0 or timestamp > 4102444800:
                 return None
-            return datetime.fromtimestamp(timestamp, tz=timezone.utc)
+            return datetime.fromtimestamp(timestamp, tz=UTC)
         except Exception:
             return None

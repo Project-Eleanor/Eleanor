@@ -14,9 +14,10 @@ import base64
 import hashlib
 import logging
 import re
-from datetime import datetime, timezone
+from collections.abc import AsyncIterator
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, AsyncIterator
+from typing import Any
 from uuid import uuid4
 
 from app.parsers.base import BaseParser, ParsedEvent, ParserMetadata
@@ -62,7 +63,7 @@ class AuthorizedKeysParser(BaseParser):
     ) -> AsyncIterator[ParsedEvent]:
         """Parse authorized_keys file."""
         try:
-            with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+            with open(file_path, encoding="utf-8", errors="ignore") as f:
                 for line_num, line in enumerate(f, 1):
                     line = line.strip()
                     if not line or line.startswith("#"):
@@ -175,7 +176,7 @@ class AuthorizedKeysParser(BaseParser):
 
         return ParsedEvent(
             id=str(uuid4()),
-            timestamp=datetime.now(timezone.utc),  # No timestamp in authorized_keys
+            timestamp=datetime.now(UTC),  # No timestamp in authorized_keys
             message=f"SSH authorized key: {key_type} - {comment[:50]}",
             source="ssh",
             raw_data=entry,
@@ -241,7 +242,7 @@ class KnownHostsParser(BaseParser):
     ) -> AsyncIterator[ParsedEvent]:
         """Parse known_hosts file."""
         try:
-            with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+            with open(file_path, encoding="utf-8", errors="ignore") as f:
                 for line_num, line in enumerate(f, 1):
                     line = line.strip()
                     if not line or line.startswith("#"):
@@ -318,7 +319,7 @@ class KnownHostsParser(BaseParser):
 
         return ParsedEvent(
             id=str(uuid4()),
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             message=f"SSH known host: {hostname} ({key_type})",
             source="ssh",
             raw_data=entry,
@@ -379,10 +380,10 @@ class PuTTYParser(BaseParser):
     ) -> AsyncIterator[ParsedEvent]:
         """Parse PuTTY registry export."""
         try:
-            with open(file_path, "r", encoding="utf-16", errors="ignore") as f:
+            with open(file_path, encoding="utf-16", errors="ignore") as f:
                 content = f.read()
         except Exception:
-            with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+            with open(file_path, encoding="utf-8", errors="ignore") as f:
                 content = f.read()
 
         current_key = None
@@ -439,7 +440,7 @@ class PuTTYParser(BaseParser):
             if hostname:
                 yield ParsedEvent(
                     id=str(uuid4()),
-                    timestamp=datetime.now(timezone.utc),
+                    timestamp=datetime.now(UTC),
                     message=f"PuTTY session: {session_name} -> {hostname}",
                     source="putty",
                     raw_data={"key_path": key_path, "values": values},
@@ -488,7 +489,7 @@ class PuTTYParser(BaseParser):
 
                     yield ParsedEvent(
                         id=str(uuid4()),
-                        timestamp=datetime.now(timezone.utc),
+                        timestamp=datetime.now(UTC),
                         message=f"PuTTY known host: {hostname} ({key_type})",
                         source="putty",
                         raw_data={"key_name": key_name, "key_value": key_value},

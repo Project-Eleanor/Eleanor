@@ -10,9 +10,10 @@ Key: HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\UserAssist
 import codecs
 import logging
 import struct
-from datetime import datetime, timezone
+from collections.abc import AsyncIterator
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, AsyncIterator
+from typing import Any
 from uuid import uuid4
 
 from app.parsers.base import BaseParser, ParsedEvent, ParserMetadata
@@ -163,7 +164,7 @@ class UserAssistParser(BaseParser):
 
         return ParsedEvent(
             id=str(uuid4()),
-            timestamp=last_exec or datetime.now(timezone.utc),
+            timestamp=last_exec or datetime.now(UTC),
             message=f"UserAssist: {path} (executed {run_count} times)",
             source="userassist",
             raw_data=entry,
@@ -214,6 +215,6 @@ class UserAssistParser(BaseParser):
             timestamp = (filetime - epoch_diff) / 10000000
             if timestamp < 0 or timestamp > 4102444800:  # Before 1970 or after 2100
                 return None
-            return datetime.fromtimestamp(timestamp, tz=timezone.utc)
+            return datetime.fromtimestamp(timestamp, tz=UTC)
         except Exception:
             return None

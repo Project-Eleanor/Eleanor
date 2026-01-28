@@ -11,9 +11,10 @@ These are critical for detecting unauthorized remote access.
 
 import logging
 import re
-from datetime import datetime, timezone
+from collections.abc import AsyncIterator
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, AsyncIterator
+from typing import Any
 from uuid import uuid4
 
 from app.parsers.base import BaseParser, ParsedEvent, ParserMetadata
@@ -65,7 +66,7 @@ class TeamViewerParser(BaseParser):
         filename = file_path.name.lower()
 
         try:
-            with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+            with open(file_path, encoding="utf-8", errors="ignore") as f:
                 content = f.read()
 
             if "incoming" in filename:
@@ -154,7 +155,7 @@ class TeamViewerParser(BaseParser):
         evidence_id: str | None,
     ) -> ParsedEvent:
         """Create ECS event from TeamViewer entry."""
-        timestamp = entry.get("start_time") or datetime.now(timezone.utc)
+        timestamp = entry.get("start_time") or datetime.now(UTC)
         direction = entry.get("direction", "unknown")
         remote_id = entry.get("remote_id", "unknown")
 
@@ -207,7 +208,7 @@ class TeamViewerParser(BaseParser):
         """Parse TeamViewer timestamp."""
         try:
             # Format: DD-MM-YYYY HH:MM:SS
-            return datetime.strptime(ts_str, "%d-%m-%Y %H:%M:%S").replace(tzinfo=timezone.utc)
+            return datetime.strptime(ts_str, "%d-%m-%Y %H:%M:%S").replace(tzinfo=UTC)
         except Exception:
             return None
 
@@ -249,7 +250,7 @@ class AnyDeskParser(BaseParser):
     ) -> AsyncIterator[ParsedEvent]:
         """Parse AnyDesk log file."""
         try:
-            with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+            with open(file_path, encoding="utf-8", errors="ignore") as f:
                 for line_num, line in enumerate(f, 1):
                     line = line.strip()
                     if not line:
@@ -287,7 +288,7 @@ class AnyDeskParser(BaseParser):
         evidence_id: str | None,
     ) -> ParsedEvent:
         """Create ECS event from AnyDesk entry."""
-        timestamp = entry.get("timestamp") or datetime.now(timezone.utc)
+        timestamp = entry.get("timestamp") or datetime.now(UTC)
         direction = entry.get("direction", "unknown")
         remote_id = entry.get("remote_id", "unknown")
 
@@ -329,9 +330,9 @@ class AnyDeskParser(BaseParser):
         try:
             # Format: YYYY-MM-DD HH:MM:SS.mmm
             if "." in ts_str:
-                return datetime.strptime(ts_str, "%Y-%m-%d %H:%M:%S.%f").replace(tzinfo=timezone.utc)
+                return datetime.strptime(ts_str, "%Y-%m-%d %H:%M:%S.%f").replace(tzinfo=UTC)
             else:
-                return datetime.strptime(ts_str, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
+                return datetime.strptime(ts_str, "%Y-%m-%d %H:%M:%S").replace(tzinfo=UTC)
         except Exception:
             return None
 
@@ -369,7 +370,7 @@ class RustDeskParser(BaseParser):
     ) -> AsyncIterator[ParsedEvent]:
         """Parse RustDesk log file."""
         try:
-            with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+            with open(file_path, encoding="utf-8", errors="ignore") as f:
                 for line_num, line in enumerate(f, 1):
                     line = line.strip()
                     if not line:
@@ -383,7 +384,7 @@ class RustDeskParser(BaseParser):
 
                         yield ParsedEvent(
                             id=str(uuid4()),
-                            timestamp=timestamp or datetime.now(timezone.utc),
+                            timestamp=timestamp or datetime.now(UTC),
                             message=f"RustDesk {direction}: Remote ID {remote_id}",
                             source="rustdesk",
                             raw_data={
@@ -425,6 +426,6 @@ class RustDeskParser(BaseParser):
         """Parse RustDesk timestamp."""
         try:
             ts_str = ts_str.replace("T", " ")
-            return datetime.strptime(ts_str, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
+            return datetime.strptime(ts_str, "%Y-%m-%d %H:%M:%S").replace(tzinfo=UTC)
         except Exception:
             return None

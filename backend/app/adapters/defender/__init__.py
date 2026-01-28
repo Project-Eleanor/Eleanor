@@ -9,9 +9,9 @@ Provides integration with Microsoft Defender for Endpoint for:
 
 from app.adapters.defender.adapter import DefenderAdapter
 from app.adapters.defender.schemas import (
+    DefenderAction,
     DefenderAlert,
     DefenderDevice,
-    DefenderAction,
     DefenderInvestigation,
 )
 

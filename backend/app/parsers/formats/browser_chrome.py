@@ -6,9 +6,10 @@ Cookies, and Login Data.
 
 import logging
 import sqlite3
-from datetime import datetime, timezone
+from collections.abc import Iterator
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, BinaryIO, Iterator
+from typing import BinaryIO
 
 from app.parsers.base import ParsedEvent, ParserCategory
 from app.parsers.formats.browser_sqlite_base import BrowserSQLiteParser
@@ -23,14 +24,14 @@ WEBKIT_EPOCH_OFFSET = 11644473600000000  # Microseconds between 1601 and 1970
 def webkit_to_datetime(webkit_timestamp: int | None) -> datetime:
     """Convert WebKit timestamp to datetime."""
     if not webkit_timestamp or webkit_timestamp == 0:
-        return datetime.now(timezone.utc)
+        return datetime.now(UTC)
 
     try:
         # Convert to Unix timestamp (seconds)
         unix_ts = (webkit_timestamp - WEBKIT_EPOCH_OFFSET) / 1000000
-        return datetime.fromtimestamp(unix_ts, tz=timezone.utc)
+        return datetime.fromtimestamp(unix_ts, tz=UTC)
     except (OSError, ValueError, OverflowError):
-        return datetime.now(timezone.utc)
+        return datetime.now(UTC)
 
 
 @register_parser

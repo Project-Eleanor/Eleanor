@@ -9,10 +9,9 @@ Provides:
 
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-from uuid import UUID
 
 import httpx
 from sqlalchemy import func, select
@@ -219,7 +218,7 @@ class MitreAttackService:
             "matrix": self._matrix,
             "technique_count": len([t for t in self._techniques.values() if not t["is_subtechnique"]]),
             "subtechnique_count": len([t for t in self._techniques.values() if t["is_subtechnique"]]),
-            "last_updated": datetime.now(timezone.utc).isoformat(),
+            "last_updated": datetime.now(UTC).isoformat(),
         }
 
     async def get_technique(self, technique_id: str) -> dict[str, Any] | None:
@@ -370,7 +369,7 @@ class MitreAttackService:
             "30d": timedelta(days=30),
         }
         delta = range_map.get(time_range, timedelta(days=7))
-        since = datetime.now(timezone.utc) - delta
+        since = datetime.now(UTC) - delta
 
         # Get alerts with MITRE mappings
         query = (

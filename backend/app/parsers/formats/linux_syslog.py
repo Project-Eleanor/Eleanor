@@ -5,9 +5,10 @@ Parses Linux syslog, messages, and kern.log files.
 
 import logging
 import re
-from datetime import datetime, timezone
+from collections.abc import Iterator
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, BinaryIO, Iterator
+from typing import BinaryIO
 
 from app.parsers.base import BaseParser, ParsedEvent, ParserCategory
 from app.parsers.registry import register_parser
@@ -109,7 +110,7 @@ class LinuxSyslogParser(BaseParser):
                 import gzip
                 opener = gzip.open(source, "rt", encoding="utf-8", errors="ignore")
             elif isinstance(source, Path):
-                opener = open(source, "r", encoding="utf-8", errors="ignore")
+                opener = open(source, encoding="utf-8", errors="ignore")
             else:
                 import io
                 content = source.read()
@@ -247,8 +248,8 @@ class LinuxSyslogParser(BaseParser):
                     f"{current_year} {month} {day} {time_str}",
                     "%Y %m %d %H:%M:%S"
                 )
-                return ts.replace(tzinfo=timezone.utc)
+                return ts.replace(tzinfo=UTC)
             except ValueError:
                 pass
 
-        return datetime.now(timezone.utc)
+        return datetime.now(UTC)

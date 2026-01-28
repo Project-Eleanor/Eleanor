@@ -11,7 +11,7 @@ Shuffle API: https://shuffler.io/docs/API
 import json
 import logging
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 
@@ -48,9 +48,9 @@ class ShuffleAdapter(SOARAdapter):
     def __init__(self, config: AdapterConfig):
         """Initialize Shuffle adapter."""
         super().__init__(config)
-        self._client: Optional[httpx.AsyncClient] = None
-        self._version: Optional[str] = None
-        self._org_id: Optional[str] = None
+        self._client: httpx.AsyncClient | None = None
+        self._version: str | None = None
+        self._org_id: str | None = None
 
     async def _get_client(self) -> httpx.AsyncClient:
         """Get or create HTTP client."""
@@ -190,7 +190,7 @@ class ShuffleAdapter(SOARAdapter):
 
     async def list_workflows(
         self,
-        category: Optional[str] = None,
+        category: str | None = None,
         active_only: bool = True,
     ) -> list[Workflow]:
         """List available workflows."""
@@ -215,7 +215,7 @@ class ShuffleAdapter(SOARAdapter):
 
         return workflows
 
-    async def get_workflow(self, workflow_id: str) -> Optional[Workflow]:
+    async def get_workflow(self, workflow_id: str) -> Workflow | None:
         """Get workflow details."""
         try:
             result = await self._request("GET", f"/api/v1/workflows/{workflow_id}")
@@ -229,8 +229,8 @@ class ShuffleAdapter(SOARAdapter):
     async def trigger_workflow(
         self,
         workflow_id: str,
-        parameters: Optional[dict[str, Any]] = None,
-        triggered_by: Optional[str] = None,
+        parameters: dict[str, Any] | None = None,
+        triggered_by: str | None = None,
     ) -> WorkflowExecution:
         """Trigger a workflow execution."""
         # Get workflow name for reference
@@ -283,8 +283,8 @@ class ShuffleAdapter(SOARAdapter):
 
     async def list_executions(
         self,
-        workflow_id: Optional[str] = None,
-        status: Optional[str] = None,
+        workflow_id: str | None = None,
+        status: str | None = None,
         limit: int = 50,
     ) -> list[WorkflowExecution]:
         """List workflow executions."""
@@ -385,7 +385,7 @@ class ShuffleAdapter(SOARAdapter):
         self,
         approval_id: str,
         approved_by: str,
-        comment: Optional[str] = None,
+        comment: str | None = None,
     ) -> bool:
         """Approve a waiting execution.
 
@@ -413,7 +413,7 @@ class ShuffleAdapter(SOARAdapter):
         self,
         approval_id: str,
         denied_by: str,
-        reason: Optional[str] = None,
+        reason: str | None = None,
     ) -> bool:
         """Deny a waiting execution."""
         try:
@@ -434,7 +434,7 @@ class ShuffleAdapter(SOARAdapter):
     async def isolate_host_workflow(
         self,
         hostname: str,
-        case_id: Optional[str] = None,
+        case_id: str | None = None,
     ) -> WorkflowExecution:
         """Trigger host isolation workflow."""
         # Try to find the host isolation workflow by name/tag
@@ -458,7 +458,7 @@ class ShuffleAdapter(SOARAdapter):
     async def block_ip_workflow(
         self,
         ip_address: str,
-        case_id: Optional[str] = None,
+        case_id: str | None = None,
     ) -> WorkflowExecution:
         """Trigger IP blocking workflow."""
         workflows = await self.list_workflows(category="firewall")
@@ -480,7 +480,7 @@ class ShuffleAdapter(SOARAdapter):
     async def disable_user_workflow(
         self,
         username: str,
-        case_id: Optional[str] = None,
+        case_id: str | None = None,
     ) -> WorkflowExecution:
         """Trigger user disable workflow."""
         workflows = await self.list_workflows(category="identity")

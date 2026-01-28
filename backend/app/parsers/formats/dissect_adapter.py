@@ -7,9 +7,10 @@ error handling, record normalization, and timestamp extraction.
 
 import logging
 from abc import abstractmethod
-from datetime import datetime, timezone
+from collections.abc import Iterator
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, BinaryIO, Iterator
+from typing import Any, BinaryIO
 
 from app.parsers.base import BaseParser, ParsedEvent, ParserCategory
 
@@ -151,11 +152,11 @@ class DissectParserAdapter(BaseParser):
             datetime in UTC
         """
         if value is None:
-            return datetime.now(timezone.utc)
+            return datetime.now(UTC)
 
         if isinstance(value, datetime):
             if value.tzinfo is None:
-                return value.replace(tzinfo=timezone.utc)
+                return value.replace(tzinfo=UTC)
             return value
 
         if isinstance(value, (int, float)):
@@ -171,9 +172,9 @@ class DissectParserAdapter(BaseParser):
                     # Milliseconds (e.g., 1768563000000)
                     value = value / 1e3
                 # Otherwise seconds (e.g., 1768563000)
-                return datetime.fromtimestamp(value, tz=timezone.utc)
+                return datetime.fromtimestamp(value, tz=UTC)
             except (OSError, ValueError):
-                return datetime.now(timezone.utc)
+                return datetime.now(UTC)
 
         if isinstance(value, str):
             try:
@@ -181,7 +182,7 @@ class DissectParserAdapter(BaseParser):
             except ValueError:
                 pass
 
-        return datetime.now(timezone.utc)
+        return datetime.now(UTC)
 
     def _safe_str(self, value: Any) -> str | None:
         """Safely convert value to string."""
@@ -215,7 +216,7 @@ class DissectParserAdapter(BaseParser):
 
         try:
             # Handle Windows paths correctly even on Unix
-            from pathlib import PureWindowsPath, PurePosixPath
+            from pathlib import PurePosixPath, PureWindowsPath
 
             # Detect path type based on separators
             if "\\" in path or (len(path) > 1 and path[1] == ":"):

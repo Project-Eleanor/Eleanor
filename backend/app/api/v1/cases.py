@@ -1,6 +1,6 @@
 """Cases API endpoints."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Annotated
 from uuid import UUID
 
@@ -335,7 +335,7 @@ async def update_case(
 
     # Handle status transitions
     if case_data.status == CaseStatus.CLOSED and not case.closed_at:
-        case.closed_at = datetime.now(timezone.utc)
+        case.closed_at = datetime.now(UTC)
     elif case_data.status != CaseStatus.CLOSED:
         case.closed_at = None
 

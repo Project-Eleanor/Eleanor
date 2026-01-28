@@ -6,7 +6,7 @@ conditional branching, approval gates, and error handling.
 
 import asyncio
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID
 
@@ -23,7 +23,7 @@ from app.models.playbook import (
     PlaybookStatus,
     StepType,
 )
-from app.services.action_executor import ActionExecutor, get_action_executor
+from app.services.action_executor import get_action_executor
 
 logger = logging.getLogger(__name__)
 
@@ -124,7 +124,7 @@ class PlaybookEngine:
 
         if not steps:
             execution.status = ExecutionStatus.COMPLETED
-            execution.completed_at = datetime.now(timezone.utc)
+            execution.completed_at = datetime.now(UTC)
             await db.commit()
             return execution
 
@@ -174,7 +174,7 @@ class PlaybookEngine:
 
             # Execution completed successfully
             execution.status = ExecutionStatus.COMPLETED
-            execution.completed_at = datetime.now(timezone.utc)
+            execution.completed_at = datetime.now(UTC)
             execution.duration_seconds = int(
                 (execution.completed_at - execution.started_at).total_seconds()
             )
@@ -194,7 +194,7 @@ class PlaybookEngine:
             execution.status = ExecutionStatus.FAILED
             execution.error_message = str(e)
             execution.error_step_id = execution.current_step_id
-            execution.completed_at = datetime.now(timezone.utc)
+            execution.completed_at = datetime.now(UTC)
             playbook.failure_count += 1
 
             logger.error(
@@ -258,7 +258,7 @@ class PlaybookEngine:
         )
         pending_approval.approved_by = decided_by
         pending_approval.decision_comment = decision_comment
-        pending_approval.decided_at = datetime.now(timezone.utc)
+        pending_approval.decided_at = datetime.now(UTC)
 
         # Update step result
         step_results = list(execution.step_results)
@@ -270,7 +270,7 @@ class PlaybookEngine:
                     "approved": approved,
                     "decision_comment": decision_comment,
                     "decided_by": str(decided_by),
-                    "decided_at": datetime.now(timezone.utc).isoformat(),
+                    "decided_at": datetime.now(UTC).isoformat(),
                 }
                 break
 
@@ -290,7 +290,7 @@ class PlaybookEngine:
                 # No denial handler - mark as failed
                 execution.status = ExecutionStatus.FAILED
                 execution.error_message = "Approval denied"
-                execution.completed_at = datetime.now(timezone.utc)
+                execution.completed_at = datetime.now(UTC)
         else:
             # Continue execution
             playbook = execution.playbook
@@ -302,7 +302,7 @@ class PlaybookEngine:
                 execution.status = ExecutionStatus.RUNNING
             else:
                 execution.status = ExecutionStatus.COMPLETED
-                execution.completed_at = datetime.now(timezone.utc)
+                execution.completed_at = datetime.now(UTC)
 
         await db.commit()
 
@@ -345,7 +345,7 @@ class PlaybookEngine:
 
         execution.status = ExecutionStatus.CANCELLED
         execution.error_message = f"Cancelled by user {cancelled_by}"
-        execution.completed_at = datetime.now(timezone.utc)
+        execution.completed_at = datetime.now(UTC)
 
         await db.commit()
 
@@ -370,7 +370,7 @@ class PlaybookEngine:
         """
         step_id = step["id"]
         step_type = StepType(step.get("type", "action"))
-        started_at = datetime.now(timezone.utc)
+        started_at = datetime.now(UTC)
 
         result = {
             "step_id": step_id,
@@ -414,12 +414,12 @@ class PlaybookEngine:
                 case _:
                     raise ValueError(f"Unknown step type: {step_type}")
 
-            result["completed_at"] = datetime.now(timezone.utc).isoformat()
+            result["completed_at"] = datetime.now(UTC).isoformat()
 
         except Exception as e:
             result["status"] = "failed"
             result["error"] = str(e)
-            result["completed_at"] = datetime.now(timezone.utc).isoformat()
+            result["completed_at"] = datetime.now(UTC).isoformat()
             logger.error(
                 "Step %s failed in execution %s: %s",
                 step_id,
@@ -471,7 +471,7 @@ class PlaybookEngine:
                 "input_data": execution.input_data,
             },
             required_approvers=step.get("approvers", []),
-            expires_at=datetime.now(timezone.utc) + timedelta(hours=timeout_hours),
+            expires_at=datetime.now(UTC) + timedelta(hours=timeout_hours),
         )
 
         db.add(approval)

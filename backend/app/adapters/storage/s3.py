@@ -6,9 +6,9 @@ Provides storage operations using Amazon S3 or S3-compatible storage
 
 import hashlib
 import logging
-from datetime import datetime
+from collections.abc import AsyncIterator
 from io import BytesIO
-from typing import Any, AsyncIterator, BinaryIO
+from typing import Any, BinaryIO
 
 from app.adapters.storage.base import (
     StorageAdapter,

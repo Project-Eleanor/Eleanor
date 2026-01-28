@@ -4,9 +4,10 @@ Parses NTFS USN Journal ($UsnJrnl:$J) to extract filesystem change records.
 """
 
 import logging
-from datetime import datetime, timezone
+from collections.abc import Iterator
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, BinaryIO, Iterator
+from typing import Any, BinaryIO
 
 from app.parsers.base import BaseParser, ParsedEvent, ParserCategory
 from app.parsers.registry import register_parser
@@ -264,7 +265,7 @@ class UsnJournalParser(BaseParser):
         """Convert a dissect USN record to ParsedEvent."""
         try:
             filename = record.filename if hasattr(record, "filename") else str(record)
-            timestamp = self._filetime_to_datetime(record.timestamp.value) if hasattr(record, "timestamp") else datetime.now(timezone.utc)
+            timestamp = self._filetime_to_datetime(record.timestamp.value) if hasattr(record, "timestamp") else datetime.now(UTC)
             reason = record.reason if hasattr(record, "reason") else 0
             attributes = record.file_attributes if hasattr(record, "file_attributes") else 0
 
@@ -317,14 +318,14 @@ class UsnJournalParser(BaseParser):
     def _filetime_to_datetime(self, filetime: int) -> datetime:
         """Convert Windows FILETIME to datetime."""
         if not filetime:
-            return datetime.now(timezone.utc)
+            return datetime.now(UTC)
 
         try:
             # FILETIME is 100-nanosecond intervals since Jan 1, 1601
             unix_ts = (filetime - 116444736000000000) / 10000000
-            return datetime.fromtimestamp(unix_ts, tz=timezone.utc)
+            return datetime.fromtimestamp(unix_ts, tz=UTC)
         except (OSError, ValueError, OverflowError):
-            return datetime.now(timezone.utc)
+            return datetime.now(UTC)
 
     def _decode_reason(self, reason: int) -> list[str]:
         """Decode USN reason flags to human-readable strings."""

@@ -5,7 +5,6 @@ Handles batch indexing, re-indexing, and index management operations.
 
 import logging
 from typing import Any
-from uuid import UUID
 
 from celery import shared_task
 

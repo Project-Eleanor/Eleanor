@@ -4,9 +4,10 @@ Parses NTFS MFT files to extract filesystem metadata for timeline analysis.
 """
 
 import logging
-from datetime import datetime, timezone
+from collections.abc import Iterator
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, BinaryIO, Iterator
+from typing import Any, BinaryIO
 
 from app.parsers.base import ParsedEvent, ParserCategory
 from app.parsers.formats.dissect_adapter import DissectParserAdapter
@@ -121,7 +122,7 @@ class NTFSMftParser(DissectParserAdapter):
                     fn_accessed = self._to_datetime(fn.access_time)
 
             # Use most relevant timestamp (modification time)
-            timestamp = si_modified or fn_modified or datetime.now(timezone.utc)
+            timestamp = si_modified or fn_modified or datetime.now(UTC)
 
             # Determine if it's a file or directory
             is_directory = False

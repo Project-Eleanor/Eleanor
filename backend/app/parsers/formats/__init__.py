@@ -57,9 +57,9 @@ except ImportError:
 # Browser parsers - Edge
 try:
     from app.parsers.formats.browser_edge import (
-        EdgeHistoryParser,
-        EdgeDownloadsParser,
         EdgeBookmarksParser,
+        EdgeDownloadsParser,
+        EdgeHistoryParser,
     )
     __all__.extend(["EdgeHistoryParser", "EdgeDownloadsParser", "EdgeBookmarksParser"])
 except ImportError:
@@ -138,7 +138,7 @@ except ImportError:
 
 # Remote access parsers
 try:
-    from app.parsers.formats.remoteaccess import TeamViewerParser, AnyDeskParser, RustDeskParser
+    from app.parsers.formats.remoteaccess import AnyDeskParser, RustDeskParser, TeamViewerParser
     __all__.extend(["TeamViewerParser", "AnyDeskParser", "RustDeskParser"])
 except ImportError:
     pass
@@ -148,8 +148,8 @@ try:
     from app.parsers.formats.webserver import (
         ApacheAccessParser,
         ApacheErrorParser,
-        NginxAccessParser,
         IISParser,
+        NginxAccessParser,
     )
     __all__.extend(["ApacheAccessParser", "ApacheErrorParser", "NginxAccessParser", "IISParser"])
 except ImportError:

@@ -19,12 +19,11 @@ Volatility 3 plugins used:
 import asyncio
 import json
 import logging
-import re
 import subprocess
-import tempfile
-from datetime import datetime, timezone
+from collections.abc import AsyncIterator
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, AsyncIterator
+from typing import Any
 from uuid import uuid4
 
 from app.parsers.base import BaseParser, ParsedEvent, ParserMetadata
@@ -390,13 +389,13 @@ class MemoryParser(BaseParser):
         create_time = proc.get("CreateTime") or proc.get("create_time")
 
         # Parse timestamp if present
-        timestamp = datetime.now(timezone.utc)
+        timestamp = datetime.now(UTC)
         if create_time:
             try:
                 if isinstance(create_time, str):
                     timestamp = datetime.fromisoformat(create_time.replace("Z", "+00:00"))
                 elif isinstance(create_time, (int, float)):
-                    timestamp = datetime.fromtimestamp(create_time, tz=timezone.utc)
+                    timestamp = datetime.fromtimestamp(create_time, tz=UTC)
             except Exception:
                 pass
 
@@ -457,7 +456,7 @@ class MemoryParser(BaseParser):
 
         return ParsedEvent(
             id=str(uuid4()),
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             message=f"Command line: {args[:200]}{'...' if len(str(args)) > 200 else ''}",
             source="volatility3",
             raw_data=cmdline,
@@ -508,7 +507,7 @@ class MemoryParser(BaseParser):
 
         return ParsedEvent(
             id=str(uuid4()),
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             message=f"Loaded DLL: {path}",
             source="volatility3",
             raw_data=dll,
@@ -569,7 +568,7 @@ class MemoryParser(BaseParser):
 
         return ParsedEvent(
             id=str(uuid4()),
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             message=f"Network: {local_addr}:{local_port} -> {remote_addr}:{remote_port} ({state})",
             source="volatility3",
             raw_data=conn,
@@ -631,7 +630,7 @@ class MemoryParser(BaseParser):
 
         return ParsedEvent(
             id=str(uuid4()),
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             message=f"Suspicious memory region in {name} (PID: {pid}) at {hex(address) if isinstance(address, int) else address}",
             source="volatility3",
             raw_data=mal,
@@ -694,7 +693,7 @@ class MemoryParser(BaseParser):
 
         return ParsedEvent(
             id=str(uuid4()),
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             message=f"Handle: {handle_type} - {name}",
             source="volatility3",
             raw_data=handle,
@@ -750,7 +749,7 @@ class MemoryParser(BaseParser):
 
         return ParsedEvent(
             id=str(uuid4()),
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             message=f"Service: {name} ({state})",
             source="volatility3",
             raw_data=svc,
@@ -804,7 +803,7 @@ class MemoryParser(BaseParser):
 
         return ParsedEvent(
             id=str(uuid4()),
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             message=f"Driver: {name}",
             source="volatility3",
             raw_data=drv,
@@ -851,11 +850,11 @@ class MemoryParser(BaseParser):
         command = cmd.get("Command") or cmd.get("command") or ""
         timestamp_val = cmd.get("Timestamp") or cmd.get("timestamp")
 
-        timestamp = datetime.now(timezone.utc)
+        timestamp = datetime.now(UTC)
         if timestamp_val:
             try:
                 if isinstance(timestamp_val, (int, float)):
-                    timestamp = datetime.fromtimestamp(timestamp_val, tz=timezone.utc)
+                    timestamp = datetime.fromtimestamp(timestamp_val, tz=UTC)
                 elif isinstance(timestamp_val, str):
                     timestamp = datetime.fromisoformat(timestamp_val.replace("Z", "+00:00"))
             except Exception:
@@ -914,7 +913,7 @@ class MemoryParser(BaseParser):
 
         return ParsedEvent(
             id=str(uuid4()),
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             message=f"Open file: {path}",
             source="volatility3",
             raw_data=fd,
@@ -965,7 +964,7 @@ class MemoryParser(BaseParser):
 
         return ParsedEvent(
             id=str(uuid4()),
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             message=f"Kernel module: {name}",
             source="volatility3",
             raw_data=mod,

@@ -3,7 +3,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query, status
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,8 +11,8 @@ from sqlalchemy.orm import selectinload
 
 from app.api.v1.auth import get_current_user
 from app.database import get_db
-from app.exceptions import AuthorizationError, NotFoundError, BadRequestError
-from app.models.rbac import Permission, Role, role_permissions, user_roles
+from app.exceptions import AuthorizationError, BadRequestError, NotFoundError
+from app.models.rbac import Permission, Role
 from app.models.user import User
 
 router = APIRouter()

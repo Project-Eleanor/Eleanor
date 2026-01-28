@@ -5,9 +5,9 @@ Provides storage operations using Microsoft Azure Blob Storage.
 
 import hashlib
 import logging
-from datetime import datetime, timedelta, timezone
-from io import BytesIO
-from typing import Any, AsyncIterator, BinaryIO
+from collections.abc import AsyncIterator
+from datetime import UTC, datetime, timedelta
+from typing import Any, BinaryIO
 
 from app.adapters.storage.base import (
     StorageAdapter,
@@ -42,8 +42,8 @@ class AzureBlobStorageAdapter(StorageAdapter):
     async def connect(self) -> bool:
         """Initialize Azure client and verify container access."""
         try:
-            from azure.storage.blob import BlobServiceClient
             from azure.core.exceptions import ResourceNotFoundError
+            from azure.storage.blob import BlobServiceClient
 
             # Build client using connection string or account key
             if self.config.connection_string:
@@ -272,7 +272,7 @@ class AzureBlobStorageAdapter(StorageAdapter):
         if not self._container_client:
             raise RuntimeError("Azure client not connected")
 
-        from azure.storage.blob import generate_blob_sas, BlobSasPermissions
+        from azure.storage.blob import BlobSasPermissions, generate_blob_sas
 
         blob_client = self._container_client.get_blob_client(key)
 
@@ -283,7 +283,7 @@ class AzureBlobStorageAdapter(StorageAdapter):
             blob_name=key,
             account_key=self.config.access_key,
             permission=BlobSasPermissions(read=True),
-            expiry=datetime.now(timezone.utc) + timedelta(seconds=expires_in),
+            expiry=datetime.now(UTC) + timedelta(seconds=expires_in),
             content_disposition=f'attachment; filename="{filename}"' if filename else None,
         )
 
@@ -455,7 +455,7 @@ class AzureBlobStorageAdapter(StorageAdapter):
         if not self._container_client:
             raise RuntimeError("Azure client not connected")
 
-        from azure.storage.blob import generate_blob_sas, BlobSasPermissions
+        from azure.storage.blob import BlobSasPermissions, generate_blob_sas
 
         blob_client = self._container_client.get_blob_client(key)
 
@@ -467,7 +467,7 @@ class AzureBlobStorageAdapter(StorageAdapter):
             blob_name=key,
             account_key=self.config.access_key,
             permission=permissions,
-            expiry=datetime.now(timezone.utc) + timedelta(seconds=expires_in),
+            expiry=datetime.now(UTC) + timedelta(seconds=expires_in),
         )
 
         return f"{blob_client.url}?{sas_token}"

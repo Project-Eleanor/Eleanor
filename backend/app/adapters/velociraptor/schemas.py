@@ -5,7 +5,7 @@ by the gRPC/REST API.
 """
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -19,8 +19,8 @@ class VelociraptorClient(BaseModel):
     os_info: dict[str, Any] = Field(default_factory=dict)
     agent_info: dict[str, Any] = Field(default_factory=dict)
     labels: list[str] = Field(default_factory=list)
-    first_seen_at: Optional[datetime] = None
-    last_seen_at: Optional[datetime] = None
+    first_seen_at: datetime | None = None
+    last_seen_at: datetime | None = None
     last_ip: str = ""
     last_interrogate_flow_id: str = ""
 
@@ -64,9 +64,9 @@ class VelociraptorFlow(BaseModel):
     request: dict[str, Any] = Field(default_factory=dict)
     state: str = "UNSET"  # UNSET, RUNNING, FINISHED, ERROR
     status: str = ""
-    create_time: Optional[datetime] = None
-    start_time: Optional[datetime] = None
-    active_time: Optional[datetime] = None
+    create_time: datetime | None = None
+    start_time: datetime | None = None
+    active_time: datetime | None = None
     total_uploaded_files: int = 0
     total_uploaded_bytes: int = 0
     total_collected_rows: int = 0
@@ -90,9 +90,9 @@ class VelociraptorHunt(BaseModel):
     hunt_id: str
     hunt_description: str = ""
     creator: str = ""
-    create_time: Optional[datetime] = None
-    start_time: Optional[datetime] = None
-    expires: Optional[datetime] = None
+    create_time: datetime | None = None
+    start_time: datetime | None = None
+    expires: datetime | None = None
     state: str = "UNSET"  # UNSET, PAUSED, RUNNING, STOPPED, ARCHIVED
     stats: dict[str, Any] = Field(default_factory=dict)
     start_request: dict[str, Any] = Field(default_factory=dict)

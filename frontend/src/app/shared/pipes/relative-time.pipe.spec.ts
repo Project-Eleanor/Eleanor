@@ -57,7 +57,8 @@ describe('RelativeTimePipe', () => {
 
   describe('relative time calculations', () => {
     it('should show "less than a minute ago" for recent times', () => {
-      const result = pipe.transform('2025-01-20T11:59:30Z');
+      // Use 10 seconds ago (well under the 30s threshold for date-fns)
+      const result = pipe.transform('2025-01-20T11:59:50Z');
       expect(result).toContain('less than a minute');
     });
 

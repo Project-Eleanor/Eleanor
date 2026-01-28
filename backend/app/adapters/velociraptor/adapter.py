@@ -12,12 +12,12 @@ Uses gRPC with pyvelociraptor for secure programmatic access via client certific
 import asyncio
 import json
 import logging
-from datetime import datetime, timedelta
-from typing import Any, Optional
+from datetime import datetime
+from typing import Any
 
 import grpc
-from grpc import RpcError
 import httpx
+from grpc import RpcError
 from pyvelociraptor import api_pb2, api_pb2_grpc
 
 from app.adapters.base import (
@@ -49,10 +49,10 @@ class VelociraptorAdapter(CollectionAdapter):
     def __init__(self, config: AdapterConfig):
         """Initialize Velociraptor adapter."""
         super().__init__(config)
-        self._client: Optional[httpx.AsyncClient] = None
-        self._grpc_channel: Optional[grpc.Channel] = None
-        self._grpc_stub: Optional[api_pb2_grpc.APIStub] = None
-        self._version: Optional[str] = None
+        self._client: httpx.AsyncClient | None = None
+        self._grpc_channel: grpc.Channel | None = None
+        self._grpc_stub: api_pb2_grpc.APIStub | None = None
+        self._version: str | None = None
 
     async def _get_client(self) -> httpx.AsyncClient:
         """Get or create HTTP client."""
@@ -123,7 +123,7 @@ class VelociraptorAdapter(CollectionAdapter):
 
         return self._grpc_channel
 
-    def _vql_query_sync(self, query: str, env: Optional[dict] = None) -> list[dict]:
+    def _vql_query_sync(self, query: str, env: dict | None = None) -> list[dict]:
         """Execute VQL query synchronously via gRPC."""
         self._get_grpc_channel()
 
@@ -177,7 +177,7 @@ class VelociraptorAdapter(CollectionAdapter):
     async def _vql_query(
         self,
         query: str,
-        env: Optional[dict[str, Any]] = None,
+        env: dict[str, Any] | None = None,
     ) -> list[dict[str, Any]]:
         """Execute VQL query asynchronously via gRPC.
 
@@ -249,7 +249,7 @@ class VelociraptorAdapter(CollectionAdapter):
         self,
         limit: int = 100,
         offset: int = 0,
-        search: Optional[str] = None,
+        search: str | None = None,
         online_only: bool = False,
     ) -> list[Endpoint]:
         """List Velociraptor clients."""
@@ -287,7 +287,7 @@ class VelociraptorAdapter(CollectionAdapter):
 
         return endpoints
 
-    async def get_endpoint(self, client_id: str) -> Optional[Endpoint]:
+    async def get_endpoint(self, client_id: str) -> Endpoint | None:
         """Get a specific endpoint."""
         rows = await self._vql_query(
             f"SELECT * FROM clients(client_id='{client_id}')"
@@ -322,7 +322,7 @@ class VelociraptorAdapter(CollectionAdapter):
 
     async def list_artifacts(
         self,
-        category: Optional[str] = None,
+        category: str | None = None,
     ) -> list[CollectionArtifact]:
         """List available Velociraptor artifacts."""
         query = "SELECT * FROM artifact_definitions()"
@@ -352,7 +352,7 @@ class VelociraptorAdapter(CollectionAdapter):
         self,
         client_id: str,
         artifact_name: str,
-        parameters: Optional[dict[str, Any]] = None,
+        parameters: dict[str, Any] | None = None,
         urgent: bool = False,
     ) -> CollectionJob:
         """Collect an artifact from an endpoint via gRPC."""
@@ -442,7 +442,7 @@ class VelociraptorAdapter(CollectionAdapter):
     async def list_hunts(
         self,
         limit: int = 50,
-        state: Optional[str] = None,
+        state: str | None = None,
     ) -> list[Hunt]:
         """List hunts."""
         query = f"SELECT * FROM hunts() LIMIT {limit}"
@@ -475,9 +475,9 @@ class VelociraptorAdapter(CollectionAdapter):
         self,
         name: str,
         artifact_name: str,
-        description: Optional[str] = None,
-        parameters: Optional[dict[str, Any]] = None,
-        target_labels: Optional[dict[str, str]] = None,
+        description: str | None = None,
+        parameters: dict[str, Any] | None = None,
+        target_labels: dict[str, str] | None = None,
         expires_hours: int = 168,
     ) -> Hunt:
         """Create a new hunt via gRPC."""

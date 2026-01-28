@@ -6,7 +6,7 @@ for consistent storage and querying in Elasticsearch.
 
 import hashlib
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from app.parsers.base import ParsedEvent
@@ -98,7 +98,7 @@ class ECSNormalizer:
             "source_type": event.source_type,
             "source_file": event.source_file,
             "source_line": event.source_line,
-            "indexed_at": datetime.now(timezone.utc).isoformat(),
+            "indexed_at": datetime.now(UTC).isoformat(),
         }
 
         # Generate document ID for deduplication
@@ -123,7 +123,7 @@ class ECSNormalizer:
 
         # Add original event info
         fields["original"] = event.message or ""
-        fields["created"] = datetime.now(timezone.utc).isoformat()
+        fields["created"] = datetime.now(UTC).isoformat()
 
         return fields
 

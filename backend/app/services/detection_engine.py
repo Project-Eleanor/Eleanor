@@ -10,14 +10,13 @@ This service handles:
 import logging
 from datetime import datetime, timedelta
 from typing import Any
-from uuid import UUID
 
 from elasticsearch import AsyncElasticsearch
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
-from app.database import get_db, get_elasticsearch
+from app.database import get_elasticsearch
 from app.models.analytics import DetectionRule, RuleExecution, RuleStatus
 
 logger = logging.getLogger(__name__)

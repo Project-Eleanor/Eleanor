@@ -5,9 +5,10 @@ Uses scapy for packet parsing.
 """
 
 import logging
-from datetime import datetime, timezone
+from collections.abc import Iterator
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, BinaryIO, Iterator
+from typing import TYPE_CHECKING, Any, BinaryIO
 
 from app.parsers.base import BaseParser, ParsedEvent, ParserCategory
 from app.parsers.registry import register_parser
@@ -81,7 +82,7 @@ class PcapParser(BaseParser):
         source_str = source_name or (str(source) if isinstance(source, Path) else "stream")
 
         try:
-            from scapy.all import rdpcap, IP, TCP, UDP, DNS, ICMP, Ether
+            from scapy.all import DNS, ICMP, IP, TCP, UDP, Ether, rdpcap
 
             # Read packets
             if isinstance(source, Path):
@@ -130,10 +131,10 @@ class PcapParser(BaseParser):
         connections: dict[ConnectionKey, ConnectionInfo],
     ) -> ParsedEvent | None:
         """Parse a single packet."""
-        from scapy.all import IP, TCP, UDP, DNS, ICMP, HTTP, Raw
+        from scapy.all import DNS, ICMP, IP, TCP, UDP, Raw
 
         # Get timestamp
-        timestamp = datetime.fromtimestamp(float(pkt.time), tz=timezone.utc)
+        timestamp = datetime.fromtimestamp(float(pkt.time), tz=UTC)
 
         # Skip non-IP packets for now
         if not pkt.haslayer(IP):

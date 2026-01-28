@@ -21,9 +21,10 @@ import logging
 import sqlite3
 import tempfile
 from abc import ABC
+from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import BinaryIO, Generator
+from typing import BinaryIO
 from urllib.parse import urlparse
 
 from app.parsers.base import BaseParser

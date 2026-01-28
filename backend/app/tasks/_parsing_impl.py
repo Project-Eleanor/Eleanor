@@ -5,17 +5,15 @@ to allow proper async/await usage with database operations.
 """
 
 import logging
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.config import get_settings
 from app.models.evidence import Evidence
-from app.models.parsing_job import ParsingJob, ParsingJobStatus
+from app.models.parsing_job import ParsingJob
 from app.parsers.registry import get_parser, load_builtin_parsers
 
 logger = logging.getLogger(__name__)

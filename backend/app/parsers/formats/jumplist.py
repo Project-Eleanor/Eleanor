@@ -11,9 +11,10 @@ Location: %APPDATA%\\Microsoft\\Windows\\Recent\\AutomaticDestinations\\
 
 import logging
 import struct
-from datetime import datetime, timezone
+from collections.abc import AsyncIterator
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, AsyncIterator
+from typing import Any
 from uuid import uuid4
 
 from app.parsers.base import BaseParser, ParsedEvent, ParserMetadata
@@ -287,9 +288,9 @@ class JumpListParser(BaseParser):
 
         try:
             # Header
-            version = struct.unpack("<I", data[0:4])[0]
+            struct.unpack("<I", data[0:4])[0]
             num_entries = struct.unpack("<I", data[4:8])[0]
-            pinned_entries = struct.unpack("<I", data[8:12])[0]
+            struct.unpack("<I", data[8:12])[0]
 
             offset = 32  # Skip header
 
@@ -348,7 +349,7 @@ class JumpListParser(BaseParser):
         """Create ECS event from Jump List entry."""
         target_path = entry.get("target_path", "unknown")
         app_name = entry.get("app_name", "unknown")
-        access_time = entry.get("access_time") or entry.get("modification_time") or datetime.now(timezone.utc)
+        access_time = entry.get("access_time") or entry.get("modification_time") or datetime.now(UTC)
 
         return ParsedEvent(
             id=str(uuid4()),
@@ -403,6 +404,6 @@ class JumpListParser(BaseParser):
             timestamp = (filetime - epoch_diff) / 10000000
             if timestamp < 0 or timestamp > 4102444800:
                 return None
-            return datetime.fromtimestamp(timestamp, tz=timezone.utc)
+            return datetime.fromtimestamp(timestamp, tz=UTC)
         except Exception:
             return None

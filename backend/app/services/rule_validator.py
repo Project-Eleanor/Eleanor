@@ -12,12 +12,10 @@ from app.schemas.rule_builder import (
     ComparisonOperator,
     EventDefinition,
     FieldCondition,
-    JoinField,
     PatternType,
     RuleBuilderConfig,
     RuleValidationError,
     RuleValidationResult,
-    ThresholdCondition,
 )
 
 logger = logging.getLogger(__name__)

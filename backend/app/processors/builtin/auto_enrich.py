@@ -4,7 +4,7 @@ Automatically enriches IOCs when cases are created or updated.
 """
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from app.processors.base import (
     BaseProcessor,
@@ -77,7 +77,7 @@ class AutoEnrichProcessor(BaseProcessor):
         Returns:
             ProcessorResult with enrichment data
         """
-        started_at = datetime.now(timezone.utc)
+        started_at = datetime.now(UTC)
         changes = []
         errors = []
         enrichment_data = {
@@ -223,6 +223,7 @@ class AutoEnrichProcessor(BaseProcessor):
 
         try:
             from sqlalchemy import select
+
             from app.models.case import Case
 
             stmt = select(Case).where(Case.id == context.case_id)
@@ -278,7 +279,7 @@ class AutoEnrichProcessor(BaseProcessor):
             # Update case metadata
             current_metadata = case.case_metadata or {}
             current_metadata["enrichment"] = {
-                "last_run": datetime.now(timezone.utc).isoformat(),
+                "last_run": datetime.now(UTC).isoformat(),
                 "results": enrichment_summary,
             }
             case.case_metadata = current_metadata

@@ -407,9 +407,14 @@ class MockSessionFactory:
                 if value is not None:
                     # Check if this is a search pattern (contains % wildcards)
                     if isinstance(value, str) and value.startswith('%') and value.endswith('%'):
-                        # Extract the search term from ILIKE pattern
+                        # Extract the search term from ILIKE pattern (%term%)
                         search_term = value.strip('%')
                         filters['search'] = search_term
+                    elif isinstance(value, str) and value.endswith('%') and not value.startswith('%'):
+                        # This is a prefix LIKE pattern (term%) - used for case numbers
+                        import re
+                        clean_key = re.sub(r'_\d+$', '', key)
+                        filters[f'{clean_key}_prefix'] = value.rstrip('%')
                     else:
                         # Normalize key name (remove _1, _2 suffixes added by SQLAlchemy)
                         import re
@@ -459,6 +464,15 @@ class MockSessionFactory:
                                 found = True
                                 break
                     if not found:
+                        match = False
+                        break
+                    continue
+
+                # Handle prefix filters (e.g., case_number_prefix)
+                if field.endswith('_prefix'):
+                    actual_field = field[:-7]  # Remove '_prefix' suffix
+                    item_value = getattr(item, actual_field, None)
+                    if item_value is None or not str(item_value).startswith(str(value)):
                         match = False
                         break
                     continue

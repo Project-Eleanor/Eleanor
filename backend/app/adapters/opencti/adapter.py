@@ -10,8 +10,7 @@ OpenCTI uses a GraphQL API for all operations.
 """
 
 import logging
-from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 
@@ -28,7 +27,6 @@ from app.adapters.base import (
 )
 from app.adapters.opencti.schemas import (
     OpenCTICampaign,
-    OpenCTIIndicator,
     OpenCTIThreatActor,
 )
 
@@ -59,8 +57,8 @@ class OpenCTIAdapter(ThreatIntelAdapter):
     def __init__(self, config: AdapterConfig):
         """Initialize OpenCTI adapter."""
         super().__init__(config)
-        self._client: Optional[httpx.AsyncClient] = None
-        self._version: Optional[str] = None
+        self._client: httpx.AsyncClient | None = None
+        self._version: str | None = None
 
     async def _get_client(self) -> httpx.AsyncClient:
         """Get or create HTTP client."""
@@ -79,7 +77,7 @@ class OpenCTIAdapter(ThreatIntelAdapter):
     async def _graphql(
         self,
         query: str,
-        variables: Optional[dict[str, Any]] = None,
+        variables: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Execute GraphQL query."""
         client = await self._get_client()
@@ -158,7 +156,7 @@ class OpenCTIAdapter(ThreatIntelAdapter):
         indicator_type: IndicatorType,
     ) -> EnrichmentResult:
         """Enrich an indicator with OpenCTI data."""
-        observable_type = INDICATOR_TYPE_MAP.get(indicator_type, "Unknown")
+        INDICATOR_TYPE_MAP.get(indicator_type, "Unknown")
 
         # Query for observable and related indicators
         query = """
@@ -248,7 +246,7 @@ class OpenCTIAdapter(ThreatIntelAdapter):
 
         # Build indicator
         score = node.get("x_opencti_score", 0)
-        labels = [l["value"] for l in node.get("objectLabel", [])]
+        labels = [label["value"] for label in node.get("objectLabel", [])]
 
         indicator = ThreatIndicator(
             value=value,
@@ -337,7 +335,7 @@ class OpenCTIAdapter(ThreatIntelAdapter):
     # Threat Actor Operations
     # =========================================================================
 
-    async def get_threat_actor(self, name: str) -> Optional[ThreatActor]:
+    async def get_threat_actor(self, name: str) -> ThreatActor | None:
         """Get threat actor by name."""
         query = """
         query GetThreatActor($filters: FilterGroup) {
@@ -445,7 +443,7 @@ class OpenCTIAdapter(ThreatIntelAdapter):
     # Campaign Operations
     # =========================================================================
 
-    async def get_campaign(self, name: str) -> Optional[Campaign]:
+    async def get_campaign(self, name: str) -> Campaign | None:
         """Get campaign by name."""
         query = """
         query GetCampaign($filters: FilterGroup) {
@@ -615,8 +613,8 @@ class OpenCTIAdapter(ThreatIntelAdapter):
         self,
         value: str,
         indicator_type: IndicatorType,
-        description: Optional[str] = None,
-        tags: Optional[list[str]] = None,
+        description: str | None = None,
+        tags: list[str] | None = None,
         confidence: int = 50,
     ) -> ThreatIndicator:
         """Submit a new indicator to OpenCTI."""

@@ -5,7 +5,7 @@ Logs all API requests for security monitoring and compliance.
 
 import logging
 import time
-from typing import Callable
+from collections.abc import Callable
 from uuid import uuid4
 
 from fastapi import Request, Response
@@ -95,7 +95,7 @@ class RequestAuditMiddleware(BaseHTTPMiddleware):
 
         # Get client info
         client_ip = get_client_ip(request)
-        user_agent = request.headers.get("User-Agent", "unknown")[:200]
+        request.headers.get("User-Agent", "unknown")[:200]
         method = request.method
 
         # Start timing

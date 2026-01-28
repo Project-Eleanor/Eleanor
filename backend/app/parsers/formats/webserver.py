@@ -10,9 +10,10 @@ Critical for investigating web-based attacks and data exfiltration.
 
 import logging
 import re
-from datetime import datetime, timezone
+from collections.abc import AsyncIterator
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, AsyncIterator
+from typing import Any
 from uuid import uuid4
 
 from app.parsers.base import BaseParser, ParsedEvent, ParserMetadata
@@ -60,7 +61,7 @@ class ApacheAccessParser(BaseParser):
     ) -> AsyncIterator[ParsedEvent]:
         """Parse Apache access log file."""
         try:
-            with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+            with open(file_path, encoding="utf-8", errors="ignore") as f:
                 for line_num, line in enumerate(f, 1):
                     line = line.strip()
                     if not line:
@@ -104,7 +105,7 @@ class ApacheAccessParser(BaseParser):
         evidence_id: str | None,
     ) -> ParsedEvent:
         """Create ECS event from Apache entry."""
-        timestamp = entry.get("timestamp") or datetime.now(timezone.utc)
+        timestamp = entry.get("timestamp") or datetime.now(UTC)
         method = entry.get("method", "GET")
         uri = entry.get("uri", "/")
         status = entry.get("status_code", 0)
@@ -177,7 +178,7 @@ class ApacheAccessParser(BaseParser):
         except Exception:
             try:
                 # Without timezone
-                return datetime.strptime(ts_str, "%d/%b/%Y:%H:%M:%S").replace(tzinfo=timezone.utc)
+                return datetime.strptime(ts_str, "%d/%b/%Y:%H:%M:%S").replace(tzinfo=UTC)
             except Exception:
                 return None
 
@@ -226,7 +227,7 @@ class IISParser(BaseParser):
         try:
             fields = None
 
-            with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+            with open(file_path, encoding="utf-8", errors="ignore") as f:
                 for line_num, line in enumerate(f, 1):
                     line = line.strip()
                     if not line:
@@ -269,7 +270,7 @@ class IISParser(BaseParser):
             try:
                 ts_str = f"{entry['date']} {entry['time']}"
                 result["timestamp"] = datetime.strptime(ts_str, "%Y-%m-%d %H:%M:%S").replace(
-                    tzinfo=timezone.utc
+                    tzinfo=UTC
                 )
             except Exception:
                 result["timestamp"] = None
@@ -335,7 +336,7 @@ class IISParser(BaseParser):
         evidence_id: str | None,
     ) -> ParsedEvent:
         """Create ECS event from IIS entry."""
-        timestamp = entry.get("timestamp") or datetime.now(timezone.utc)
+        timestamp = entry.get("timestamp") or datetime.now(UTC)
         method = entry.get("method", "GET")
         uri = entry.get("uri", "/")
         status = entry.get("status_code", 0)
@@ -449,7 +450,7 @@ class ApacheErrorParser(BaseParser):
     ) -> AsyncIterator[ParsedEvent]:
         """Parse Apache error log file."""
         try:
-            with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+            with open(file_path, encoding="utf-8", errors="ignore") as f:
                 for line_num, line in enumerate(f, 1):
                     line = line.strip()
                     if not line:
@@ -488,7 +489,7 @@ class ApacheErrorParser(BaseParser):
         evidence_id: str | None,
     ) -> ParsedEvent:
         """Create ECS event from Apache error entry."""
-        timestamp = entry.get("timestamp") or datetime.now(timezone.utc)
+        timestamp = entry.get("timestamp") or datetime.now(UTC)
         level = entry.get("level", "error").lower()
         message = entry.get("message", "")
 
@@ -558,7 +559,7 @@ class ApacheErrorParser(BaseParser):
                 "%a %b %d %H:%M:%S %Y",
             ]:
                 try:
-                    return datetime.strptime(ts_str, fmt).replace(tzinfo=timezone.utc)
+                    return datetime.strptime(ts_str, fmt).replace(tzinfo=UTC)
                 except ValueError:
                     continue
         except Exception:

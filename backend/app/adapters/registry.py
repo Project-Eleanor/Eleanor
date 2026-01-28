@@ -7,7 +7,7 @@ The registry provides a centralized way to:
 """
 
 import logging
-from typing import Any, Optional, Type
+from typing import Any
 
 from app.adapters.base import (
     AdapterConfig,
@@ -45,14 +45,14 @@ class AdapterRegistry:
 
     def __init__(self):
         """Initialize empty registry."""
-        self._adapter_classes: dict[str, Type[BaseAdapter]] = {}
+        self._adapter_classes: dict[str, type[BaseAdapter]] = {}
         self._adapters: dict[str, BaseAdapter] = {}
         self._configs: dict[str, AdapterConfig] = {}
 
     def register(
         self,
         name: str,
-        adapter_class: Type[BaseAdapter],
+        adapter_class: type[BaseAdapter],
     ) -> None:
         """Register an adapter class.
 
@@ -172,7 +172,7 @@ class AdapterRegistry:
             if name in self._adapter_classes:
                 self.configure(name, config)
 
-    def get(self, name: str) -> Optional[BaseAdapter]:
+    def get(self, name: str) -> BaseAdapter | None:
         """Get an adapter instance by name.
 
         Returns:
@@ -180,35 +180,35 @@ class AdapterRegistry:
         """
         return self._adapters.get(name)
 
-    def get_collection(self) -> Optional[CollectionAdapter]:
+    def get_collection(self) -> CollectionAdapter | None:
         """Get the configured collection adapter."""
         adapter = self.get("velociraptor")
         if adapter and isinstance(adapter, CollectionAdapter):
             return adapter
         return None
 
-    def get_case_management(self) -> Optional[CaseManagementAdapter]:
+    def get_case_management(self) -> CaseManagementAdapter | None:
         """Get the configured case management adapter."""
         adapter = self.get("iris")
         if adapter and isinstance(adapter, CaseManagementAdapter):
             return adapter
         return None
 
-    def get_threat_intel(self) -> Optional[ThreatIntelAdapter]:
+    def get_threat_intel(self) -> ThreatIntelAdapter | None:
         """Get the configured threat intel adapter."""
         adapter = self.get("opencti")
         if adapter and isinstance(adapter, ThreatIntelAdapter):
             return adapter
         return None
 
-    def get_soar(self) -> Optional[SOARAdapter]:
+    def get_soar(self) -> SOARAdapter | None:
         """Get the configured SOAR adapter."""
         adapter = self.get("shuffle")
         if adapter and isinstance(adapter, SOARAdapter):
             return adapter
         return None
 
-    def get_timeline(self) -> Optional[TimelineAdapter]:
+    def get_timeline(self) -> TimelineAdapter | None:
         """Get the configured timeline adapter."""
         adapter = self.get("timesketch")
         if adapter and isinstance(adapter, TimelineAdapter):
@@ -282,7 +282,7 @@ class AdapterRegistry:
 
 
 # Global registry instance
-_registry: Optional[AdapterRegistry] = None
+_registry: AdapterRegistry | None = None
 
 
 def get_registry() -> AdapterRegistry:

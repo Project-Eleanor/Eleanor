@@ -12,7 +12,7 @@ Timesketch API: https://timesketch.org/guides/user/api/
 import logging
 import re
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 
@@ -28,6 +28,8 @@ from app.adapters.base import (
 )
 from app.adapters.timesketch.schemas import (
     TimesketchEvent as TSEvent,
+)
+from app.adapters.timesketch.schemas import (
     TimesketchSavedView,
     TimesketchSketch,
     TimesketchTimeline,
@@ -45,9 +47,9 @@ class TimesketchAdapter(TimelineAdapter):
     def __init__(self, config: AdapterConfig):
         """Initialize Timesketch adapter."""
         super().__init__(config)
-        self._client: Optional[httpx.AsyncClient] = None
-        self._version: Optional[str] = None
-        self._session_token: Optional[str] = None
+        self._client: httpx.AsyncClient | None = None
+        self._version: str | None = None
+        self._session_token: str | None = None
 
     async def _get_client(self) -> httpx.AsyncClient:
         """Get or create HTTP client."""
@@ -268,7 +270,7 @@ class TimesketchAdapter(TimelineAdapter):
 
         return sketches
 
-    async def get_sketch(self, sketch_id: str) -> Optional[Sketch]:
+    async def get_sketch(self, sketch_id: str) -> Sketch | None:
         """Get sketch details."""
         try:
             result = await self._request("GET", f"/api/v1/sketches/{sketch_id}/")
@@ -285,7 +287,7 @@ class TimesketchAdapter(TimelineAdapter):
     async def create_sketch(
         self,
         name: str,
-        description: Optional[str] = None,
+        description: str | None = None,
     ) -> Sketch:
         """Create a new sketch."""
         payload = {
@@ -381,10 +383,10 @@ class TimesketchAdapter(TimelineAdapter):
         self,
         sketch_id: str,
         query: str,
-        start_time: Optional[datetime] = None,
-        end_time: Optional[datetime] = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
         limit: int = 500,
-        timeline_ids: Optional[list[str]] = None,
+        timeline_ids: list[str] | None = None,
     ) -> list[TimelineEvent]:
         """Search events in a sketch."""
         # Build search query
@@ -430,7 +432,7 @@ class TimesketchAdapter(TimelineAdapter):
         self,
         sketch_id: str,
         event_id: str,
-    ) -> Optional[TimelineEvent]:
+    ) -> TimelineEvent | None:
         """Get a specific event."""
         # Search for specific event by ID
         events = await self.search_events(

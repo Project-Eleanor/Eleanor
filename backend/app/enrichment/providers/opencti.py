@@ -299,7 +299,7 @@ class OpenCTIEnrichmentProvider:
         # Extract labels
         labels = node.get("objectLabel", [])
         if labels:
-            result["labels"] = [l.get("value") for l in labels if l.get("value")]
+            result["labels"] = [label.get("value") for label in labels if label.get("value")]
 
         # Extract markings (TLP)
         markings = node.get("objectMarking", [])
@@ -356,7 +356,7 @@ class OpenCTIEnrichmentProvider:
         # Extract labels
         labels = node.get("objectLabel", [])
         if labels:
-            result["labels"] = [l.get("value") for l in labels if l.get("value")]
+            result["labels"] = [label.get("value") for label in labels if label.get("value")]
 
         # Extract related indicators
         indicator_edges = node.get("indicators", {}).get("edges", [])

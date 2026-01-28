@@ -3,17 +3,14 @@
 import logging
 from datetime import datetime, timedelta
 from typing import Any
-from uuid import UUID
 
 import yaml
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
 from app.core.tenant_context import get_current_tenant_id, get_elasticsearch_pattern
 from app.database import get_db, get_elasticsearch
-from app.models.analytics import DetectionRule, RuleExecution, RuleType
 from app.schemas.rule_builder import (
     AvailableField,
     CorrelationMatch,
@@ -21,8 +18,8 @@ from app.schemas.rule_builder import (
     FieldsResponse,
     FieldType,
     PatternDefinition,
-    PatternType,
     PatternsResponse,
+    PatternType,
     RuleBuilderConfig,
     RulePreviewRequest,
     RulePreviewResult,
@@ -32,9 +29,8 @@ from app.schemas.rule_builder import (
     SigmaImportRequest,
     SigmaImportResult,
 )
-from app.services.correlation_engine import CorrelationEngine, parse_duration
+from app.services.correlation_engine import parse_duration
 from app.services.rule_validator import (
-    RuleValidator,
     event_definition_to_query,
     get_rule_validator,
 )
@@ -320,7 +316,7 @@ async def test_rule(
         index_pattern = f"{settings.elasticsearch_index_prefix}-events-*"
 
     # Calculate time buckets (hourly)
-    total_hours = int((request.end_time - request.start_time).total_seconds() / 3600)
+    int((request.end_time - request.start_time).total_seconds() / 3600)
     matches_by_hour: dict[str, int] = {}
     all_matches: list[CorrelationMatch] = []
     entity_match_counts: dict[str, int] = {}
@@ -328,7 +324,7 @@ async def test_rule(
     try:
         # Process in hourly chunks
         current_start = request.start_time
-        window_duration = parse_duration(request.config.window)
+        parse_duration(request.config.window)
 
         while current_start < request.end_time:
             current_end = min(

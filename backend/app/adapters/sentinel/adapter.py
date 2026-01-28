@@ -252,7 +252,7 @@ class SentinelAdapter(BaseAdapter):
             await self._get_token(self.MANAGEMENT_URL)
 
             # Try to list incidents to verify access
-            incidents = await self.list_incidents(limit=1)
+            await self.list_incidents(limit=1)
 
             self._status = AdapterStatus.CONNECTED
             return AdapterHealth(
