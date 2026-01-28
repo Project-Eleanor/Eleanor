@@ -328,13 +328,21 @@ import { ConnectorDialogComponent } from './connector-dialog.component';
     }
 
     .stat-card {
-      background: #1e1e1e;
-      border: 1px solid #333;
-      border-radius: 8px;
+      background: rgba(20, 26, 36, 0.6);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(74, 158, 255, 0.1);
+      border-radius: 12px;
       padding: 16px;
       display: flex;
       align-items: center;
       gap: 16px;
+      transition: border-color 0.2s ease, background-color 0.2s ease;
+    }
+
+    .stat-card:hover {
+      border-color: rgba(74, 158, 255, 0.25);
+      background: rgba(20, 26, 36, 0.75);
     }
 
     .stat-card.wide {
@@ -441,16 +449,19 @@ import { ConnectorDialogComponent } from './connector-dialog.component';
     }
 
     .connector-card {
-      background: #1e1e1e;
-      border: 1px solid #333;
+      background: rgba(20, 26, 36, 0.6);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(74, 158, 255, 0.1);
       border-radius: 12px;
       overflow: hidden;
-      transition: border-color 0.2s, box-shadow 0.2s;
+      transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.3s ease;
     }
 
     .connector-card:hover {
-      border-color: #444;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      border-color: rgba(74, 158, 255, 0.25);
+      background: rgba(20, 26, 36, 0.75);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 20px rgba(74, 158, 255, 0.1);
     }
 
     .connector-card.health-healthy { border-left: 3px solid #4CAF50; }
@@ -463,7 +474,8 @@ import { ConnectorDialogComponent } from './connector-dialog.component';
       align-items: center;
       gap: 12px;
       padding: 16px;
-      border-bottom: 1px solid #2a2a2a;
+      border-bottom: 1px solid rgba(74, 158, 255, 0.08);
+      background: rgba(255, 255, 255, 0.02);
     }
 
     .connector-icon {
@@ -636,8 +648,8 @@ import { ConnectorDialogComponent } from './connector-dialog.component';
       display: flex;
       gap: 8px;
       padding: 12px 16px;
-      background: #1a1a1a;
-      border-top: 1px solid #2a2a2a;
+      background: rgba(0, 0, 0, 0.2);
+      border-top: 1px solid rgba(74, 158, 255, 0.08);
       flex-wrap: wrap;
     }
 
@@ -748,7 +760,8 @@ export class ConnectorsComponent implements OnInit {
   openAddConnector(): void {
     const dialogRef = this.dialog.open(ConnectorDialogComponent, {
       width: '600px',
-      data: { mode: 'create' }
+      data: { mode: 'create' },
+      panelClass: 'centered-dialog'
     });
 
     dialogRef.afterClosed().subscribe(result => {
@@ -762,7 +775,8 @@ export class ConnectorsComponent implements OnInit {
   editConnector(connector: DataConnector): void {
     const dialogRef = this.dialog.open(ConnectorDialogComponent, {
       width: '600px',
-      data: { mode: 'edit', connector }
+      data: { mode: 'edit', connector },
+      panelClass: 'centered-dialog'
     });
 
     dialogRef.afterClosed().subscribe(result => {

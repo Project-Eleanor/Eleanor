@@ -456,3 +456,42 @@ a {
 // Width utilities
 .w-full { width: 100%; }
 .h-full { height: 100%; }
+
+// Dialog centering and glassmorphism
+.centered-dialog {
+  .mat-mdc-dialog-container {
+    .mdc-dialog__surface {
+      background: rgba(20, 26, 36, 0.85) !important;
+      backdrop-filter: blur(16px) !important;
+      -webkit-backdrop-filter: blur(16px) !important;
+      border: 1px solid rgba(74, 158, 255, 0.15) !important;
+      border-radius: 16px !important;
+      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4), 0 0 40px rgba(74, 158, 255, 0.1) !important;
+    }
+  }
+}
+
+// Ensure dialog overlay centers content
+.cdk-overlay-pane {
+  &:has(.centered-dialog) {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+}
+
+// Glassmorphism card utility class
+.glass-card {
+  background: rgba(20, 26, 36, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(74, 158, 255, 0.1);
+  border-radius: 12px;
+  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.3s ease;
+
+  &:hover {
+    border-color: rgba(74, 158, 255, 0.25);
+    background: rgba(20, 26, 36, 0.75);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 20px rgba(74, 158, 255, 0.1);
+  }
+}
