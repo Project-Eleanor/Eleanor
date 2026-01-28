@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: eleanor-azure-autoscaling
+
+namespace: eleanor
+
+resources:
+  - ../  # Include base Azure overlay
+  - node-pools.yaml
+
+components:
+  - ../../../components/keda
+  - ../../../components/vpa
+  - ../../../components/prometheus
+  - ../../../components/metrics-adapter
+
+commonLabels:
+  autoscaling: enabled
+  autoscaler: aks-cluster-autoscaler

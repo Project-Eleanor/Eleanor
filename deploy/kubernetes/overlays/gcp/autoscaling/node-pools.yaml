@@ -1,0 +1,195 @@
+# GCP GKE Node Pool Configuration for Eleanor DFIR
+# These are ConfigMaps that document the recommended node pool settings.
+# Actual node pools must be provisioned via gcloud CLI, Terraform, or Deployment Manager.
+#
+# Example gcloud commands:
+#
+# General purpose node pool:
+# gcloud container node-pools create eleanor-general \
+#   --cluster=eleanor-gke \
+#   --zone=us-central1-a \
+#   --machine-type=e2-standard-4 \
+#   --num-nodes=2 \
+#   --min-nodes=1 \
+#   --max-nodes=20 \
+#   --enable-autoscaling \
+#   --disk-size=100GB \
+#   --disk-type=pd-ssd \
+#   --node-labels=eleanor.io/node-type=general \
+#   --node-locations=us-central1-a,us-central1-b,us-central1-c \
+#   --metadata=disable-legacy-endpoints=true
+#
+# Memory optimized node pool:
+# gcloud container node-pools create eleanor-memory \
+#   --cluster=eleanor-gke \
+#   --zone=us-central1-a \
+#   --machine-type=e2-highmem-4 \
+#   --num-nodes=1 \
+#   --min-nodes=1 \
+#   --max-nodes=10 \
+#   --enable-autoscaling \
+#   --disk-size=200GB \
+#   --disk-type=pd-ssd \
+#   --node-labels=eleanor.io/node-type=memory-optimized \
+#   --node-taints=eleanor.io/workload=memory-intensive:NoSchedule \
+#   --node-locations=us-central1-a,us-central1-b,us-central1-c \
+#   --metadata=disable-legacy-endpoints=true
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gke-nodepool-general-config
+  namespace: eleanor
+  labels:
+    app.kubernetes.io/name: eleanor
+    app.kubernetes.io/component: autoscaling
+    app.kubernetes.io/part-of: eleanor-dfir
+data:
+  name: "eleanor-general"
+  description: "General purpose node pool for Eleanor workloads"
+  machine_type: "e2-standard-4"
+  machine_type_alternatives: "n2-standard-4,n2d-standard-4,c2-standard-4"
+  min_count: "1"
+  max_count: "20"
+  initial_count: "2"
+  disk_size_gb: "100"
+  disk_type: "pd-ssd"
+  image_type: "COS_CONTAINERD"
+  locations: "us-central1-a,us-central1-b,us-central1-c"
+  node_labels: |
+    eleanor.io/node-type=general
+    eleanor.io/workload=mixed
+  node_taints: ""
+  max_pods_per_node: "110"
+  enable_autoscaling: "true"
+  autoscaling_profile: "BALANCED"
+  preemptible: "false"
+  spot: "false"
+  upgrade_settings: |
+    max_surge: 1
+    max_unavailable: 0
+  management: |
+    auto_repair: true
+    auto_upgrade: true
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gke-nodepool-memory-config
+  namespace: eleanor
+  labels:
+    app.kubernetes.io/name: eleanor
+    app.kubernetes.io/component: autoscaling
+    app.kubernetes.io/part-of: eleanor-dfir
+data:
+  name: "eleanor-memory"
+  description: "Memory-optimized node pool for Elasticsearch and data processing"
+  machine_type: "e2-highmem-4"
+  machine_type_alternatives: "n2-highmem-4,n2d-highmem-4,m1-ultramem-40"
+  min_count: "1"
+  max_count: "10"
+  initial_count: "1"
+  disk_size_gb: "200"
+  disk_type: "pd-ssd"
+  image_type: "COS_CONTAINERD"
+  locations: "us-central1-a,us-central1-b,us-central1-c"
+  node_labels: |
+    eleanor.io/node-type=memory-optimized
+    eleanor.io/workload=elasticsearch
+  node_taints: |
+    eleanor.io/workload=memory-intensive:NoSchedule
+  max_pods_per_node: "30"
+  enable_autoscaling: "true"
+  autoscaling_profile: "BALANCED"
+  preemptible: "false"
+  spot: "false"
+  upgrade_settings: |
+    max_surge: 1
+    max_unavailable: 0
+  management: |
+    auto_repair: true
+    auto_upgrade: true
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gke-nodepool-spot-config
+  namespace: eleanor
+  labels:
+    app.kubernetes.io/name: eleanor
+    app.kubernetes.io/component: autoscaling
+    app.kubernetes.io/part-of: eleanor-dfir
+data:
+  name: "eleanor-spot"
+  description: "Spot/Preemptible node pool for burst Celery worker capacity"
+  machine_type: "e2-standard-4"
+  machine_type_alternatives: "n2-standard-4,n2d-standard-4,e2-standard-8"
+  min_count: "0"
+  max_count: "30"
+  initial_count: "0"
+  disk_size_gb: "100"
+  disk_type: "pd-standard"
+  image_type: "COS_CONTAINERD"
+  locations: "us-central1-a,us-central1-b,us-central1-c"
+  node_labels: |
+    eleanor.io/node-type=spot-burst
+    eleanor.io/workload=celery-workers
+    cloud.google.com/gke-spot=true
+  node_taints: |
+    cloud.google.com/gke-spot=true:NoSchedule
+    eleanor.io/workload=spot-burst:NoSchedule
+  max_pods_per_node: "110"
+  enable_autoscaling: "true"
+  autoscaling_profile: "OPTIMIZE_UTILIZATION"
+  preemptible: "false"
+  spot: "true"
+  upgrade_settings: |
+    max_surge: 10
+    max_unavailable: 0
+  management: |
+    auto_repair: true
+    auto_upgrade: true
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gke-cluster-autoscaler-config
+  namespace: eleanor
+  labels:
+    app.kubernetes.io/name: eleanor
+    app.kubernetes.io/component: autoscaling
+    app.kubernetes.io/part-of: eleanor-dfir
+data:
+  description: "GKE Cluster Autoscaler configuration for Eleanor"
+  # Autoscaling profile
+  # - BALANCED: Balance availability and utilization
+  # - OPTIMIZE_UTILIZATION: Prefer to scale down
+  autoscaling_profile: "BALANCED"
+  # NAP (Node Auto-Provisioning) settings if enabled
+  nap_enabled: "false"
+  nap_min_cpu: "0"
+  nap_max_cpu: "100"
+  nap_min_memory_gb: "0"
+  nap_max_memory_gb: "400"
+  # Location policy
+  location_policy: "BALANCED"
+  # Resource limits
+  resource_limits: |
+    - resourceType: cpu
+      minimum: 4
+      maximum: 200
+    - resourceType: memory
+      minimum: 16
+      maximum: 800
+  # Autoprovisioning defaults
+  autoprovisioning_defaults: |
+    oauthScopes:
+      - https://www.googleapis.com/auth/cloud-platform
+    serviceAccount: eleanor-gke-nodes@PROJECT_ID.iam.gserviceaccount.com
+    diskSizeGb: 100
+    diskType: pd-ssd
+    imageType: COS_CONTAINERD
+    management:
+      autoRepair: true
+      autoUpgrade: true

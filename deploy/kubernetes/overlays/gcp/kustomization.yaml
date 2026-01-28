@@ -14,6 +14,15 @@ resources:
   - secrets.yaml
   - backend-config.yaml
 
+# Optional: Include autoscaling components
+# Uncomment these to enable KEDA, VPA, and custom metrics
+# For full autoscaling with GKE node pools, use overlays/gcp/autoscaling instead
+# components:
+#   - ../../components/keda
+#   - ../../components/vpa
+#   - ../../components/prometheus
+#   - ../../components/metrics-adapter
+
 # GCP-specific patches
 patches:
   # Use GKE Ingress annotations

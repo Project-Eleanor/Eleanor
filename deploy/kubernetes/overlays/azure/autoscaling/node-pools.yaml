@@ -1,0 +1,170 @@
+# Azure AKS Node Pool Configuration for Eleanor DFIR
+# These are ConfigMaps that document the recommended node pool settings.
+# Actual node pools must be provisioned via Azure CLI, Terraform, or ARM templates.
+#
+# Example Azure CLI commands:
+#
+# General purpose node pool:
+# az aks nodepool add \
+#   --resource-group eleanor-rg \
+#   --cluster-name eleanor-aks \
+#   --name eleanorgeneral \
+#   --node-count 2 \
+#   --min-count 1 \
+#   --max-count 20 \
+#   --enable-cluster-autoscaler \
+#   --node-vm-size Standard_D4s_v3 \
+#   --node-osdisk-size 100 \
+#   --node-osdisk-type Ephemeral \
+#   --zones 1 2 3 \
+#   --labels eleanor.io/node-type=general \
+#   --tags Environment=production Application=eleanor-dfir
+#
+# Memory optimized node pool:
+# az aks nodepool add \
+#   --resource-group eleanor-rg \
+#   --cluster-name eleanor-aks \
+#   --name eleanormemory \
+#   --node-count 1 \
+#   --min-count 1 \
+#   --max-count 10 \
+#   --enable-cluster-autoscaler \
+#   --node-vm-size Standard_E4s_v3 \
+#   --node-osdisk-size 100 \
+#   --node-osdisk-type Ephemeral \
+#   --zones 1 2 3 \
+#   --node-taints eleanor.io/workload=memory-intensive:NoSchedule \
+#   --labels eleanor.io/node-type=memory-optimized \
+#   --tags Environment=production Application=eleanor-dfir WorkloadType=elasticsearch
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aks-nodepool-general-config
+  namespace: eleanor
+  labels:
+    app.kubernetes.io/name: eleanor
+    app.kubernetes.io/component: autoscaling
+    app.kubernetes.io/part-of: eleanor-dfir
+data:
+  name: "eleanorgeneral"
+  description: "General purpose node pool for Eleanor workloads"
+  vm_size: "Standard_D4s_v3"
+  vm_size_alternatives: "Standard_D4as_v4,Standard_D4ds_v5"
+  min_count: "1"
+  max_count: "20"
+  initial_count: "2"
+  os_disk_size_gb: "100"
+  os_disk_type: "Ephemeral"
+  availability_zones: "1,2,3"
+  node_labels: |
+    eleanor.io/node-type=general
+    eleanor.io/workload=mixed
+  node_taints: ""
+  max_pods: "110"
+  enable_auto_scaling: "true"
+  scale_down_mode: "Delete"
+  spot_max_price: "-1"
+  priority: "Regular"
+  upgrade_settings: |
+    max_surge: 33%
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aks-nodepool-memory-config
+  namespace: eleanor
+  labels:
+    app.kubernetes.io/name: eleanor
+    app.kubernetes.io/component: autoscaling
+    app.kubernetes.io/part-of: eleanor-dfir
+data:
+  name: "eleanormemory"
+  description: "Memory-optimized node pool for Elasticsearch and data processing"
+  vm_size: "Standard_E4s_v3"
+  vm_size_alternatives: "Standard_E4as_v4,Standard_E4ds_v5"
+  min_count: "1"
+  max_count: "10"
+  initial_count: "1"
+  os_disk_size_gb: "100"
+  os_disk_type: "Ephemeral"
+  availability_zones: "1,2,3"
+  node_labels: |
+    eleanor.io/node-type=memory-optimized
+    eleanor.io/workload=elasticsearch
+  node_taints: |
+    eleanor.io/workload=memory-intensive:NoSchedule
+  max_pods: "30"
+  enable_auto_scaling: "true"
+  scale_down_mode: "Delete"
+  spot_max_price: "-1"
+  priority: "Regular"
+  upgrade_settings: |
+    max_surge: 1
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aks-nodepool-spot-config
+  namespace: eleanor
+  labels:
+    app.kubernetes.io/name: eleanor
+    app.kubernetes.io/component: autoscaling
+    app.kubernetes.io/part-of: eleanor-dfir
+data:
+  name: "eleanorspot"
+  description: "Spot instance node pool for burst Celery worker capacity"
+  vm_size: "Standard_D4s_v3"
+  vm_size_alternatives: "Standard_D4as_v4,Standard_D8s_v3"
+  min_count: "0"
+  max_count: "30"
+  initial_count: "0"
+  os_disk_size_gb: "100"
+  os_disk_type: "Ephemeral"
+  availability_zones: "1,2,3"
+  node_labels: |
+    eleanor.io/node-type=spot-burst
+    eleanor.io/workload=celery-workers
+    kubernetes.azure.com/scalesetpriority=spot
+  node_taints: |
+    kubernetes.azure.com/scalesetpriority=spot:NoSchedule
+    eleanor.io/workload=spot-burst:NoSchedule
+  max_pods: "110"
+  enable_auto_scaling: "true"
+  scale_down_mode: "Delete"
+  spot_max_price: "-1"
+  priority: "Spot"
+  eviction_policy: "Delete"
+  upgrade_settings: |
+    max_surge: 50%
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aks-cluster-autoscaler-config
+  namespace: eleanor
+  labels:
+    app.kubernetes.io/name: eleanor
+    app.kubernetes.io/component: autoscaling
+    app.kubernetes.io/part-of: eleanor-dfir
+data:
+  description: "AKS Cluster Autoscaler configuration for Eleanor"
+  # Scale-down configuration
+  scale-down-delay-after-add: "10m"
+  scale-down-delay-after-delete: "10s"
+  scale-down-delay-after-failure: "3m"
+  scale-down-unneeded-time: "10m"
+  scale-down-unready-time: "20m"
+  scale-down-utilization-threshold: "0.5"
+  # Scale-up configuration
+  scan-interval: "10s"
+  max-node-provision-time: "15m"
+  max-graceful-termination-sec: "600"
+  # Balance similar node groups
+  balance-similar-node-groups: "true"
+  # Expander strategy
+  expander: "least-waste"
+  # Skip system pods
+  skip-nodes-with-system-pods: "true"
+  skip-nodes-with-local-storage: "false"

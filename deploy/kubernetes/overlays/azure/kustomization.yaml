@@ -13,6 +13,15 @@ resources:
   - service-account.yaml
   - secrets.yaml
 
+# Optional: Include autoscaling components
+# Uncomment these to enable KEDA, VPA, and custom metrics
+# For full autoscaling with AKS node pools, use overlays/azure/autoscaling instead
+# components:
+#   - ../../components/keda
+#   - ../../components/vpa
+#   - ../../components/prometheus
+#   - ../../components/metrics-adapter
+
 # Azure-specific patches
 patches:
   # Use Azure Application Gateway Ingress Controller

@@ -1,0 +1,239 @@
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: elasticsearch-vpa
+  namespace: eleanor
+  labels:
+    app.kubernetes.io/name: elasticsearch
+    app.kubernetes.io/component: autoscaling
+    app.kubernetes.io/part-of: eleanor-dfir
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: StatefulSet
+    name: elasticsearch
+  updatePolicy:
+    updateMode: "Off"
+  resourcePolicy:
+    containerPolicies:
+      - containerName: elasticsearch
+        minAllowed:
+          cpu: "500m"
+          memory: "2Gi"
+        maxAllowed:
+          cpu: "8"
+          memory: "32Gi"
+        controlledResources:
+          - cpu
+          - memory
+        controlledValues: RequestsAndLimits
+---
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: postgres-vpa
+  namespace: eleanor
+  labels:
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/component: autoscaling
+    app.kubernetes.io/part-of: eleanor-dfir
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: StatefulSet
+    name: postgres
+  updatePolicy:
+    updateMode: "Off"
+  resourcePolicy:
+    containerPolicies:
+      - containerName: postgres
+        minAllowed:
+          cpu: "250m"
+          memory: "512Mi"
+        maxAllowed:
+          cpu: "4"
+          memory: "16Gi"
+        controlledResources:
+          - cpu
+          - memory
+        controlledValues: RequestsAndLimits
+---
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: redis-vpa
+  namespace: eleanor
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/component: autoscaling
+    app.kubernetes.io/part-of: eleanor-dfir
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: StatefulSet
+    name: redis
+  updatePolicy:
+    updateMode: "Off"
+  resourcePolicy:
+    containerPolicies:
+      - containerName: redis
+        minAllowed:
+          cpu: "100m"
+          memory: "256Mi"
+        maxAllowed:
+          cpu: "2"
+          memory: "8Gi"
+        controlledResources:
+          - cpu
+          - memory
+        controlledValues: RequestsAndLimits
+---
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: celery-worker-vpa
+  namespace: eleanor
+  labels:
+    app.kubernetes.io/name: celery-worker
+    app.kubernetes.io/component: autoscaling
+    app.kubernetes.io/part-of: eleanor-dfir
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: celery-worker
+  updatePolicy:
+    updateMode: "Off"
+  resourcePolicy:
+    containerPolicies:
+      - containerName: celery-worker
+        minAllowed:
+          cpu: "250m"
+          memory: "256Mi"
+        maxAllowed:
+          cpu: "4"
+          memory: "16Gi"
+        controlledResources:
+          - cpu
+          - memory
+        controlledValues: RequestsAndLimits
+---
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: celery-worker-high-vpa
+  namespace: eleanor
+  labels:
+    app.kubernetes.io/name: celery-worker-high
+    app.kubernetes.io/component: autoscaling
+    app.kubernetes.io/part-of: eleanor-dfir
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: celery-worker-high
+  updatePolicy:
+    updateMode: "Off"
+  resourcePolicy:
+    containerPolicies:
+      - containerName: celery-worker
+        minAllowed:
+          cpu: "250m"
+          memory: "256Mi"
+        maxAllowed:
+          cpu: "4"
+          memory: "16Gi"
+        controlledResources:
+          - cpu
+          - memory
+        controlledValues: RequestsAndLimits
+---
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: celery-worker-enrichment-vpa
+  namespace: eleanor
+  labels:
+    app.kubernetes.io/name: celery-worker-enrichment
+    app.kubernetes.io/component: autoscaling
+    app.kubernetes.io/part-of: eleanor-dfir
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: celery-worker-enrichment
+  updatePolicy:
+    updateMode: "Off"
+  resourcePolicy:
+    containerPolicies:
+      - containerName: celery-worker
+        minAllowed:
+          cpu: "250m"
+          memory: "512Mi"
+        maxAllowed:
+          cpu: "4"
+          memory: "16Gi"
+        controlledResources:
+          - cpu
+          - memory
+        controlledValues: RequestsAndLimits
+---
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: backend-vpa
+  namespace: eleanor
+  labels:
+    app.kubernetes.io/name: backend
+    app.kubernetes.io/component: autoscaling
+    app.kubernetes.io/part-of: eleanor-dfir
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: backend
+  updatePolicy:
+    updateMode: "Off"
+  resourcePolicy:
+    containerPolicies:
+      - containerName: backend
+        minAllowed:
+          cpu: "100m"
+          memory: "256Mi"
+        maxAllowed:
+          cpu: "2"
+          memory: "4Gi"
+        controlledResources:
+          - cpu
+          - memory
+        controlledValues: RequestsAndLimits
+---
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: frontend-vpa
+  namespace: eleanor
+  labels:
+    app.kubernetes.io/name: frontend
+    app.kubernetes.io/component: autoscaling
+    app.kubernetes.io/part-of: eleanor-dfir
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: frontend
+  updatePolicy:
+    updateMode: "Off"
+  resourcePolicy:
+    containerPolicies:
+      - containerName: frontend
+        minAllowed:
+          cpu: "50m"
+          memory: "64Mi"
+        maxAllowed:
+          cpu: "1"
+          memory: "1Gi"
+        controlledResources:
+          - cpu
+          - memory
+        controlledValues: RequestsAndLimits

@@ -12,6 +12,15 @@ resources:
   - ingress.yaml
   - service-account.yaml
 
+# Optional: Include autoscaling components
+# Uncomment these to enable KEDA, VPA, and custom metrics
+# For full autoscaling with Karpenter, use overlays/aws/autoscaling instead
+# components:
+#   - ../../components/keda
+#   - ../../components/vpa
+#   - ../../components/prometheus
+#   - ../../components/metrics-adapter
+
 # AWS-specific patches
 patches:
   # Use AWS ALB Ingress Controller annotations

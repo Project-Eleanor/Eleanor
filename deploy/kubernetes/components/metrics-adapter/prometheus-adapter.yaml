@@ -1,0 +1,280 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-adapter-config
+  namespace: eleanor
+  labels:
+    app.kubernetes.io/name: prometheus-adapter
+    app.kubernetes.io/component: metrics
+    app.kubernetes.io/part-of: eleanor-dfir
+data:
+  config.yaml: |
+    # Rules for exposing custom metrics to the Kubernetes Custom Metrics API
+    rules:
+      # Celery queue depth metrics
+      - seriesQuery: 'celery_queue_length{namespace="eleanor"}'
+        resources:
+          overrides:
+            namespace:
+              resource: namespace
+            pod:
+              resource: pod
+        name:
+          matches: "celery_queue_length"
+          as: "celery_queue_depth"
+        metricsQuery: 'sum(celery_queue_length{<<.LabelMatchers>>}) by (<<.GroupBy>>, queue_name)'
+
+      # Celery active tasks per worker
+      - seriesQuery: 'celery_worker_tasks_active{namespace="eleanor"}'
+        resources:
+          overrides:
+            namespace:
+              resource: namespace
+            pod:
+              resource: pod
+        name:
+          matches: "celery_worker_tasks_active"
+          as: "celery_active_tasks"
+        metricsQuery: 'sum(celery_worker_tasks_active{<<.LabelMatchers>>}) by (<<.GroupBy>>)'
+
+      # Celery worker utilization (tasks / concurrency)
+      - seriesQuery: 'celery_worker_tasks_active{namespace="eleanor"}'
+        resources:
+          overrides:
+            namespace:
+              resource: namespace
+            pod:
+              resource: pod
+        name:
+          matches: "celery_worker_tasks_active"
+          as: "celery_worker_utilization"
+        metricsQuery: |
+          sum(celery_worker_tasks_active{<<.LabelMatchers>>}) by (<<.GroupBy>>)
+          /
+          sum(celery_worker_concurrency{<<.LabelMatchers>>}) by (<<.GroupBy>>)
+
+      # Elasticsearch indexing rate
+      - seriesQuery: 'elasticsearch_indices_indexing_index_total{namespace="eleanor"}'
+        resources:
+          overrides:
+            namespace:
+              resource: namespace
+            pod:
+              resource: pod
+        name:
+          matches: "elasticsearch_indices_indexing_index_total"
+          as: "es_indexing_rate"
+        metricsQuery: 'rate(elasticsearch_indices_indexing_index_total{<<.LabelMatchers>>}[5m])'
+
+      # Elasticsearch search rate
+      - seriesQuery: 'elasticsearch_indices_search_query_total{namespace="eleanor"}'
+        resources:
+          overrides:
+            namespace:
+              resource: namespace
+            pod:
+              resource: pod
+        name:
+          matches: "elasticsearch_indices_search_query_total"
+          as: "es_search_rate"
+        metricsQuery: 'rate(elasticsearch_indices_search_query_total{<<.LabelMatchers>>}[5m])'
+
+      # Parsing jobs pending (specific queue metric)
+      - seriesQuery: 'celery_queue_length{namespace="eleanor",queue_name="parsing"}'
+        resources:
+          overrides:
+            namespace:
+              resource: namespace
+        name:
+          matches: "celery_queue_length"
+          as: "parsing_jobs_pending"
+        metricsQuery: 'sum(celery_queue_length{<<.LabelMatchers>>,queue_name="parsing"})'
+
+      # Enrichment jobs pending
+      - seriesQuery: 'celery_queue_length{namespace="eleanor",queue_name="enrichment"}'
+        resources:
+          overrides:
+            namespace:
+              resource: namespace
+        name:
+          matches: "celery_queue_length"
+          as: "enrichment_jobs_pending"
+        metricsQuery: 'sum(celery_queue_length{<<.LabelMatchers>>,queue_name="enrichment"})'
+
+      # High priority jobs pending
+      - seriesQuery: 'celery_queue_length{namespace="eleanor",queue_name="high"}'
+        resources:
+          overrides:
+            namespace:
+              resource: namespace
+        name:
+          matches: "celery_queue_length"
+          as: "high_priority_jobs_pending"
+        metricsQuery: 'sum(celery_queue_length{<<.LabelMatchers>>,queue_name="high"})'
+
+      # Redis memory utilization
+      - seriesQuery: 'redis_memory_used_bytes{namespace="eleanor"}'
+        resources:
+          overrides:
+            namespace:
+              resource: namespace
+            pod:
+              resource: pod
+        name:
+          matches: "redis_memory_used_bytes"
+          as: "redis_memory_utilization"
+        metricsQuery: |
+          redis_memory_used_bytes{<<.LabelMatchers>>}
+          /
+          redis_memory_max_bytes{<<.LabelMatchers>>}
+
+      # PostgreSQL active connections ratio
+      - seriesQuery: 'pg_stat_activity_count{namespace="eleanor"}'
+        resources:
+          overrides:
+            namespace:
+              resource: namespace
+            pod:
+              resource: pod
+        name:
+          matches: "pg_stat_activity_count"
+          as: "postgres_connection_utilization"
+        metricsQuery: |
+          sum(pg_stat_activity_count{<<.LabelMatchers>>})
+          /
+          pg_settings_max_connections{<<.LabelMatchers>>}
+
+    # External metrics for KEDA
+    externalRules:
+      - seriesQuery: 'celery_queue_length{namespace="eleanor"}'
+        name:
+          matches: "celery_queue_length"
+          as: "celery_queue_depth_external"
+        metricsQuery: 'sum(celery_queue_length{<<.LabelMatchers>>}) by (queue_name)'
+
+    # Resource metrics configuration
+    resourceRules:
+      cpu:
+        containerQuery: 'sum(rate(container_cpu_usage_seconds_total{<<.LabelMatchers>>}[3m])) by (<<.GroupBy>>)'
+        nodeQuery: 'sum(rate(container_cpu_usage_seconds_total{<<.LabelMatchers>>,id="/"}[3m])) by (<<.GroupBy>>)'
+        resources:
+          overrides:
+            namespace:
+              resource: namespace
+            node:
+              resource: node
+            pod:
+              resource: pod
+        containerLabel: container
+      memory:
+        containerQuery: 'sum(container_memory_working_set_bytes{<<.LabelMatchers>>}) by (<<.GroupBy>>)'
+        nodeQuery: 'sum(container_memory_working_set_bytes{<<.LabelMatchers>>,id="/"}[3m]) by (<<.GroupBy>>)'
+        resources:
+          overrides:
+            namespace:
+              resource: namespace
+            node:
+              resource: node
+            pod:
+              resource: pod
+        containerLabel: container
+      window: 3m
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus-adapter
+  namespace: eleanor
+  labels:
+    app.kubernetes.io/name: prometheus-adapter
+    app.kubernetes.io/component: metrics
+    app.kubernetes.io/part-of: eleanor-dfir
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: eleanor-prometheus-adapter
+  labels:
+    app.kubernetes.io/name: prometheus-adapter
+    app.kubernetes.io/component: metrics
+    app.kubernetes.io/part-of: eleanor-dfir
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+      - pods
+      - services
+      - configmaps
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - custom.metrics.k8s.io
+    resources:
+      - "*"
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - external.metrics.k8s.io
+    resources:
+      - "*"
+    verbs:
+      - get
+      - list
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: eleanor-prometheus-adapter
+  labels:
+    app.kubernetes.io/name: prometheus-adapter
+    app.kubernetes.io/component: metrics
+    app.kubernetes.io/part-of: eleanor-dfir
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: eleanor-prometheus-adapter
+subjects:
+  - kind: ServiceAccount
+    name: prometheus-adapter
+    namespace: eleanor
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: eleanor-prometheus-adapter-resource-reader
+  labels:
+    app.kubernetes.io/name: prometheus-adapter
+    app.kubernetes.io/component: metrics
+    app.kubernetes.io/part-of: eleanor-dfir
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+  - kind: ServiceAccount
+    name: prometheus-adapter
+    namespace: eleanor
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: prometheus-adapter-auth-reader
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: prometheus-adapter
+    app.kubernetes.io/component: metrics
+    app.kubernetes.io/part-of: eleanor-dfir
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: extension-apiserver-authentication-reader
+subjects:
+  - kind: ServiceAccount
+    name: prometheus-adapter
+    namespace: eleanor

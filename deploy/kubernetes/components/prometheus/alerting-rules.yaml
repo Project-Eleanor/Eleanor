@@ -1,0 +1,219 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: eleanor-autoscaling-alerts
+  namespace: eleanor
+  labels:
+    app.kubernetes.io/name: eleanor
+    app.kubernetes.io/component: alerting
+    app.kubernetes.io/part-of: eleanor-dfir
+    release: prometheus
+spec:
+  groups:
+    - name: eleanor-celery-alerts
+      interval: 30s
+      rules:
+        - alert: CeleryQueueBacklogHigh
+          expr: |
+            sum(celery_queue_length{namespace="eleanor"}) by (queue_name) > 100
+          for: 5m
+          labels:
+            severity: warning
+            component: celery
+            team: dfir-platform
+          annotations:
+            summary: "Celery queue {{ $labels.queue_name }} has high backlog"
+            description: "Queue {{ $labels.queue_name }} has {{ $value }} pending tasks for more than 5 minutes. Consider increasing worker capacity."
+            runbook_url: "https://docs.eleanor.io/runbooks/celery-queue-backlog"
+
+        - alert: CeleryQueueBacklogCritical
+          expr: |
+            sum(celery_queue_length{namespace="eleanor"}) by (queue_name) > 500
+          for: 10m
+          labels:
+            severity: critical
+            component: celery
+            team: dfir-platform
+          annotations:
+            summary: "Celery queue {{ $labels.queue_name }} backlog is critical"
+            description: "Queue {{ $labels.queue_name }} has {{ $value }} pending tasks for more than 10 minutes. Immediate attention required."
+            runbook_url: "https://docs.eleanor.io/runbooks/celery-queue-backlog"
+
+        - alert: CeleryWorkersSaturated
+          expr: |
+            (
+              sum(celery_worker_tasks_active{namespace="eleanor"}) by (worker)
+              /
+              sum(celery_worker_concurrency{namespace="eleanor"}) by (worker)
+            ) > 0.9
+          for: 10m
+          labels:
+            severity: warning
+            component: celery
+            team: dfir-platform
+          annotations:
+            summary: "Celery workers are saturated"
+            description: "Worker {{ $labels.worker }} is operating at {{ $value | humanizePercentage }} capacity for more than 10 minutes."
+            runbook_url: "https://docs.eleanor.io/runbooks/celery-workers-saturated"
+
+        - alert: CeleryWorkersAllSaturated
+          expr: |
+            avg(
+              sum(celery_worker_tasks_active{namespace="eleanor"}) by (worker)
+              /
+              sum(celery_worker_concurrency{namespace="eleanor"}) by (worker)
+            ) > 0.85
+          for: 5m
+          labels:
+            severity: critical
+            component: celery
+            team: dfir-platform
+          annotations:
+            summary: "All Celery workers are highly saturated"
+            description: "Average worker saturation is {{ $value | humanizePercentage }}. Autoscaling may be insufficient or misconfigured."
+            runbook_url: "https://docs.eleanor.io/runbooks/celery-workers-saturated"
+
+        - alert: CeleryWorkerDown
+          expr: |
+            up{job="celery-exporter", namespace="eleanor"} == 0
+          for: 5m
+          labels:
+            severity: critical
+            component: celery
+            team: dfir-platform
+          annotations:
+            summary: "Celery exporter is down"
+            description: "The Celery exporter is not responding. Celery metrics are unavailable and KEDA scaling may be affected."
+            runbook_url: "https://docs.eleanor.io/runbooks/celery-exporter-down"
+
+    - name: eleanor-autoscaling-alerts
+      interval: 30s
+      rules:
+        - alert: RapidScalingDetected
+          expr: |
+            (
+              rate(kube_hpa_status_current_replicas{namespace="eleanor"}[5m]) > 0.5
+              or
+              rate(kube_hpa_status_current_replicas{namespace="eleanor"}[5m]) < -0.5
+            )
+          for: 15m
+          labels:
+            severity: warning
+            component: autoscaling
+            team: dfir-platform
+          annotations:
+            summary: "Rapid scaling detected for {{ $labels.hpa }}"
+            description: "HPA {{ $labels.hpa }} is experiencing rapid scaling activity. This may indicate unstable load or misconfigured thresholds."
+            runbook_url: "https://docs.eleanor.io/runbooks/rapid-scaling"
+
+        - alert: HPAMaxedOut
+          expr: |
+            kube_hpa_status_current_replicas{namespace="eleanor"} == kube_hpa_spec_max_replicas{namespace="eleanor"}
+          for: 30m
+          labels:
+            severity: warning
+            component: autoscaling
+            team: dfir-platform
+          annotations:
+            summary: "HPA {{ $labels.hpa }} is at maximum replicas"
+            description: "HPA {{ $labels.hpa }} has been at maximum replicas ({{ $value }}) for 30 minutes. Consider increasing max replicas if load is legitimate."
+            runbook_url: "https://docs.eleanor.io/runbooks/hpa-maxed-out"
+
+        - alert: KEDAScaledObjectError
+          expr: |
+            keda_scaled_object_errors{namespace="eleanor"} > 0
+          for: 5m
+          labels:
+            severity: warning
+            component: autoscaling
+            team: dfir-platform
+          annotations:
+            summary: "KEDA ScaledObject {{ $labels.scaledObject }} has errors"
+            description: "KEDA is reporting errors for ScaledObject {{ $labels.scaledObject }}. Event-driven scaling may not be functioning correctly."
+            runbook_url: "https://docs.eleanor.io/runbooks/keda-errors"
+
+    - name: eleanor-parsing-alerts
+      interval: 30s
+      rules:
+        - alert: ParsingJobsBacklogHigh
+          expr: |
+            sum(celery_queue_length{namespace="eleanor", queue_name="parsing"}) > 50
+          for: 10m
+          labels:
+            severity: warning
+            component: parsing
+            team: dfir-platform
+          annotations:
+            summary: "Parsing jobs backlog is high"
+            description: "There are {{ $value }} pending parsing jobs in the queue. Evidence processing may be delayed."
+            runbook_url: "https://docs.eleanor.io/runbooks/parsing-backlog"
+
+        - alert: ParsingJobsBacklogCritical
+          expr: |
+            sum(celery_queue_length{namespace="eleanor", queue_name="parsing"}) > 200
+          for: 15m
+          labels:
+            severity: critical
+            component: parsing
+            team: dfir-platform
+          annotations:
+            summary: "Parsing jobs backlog is critical"
+            description: "There are {{ $value }} pending parsing jobs. Immediate investigation and scaling required."
+            runbook_url: "https://docs.eleanor.io/runbooks/parsing-backlog"
+
+        - alert: EnrichmentJobsBacklogHigh
+          expr: |
+            sum(celery_queue_length{namespace="eleanor", queue_name="enrichment"}) > 100
+          for: 15m
+          labels:
+            severity: warning
+            component: enrichment
+            team: dfir-platform
+          annotations:
+            summary: "Enrichment jobs backlog is high"
+            description: "There are {{ $value }} pending enrichment jobs. Threat intelligence enrichment may be delayed."
+            runbook_url: "https://docs.eleanor.io/runbooks/enrichment-backlog"
+
+    - name: eleanor-infrastructure-alerts
+      interval: 30s
+      rules:
+        - alert: ElasticsearchIndexingRateLow
+          expr: |
+            rate(elasticsearch_indices_indexing_index_total{namespace="eleanor"}[5m]) < 10
+            and
+            sum(celery_queue_length{namespace="eleanor"}) > 50
+          for: 10m
+          labels:
+            severity: warning
+            component: elasticsearch
+            team: dfir-platform
+          annotations:
+            summary: "Elasticsearch indexing rate is low despite pending work"
+            description: "Elasticsearch indexing rate is {{ $value }}/sec while tasks are queued. Check for bottlenecks."
+            runbook_url: "https://docs.eleanor.io/runbooks/elasticsearch-indexing"
+
+        - alert: RedisMemoryHigh
+          expr: |
+            redis_memory_used_bytes{namespace="eleanor"} / redis_memory_max_bytes{namespace="eleanor"} > 0.85
+          for: 10m
+          labels:
+            severity: warning
+            component: redis
+            team: dfir-platform
+          annotations:
+            summary: "Redis memory usage is high"
+            description: "Redis is using {{ $value | humanizePercentage }} of available memory. Consider scaling or cleaning up."
+            runbook_url: "https://docs.eleanor.io/runbooks/redis-memory"
+
+        - alert: PostgresConnectionsHigh
+          expr: |
+            sum(pg_stat_activity_count{namespace="eleanor"}) / pg_settings_max_connections{namespace="eleanor"} > 0.8
+          for: 5m
+          labels:
+            severity: warning
+            component: postgres
+            team: dfir-platform
+          annotations:
+            summary: "PostgreSQL connections are high"
+            description: "PostgreSQL is using {{ $value | humanizePercentage }} of available connections."
+            runbook_url: "https://docs.eleanor.io/runbooks/postgres-connections"

@@ -1,0 +1,43 @@
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: keda-redis-auth
+  namespace: eleanor
+  labels:
+    app.kubernetes.io/name: keda-redis-auth
+    app.kubernetes.io/component: autoscaling
+    app.kubernetes.io/part-of: eleanor-dfir
+spec:
+  secretTargetRef:
+    - parameter: password
+      name: eleanor-secrets
+      key: REDIS_PASSWORD
+---
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: keda-prometheus-auth
+  namespace: eleanor
+  labels:
+    app.kubernetes.io/name: keda-prometheus-auth
+    app.kubernetes.io/component: autoscaling
+    app.kubernetes.io/part-of: eleanor-dfir
+spec:
+  # Prometheus typically doesn't require auth in-cluster
+  # Add bearer token or basic auth if needed
+  secretTargetRef: []
+---
+apiVersion: keda.sh/v1alpha1
+kind: ClusterTriggerAuthentication
+metadata:
+  name: keda-cluster-redis-auth
+  labels:
+    app.kubernetes.io/name: keda-cluster-redis-auth
+    app.kubernetes.io/component: autoscaling
+    app.kubernetes.io/part-of: eleanor-dfir
+spec:
+  secretTargetRef:
+    - parameter: password
+      name: eleanor-secrets
+      key: REDIS_PASSWORD
+      namespace: eleanor

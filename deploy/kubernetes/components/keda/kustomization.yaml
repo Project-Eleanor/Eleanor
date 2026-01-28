@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+metadata:
+  name: keda-autoscaling
+
+resources:
+  - scaled-objects.yaml
+  - trigger-authentications.yaml
+
+# Disable the default HPA when KEDA is enabled
+# KEDA will manage scaling through ScaledObjects
+patches:
+  # Remove the default celery-worker-hpa since KEDA handles scaling
+  - patch: |-
+      $patch: delete
+      apiVersion: autoscaling/v2
+      kind: HorizontalPodAutoscaler
+      metadata:
+        name: celery-worker-hpa
+    target:
+      kind: HorizontalPodAutoscaler
+      name: celery-worker-hpa

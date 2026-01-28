@@ -1,0 +1,114 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: eleanor-backend-monitor
+  namespace: eleanor
+  labels:
+    app.kubernetes.io/name: backend
+    app.kubernetes.io/component: monitoring
+    app.kubernetes.io/part-of: eleanor-dfir
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: backend
+  namespaceSelector:
+    matchNames:
+      - eleanor
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: eleanor-celery-monitor
+  namespace: eleanor
+  labels:
+    app.kubernetes.io/name: celery-exporter
+    app.kubernetes.io/component: monitoring
+    app.kubernetes.io/part-of: eleanor-dfir
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: celery-exporter
+  namespaceSelector:
+    matchNames:
+      - eleanor
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 15s
+      scrapeTimeout: 10s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: eleanor-redis-monitor
+  namespace: eleanor
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/component: monitoring
+    app.kubernetes.io/part-of: eleanor-dfir
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: redis
+  namespaceSelector:
+    matchNames:
+      - eleanor
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: eleanor-postgres-monitor
+  namespace: eleanor
+  labels:
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/component: monitoring
+    app.kubernetes.io/part-of: eleanor-dfir
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: postgres
+  namespaceSelector:
+    matchNames:
+      - eleanor
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: eleanor-elasticsearch-monitor
+  namespace: eleanor
+  labels:
+    app.kubernetes.io/name: elasticsearch
+    app.kubernetes.io/component: monitoring
+    app.kubernetes.io/part-of: eleanor-dfir
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: elasticsearch
+  namespaceSelector:
+    matchNames:
+      - eleanor
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
