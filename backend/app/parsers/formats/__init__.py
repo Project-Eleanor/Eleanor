@@ -12,30 +12,35 @@ __all__ = [
 # Dissect-based parsers
 try:
     from app.parsers.formats.registry_hive import WindowsRegistryParser
+
     __all__.append("WindowsRegistryParser")
 except ImportError:
     pass
 
 try:
     from app.parsers.formats.prefetch import WindowsPrefetchParser
+
     __all__.append("WindowsPrefetchParser")
 except ImportError:
     pass
 
 try:
     from app.parsers.formats.mft import NTFSMftParser
+
     __all__.append("NTFSMftParser")
 except ImportError:
     pass
 
 try:
     from app.parsers.formats.usn_journal import UsnJournalParser
+
     __all__.append("UsnJournalParser")
 except ImportError:
     pass
 
 try:
     from app.parsers.formats.scheduled_tasks import WindowsScheduledTasksParser
+
     __all__.append("WindowsScheduledTasksParser")
 except ImportError:
     pass
@@ -43,6 +48,7 @@ except ImportError:
 # Browser parsers - Chrome
 try:
     from app.parsers.formats.browser_chrome import ChromeHistoryParser, ChromeLoginDataParser
+
     __all__.extend(["ChromeHistoryParser", "ChromeLoginDataParser"])
 except ImportError:
     pass
@@ -50,6 +56,7 @@ except ImportError:
 # Browser parsers - Firefox
 try:
     from app.parsers.formats.browser_firefox import FirefoxHistoryParser
+
     __all__.append("FirefoxHistoryParser")
 except ImportError:
     pass
@@ -61,6 +68,7 @@ try:
         EdgeDownloadsParser,
         EdgeHistoryParser,
     )
+
     __all__.extend(["EdgeHistoryParser", "EdgeDownloadsParser", "EdgeBookmarksParser"])
 except ImportError:
     pass
@@ -68,12 +76,14 @@ except ImportError:
 # Linux log parsers
 try:
     from app.parsers.formats.linux_auth import LinuxAuthLogParser
+
     __all__.append("LinuxAuthLogParser")
 except ImportError:
     pass
 
 try:
     from app.parsers.formats.linux_syslog import LinuxSyslogParser
+
     __all__.append("LinuxSyslogParser")
 except ImportError:
     pass
@@ -81,6 +91,7 @@ except ImportError:
 # Network parsers
 try:
     from app.parsers.formats.pcap import PcapParser
+
     __all__.append("PcapParser")
 except ImportError:
     pass
@@ -88,6 +99,7 @@ except ImportError:
 # Memory forensics
 try:
     from app.parsers.formats.memory import MemoryParser
+
     __all__.append("MemoryParser")
 except ImportError:
     pass
@@ -95,18 +107,21 @@ except ImportError:
 # Windows execution artifacts
 try:
     from app.parsers.formats.shimcache import ShimcacheParser
+
     __all__.append("ShimcacheParser")
 except ImportError:
     pass
 
 try:
     from app.parsers.formats.amcache import AmcacheParser
+
     __all__.append("AmcacheParser")
 except ImportError:
     pass
 
 try:
     from app.parsers.formats.userassist import UserAssistParser
+
     __all__.append("UserAssistParser")
 except ImportError:
     pass
@@ -114,24 +129,28 @@ except ImportError:
 # Windows system artifacts
 try:
     from app.parsers.formats.srum import SRUMParser
+
     __all__.append("SRUMParser")
 except ImportError:
     pass
 
 try:
     from app.parsers.formats.recyclebin import RecycleBinParser
+
     __all__.append("RecycleBinParser")
 except ImportError:
     pass
 
 try:
     from app.parsers.formats.lnk import LnkParser
+
     __all__.append("LnkParser")
 except ImportError:
     pass
 
 try:
     from app.parsers.formats.jumplist import JumpListParser
+
     __all__.append("JumpListParser")
 except ImportError:
     pass
@@ -139,6 +158,7 @@ except ImportError:
 # Remote access parsers
 try:
     from app.parsers.formats.remoteaccess import AnyDeskParser, RustDeskParser, TeamViewerParser
+
     __all__.extend(["TeamViewerParser", "AnyDeskParser", "RustDeskParser"])
 except ImportError:
     pass
@@ -151,6 +171,7 @@ try:
         IISParser,
         NginxAccessParser,
     )
+
     __all__.extend(["ApacheAccessParser", "ApacheErrorParser", "NginxAccessParser", "IISParser"])
 except ImportError:
     pass
@@ -158,6 +179,7 @@ except ImportError:
 # SSH parsers
 try:
     from app.parsers.formats.ssh import AuthorizedKeysParser, KnownHostsParser, PuTTYParser
+
     __all__.extend(["AuthorizedKeysParser", "KnownHostsParser", "PuTTYParser"])
 except ImportError:
     pass

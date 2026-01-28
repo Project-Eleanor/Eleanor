@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 try:
     from dissect.shellitem import lnk
+
     DISSECT_AVAILABLE = True
 except ImportError:
     DISSECT_AVAILABLE = False
@@ -92,7 +93,9 @@ class LnkParser(BaseParser):
                 "volume_label": lnk_file.volume_label,
                 "drive_serial": lnk_file.drive_serial,
                 "machine_id": lnk_file.machine_id,
-                "droid_volume_id": str(lnk_file.droid_volume_id) if lnk_file.droid_volume_id else None,
+                "droid_volume_id": (
+                    str(lnk_file.droid_volume_id) if lnk_file.droid_volume_id else None
+                ),
                 "droid_file_id": str(lnk_file.droid_file_id) if lnk_file.droid_file_id else None,
             }
 
@@ -152,12 +155,8 @@ class LnkParser(BaseParser):
             entry["file_attributes"] = file_attrs
 
             # Timestamps
-            entry["creation_time"] = self._filetime_to_datetime(
-                struct.unpack("<Q", data[28:36])[0]
-            )
-            entry["access_time"] = self._filetime_to_datetime(
-                struct.unpack("<Q", data[36:44])[0]
-            )
+            entry["creation_time"] = self._filetime_to_datetime(struct.unpack("<Q", data[28:36])[0])
+            entry["access_time"] = self._filetime_to_datetime(struct.unpack("<Q", data[36:44])[0])
             entry["modification_time"] = self._filetime_to_datetime(
                 struct.unpack("<Q", data[44:52])[0]
             )
@@ -170,14 +169,14 @@ class LnkParser(BaseParser):
 
             # Skip target ID list if present
             if entry["has_target_id_list"] and offset + 2 <= len(data):
-                id_list_size = struct.unpack("<H", data[offset:offset+2])[0]
+                id_list_size = struct.unpack("<H", data[offset : offset + 2])[0]
                 offset += 2 + id_list_size
 
             # Parse link info if present
             if entry["has_link_info"] and offset + 4 <= len(data):
-                link_info_size = struct.unpack("<I", data[offset:offset+4])[0]
+                link_info_size = struct.unpack("<I", data[offset : offset + 4])[0]
                 if link_info_size > 0 and offset + link_info_size <= len(data):
-                    link_info = data[offset:offset + link_info_size]
+                    link_info = data[offset : offset + link_info_size]
                     entry.update(self._parse_link_info(link_info))
                 offset += link_info_size
 
@@ -186,10 +185,10 @@ class LnkParser(BaseParser):
             for i, string_name in enumerate(strings):
                 has_attr = f"has_{string_name}" if string_name != "name" else "has_name"
                 if entry.get(has_attr) and offset + 2 <= len(data):
-                    str_len = struct.unpack("<H", data[offset:offset+2])[0]
+                    str_len = struct.unpack("<H", data[offset : offset + 2])[0]
                     offset += 2
                     if str_len > 0 and offset + str_len * 2 <= len(data):
-                        entry[string_name] = data[offset:offset + str_len * 2].decode(
+                        entry[string_name] = data[offset : offset + str_len * 2].decode(
                             "utf-16-le", errors="ignore"
                         )
                         offset += str_len * 2
@@ -279,16 +278,26 @@ class LnkParser(BaseParser):
                 "file": {
                     "path": lnk_path,
                     "name": Path(lnk_path).name,
-                    "created": entry.get("creation_time").isoformat() if entry.get("creation_time") else None,
-                    "accessed": entry.get("access_time").isoformat() if entry.get("access_time") else None,
+                    "created": (
+                        entry.get("creation_time").isoformat()
+                        if entry.get("creation_time")
+                        else None
+                    ),
+                    "accessed": (
+                        entry.get("access_time").isoformat() if entry.get("access_time") else None
+                    ),
                     "mtime": modification_time.isoformat() if modification_time else None,
                     "target_path": target_path,
                 },
-                "process": {
-                    "executable": target_path,
-                    "args": entry.get("arguments").split() if entry.get("arguments") else None,
-                    "working_directory": entry.get("working_dir"),
-                } if target_path else None,
+                "process": (
+                    {
+                        "executable": target_path,
+                        "args": entry.get("arguments").split() if entry.get("arguments") else None,
+                        "working_directory": entry.get("working_dir"),
+                    }
+                    if target_path
+                    else None
+                ),
                 "host": {
                     "os": {"type": "windows"},
                     "name": entry.get("machine_id"),

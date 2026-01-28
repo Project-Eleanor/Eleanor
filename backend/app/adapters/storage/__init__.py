@@ -58,15 +58,19 @@ async def init_storage_adapter(settings: object) -> StorageAdapter:
 
     if backend == "s3":
         from app.adapters.storage.s3 import S3StorageAdapter
+
         _storage_adapter = S3StorageAdapter(config)
     elif backend == "azure":
         from app.adapters.storage.azure import AzureBlobStorageAdapter
+
         _storage_adapter = AzureBlobStorageAdapter(config)
     elif backend == "gcs":
         from app.adapters.storage.gcs import GCSStorageAdapter
+
         _storage_adapter = GCSStorageAdapter(config)
     else:
         from app.adapters.storage.local import LocalStorageAdapter
+
         _storage_adapter = LocalStorageAdapter(config)
 
     await _storage_adapter.connect()

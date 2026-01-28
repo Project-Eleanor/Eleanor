@@ -90,6 +90,7 @@ class PcapParser(BaseParser):
             else:
                 # Save to temp file for scapy
                 import tempfile
+
                 with tempfile.NamedTemporaryFile(suffix=".pcap", delete=False) as tmp:
                     tmp.write(source.read())
                     tmp_path = tmp.name
@@ -185,7 +186,11 @@ class PcapParser(BaseParser):
             if dns.qr == 0:  # Query
                 event_action = "dns_query"
                 if dns.qd:
-                    query_name = dns.qd.qname.decode() if isinstance(dns.qd.qname, bytes) else str(dns.qd.qname)
+                    query_name = (
+                        dns.qd.qname.decode()
+                        if isinstance(dns.qd.qname, bytes)
+                        else str(dns.qd.qname)
+                    )
                     message = f"DNS query: {query_name}"
                     raw["dns_query"] = query_name
             else:  # Response
@@ -225,7 +230,9 @@ class PcapParser(BaseParser):
             payload = bytes(pkt[Raw].load)
             if payload[:4] in (b"GET ", b"POST", b"PUT ", b"HEAD", b"DELE", b"HTTP"):
                 is_significant = True
-                event_action = "http_request" if not payload.startswith(b"HTTP") else "http_response"
+                event_action = (
+                    "http_request" if not payload.startswith(b"HTTP") else "http_response"
+                )
                 try:
                     first_line = payload.split(b"\r\n")[0].decode("utf-8", errors="ignore")
                     message = f"HTTP: {first_line[:100]}"

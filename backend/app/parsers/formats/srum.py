@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 try:
     from dissect.esedb import EseDB
+
     DISSECT_AVAILABLE = True
 except ImportError:
     DISSECT_AVAILABLE = False
@@ -287,21 +288,42 @@ class SRUMParser(BaseParser):
                     "module": "srum",
                     "dataset": f"windows.srum.{table_type.lower()}",
                 },
-                "process": {
-                    "name": app_name,
-                } if table_type == "ApplicationResourceUsage" else None,
-                "network": {
-                    "bytes": (entry.get("bytes_sent", 0) or 0) + (entry.get("bytes_received", 0) or 0),
-                } if table_type == "NetworkDataUsage" else None,
-                "source": {
-                    "bytes": entry.get("bytes_sent"),
-                } if table_type == "NetworkDataUsage" else None,
-                "destination": {
-                    "bytes": entry.get("bytes_received"),
-                } if table_type == "NetworkDataUsage" else None,
-                "user": {
-                    "id": entry.get("user_sid"),
-                } if entry.get("user_sid") else None,
+                "process": (
+                    {
+                        "name": app_name,
+                    }
+                    if table_type == "ApplicationResourceUsage"
+                    else None
+                ),
+                "network": (
+                    {
+                        "bytes": (entry.get("bytes_sent", 0) or 0)
+                        + (entry.get("bytes_received", 0) or 0),
+                    }
+                    if table_type == "NetworkDataUsage"
+                    else None
+                ),
+                "source": (
+                    {
+                        "bytes": entry.get("bytes_sent"),
+                    }
+                    if table_type == "NetworkDataUsage"
+                    else None
+                ),
+                "destination": (
+                    {
+                        "bytes": entry.get("bytes_received"),
+                    }
+                    if table_type == "NetworkDataUsage"
+                    else None
+                ),
+                "user": (
+                    {
+                        "id": entry.get("user_sid"),
+                    }
+                    if entry.get("user_sid")
+                    else None
+                ),
                 "host": {
                     "os": {"type": "windows"},
                 },

@@ -5,7 +5,6 @@ and SQLite (testing). When running with PostgreSQL, the native types are used.
 When running with SQLite, compatible fallback types are used.
 """
 
-
 from sqlalchemy import JSON, String, TypeDecorator
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.engine import Dialect
@@ -119,5 +118,6 @@ class UUIDType(TypeDecorator):
             return None
         if isinstance(value, str):
             from uuid import UUID
+
             return UUID(value)
         return value

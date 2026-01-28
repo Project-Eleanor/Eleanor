@@ -25,7 +25,11 @@ class ActionExecutor:
             "description": "Block an IP address at the firewall",
             "parameters": {
                 "ip": {"type": "string", "required": True, "description": "IP to block"},
-                "duration_hours": {"type": "integer", "default": 24, "description": "Block duration"},
+                "duration_hours": {
+                    "type": "integer",
+                    "default": 24,
+                    "description": "Block duration",
+                },
                 "reason": {"type": "string", "description": "Reason for blocking"},
             },
         },
@@ -34,7 +38,11 @@ class ActionExecutor:
             "description": "Network isolate a compromised host",
             "parameters": {
                 "hostname": {"type": "string", "required": True, "description": "Host to isolate"},
-                "isolation_level": {"type": "string", "default": "full", "description": "full or partial"},
+                "isolation_level": {
+                    "type": "string",
+                    "default": "full",
+                    "description": "full or partial",
+                },
             },
         },
         "disable_user": {
@@ -42,7 +50,11 @@ class ActionExecutor:
             "description": "Disable a user account in Active Directory",
             "parameters": {
                 "username": {"type": "string", "required": True, "description": "User to disable"},
-                "reset_password": {"type": "boolean", "default": False, "description": "Also reset password"},
+                "reset_password": {
+                    "type": "boolean",
+                    "default": False,
+                    "description": "Also reset password",
+                },
             },
         },
         "collect_evidence": {
@@ -50,7 +62,11 @@ class ActionExecutor:
             "description": "Trigger forensic collection from endpoint",
             "parameters": {
                 "hostname": {"type": "string", "required": True, "description": "Target host"},
-                "collection_profile": {"type": "string", "default": "full", "description": "Collection profile"},
+                "collection_profile": {
+                    "type": "string",
+                    "default": "full",
+                    "description": "Collection profile",
+                },
             },
         },
         "create_ticket": {
@@ -58,7 +74,11 @@ class ActionExecutor:
             "description": "Create a ticket in the ticketing system",
             "parameters": {
                 "title": {"type": "string", "required": True, "description": "Ticket title"},
-                "description": {"type": "string", "required": True, "description": "Ticket description"},
+                "description": {
+                    "type": "string",
+                    "required": True,
+                    "description": "Ticket description",
+                },
                 "priority": {"type": "string", "default": "high", "description": "Ticket priority"},
                 "assignee": {"type": "string", "description": "Assignee username"},
             },
@@ -78,7 +98,11 @@ class ActionExecutor:
             "description": "Execute a search query and return results",
             "parameters": {
                 "query": {"type": "string", "required": True, "description": "Search query"},
-                "index_pattern": {"type": "string", "default": "events-*", "description": "Index pattern"},
+                "index_pattern": {
+                    "type": "string",
+                    "default": "events-*",
+                    "description": "Index pattern",
+                },
                 "time_range": {"type": "string", "default": "24h", "description": "Time range"},
             },
         },
@@ -86,7 +110,11 @@ class ActionExecutor:
             "name": "Enrich IOC",
             "description": "Enrich an IOC with threat intelligence",
             "parameters": {
-                "ioc_type": {"type": "string", "required": True, "description": "IOC type (ip, domain, hash)"},
+                "ioc_type": {
+                    "type": "string",
+                    "required": True,
+                    "description": "IOC type (ip, domain, hash)",
+                },
                 "ioc_value": {"type": "string", "required": True, "description": "IOC value"},
             },
         },
@@ -154,12 +182,11 @@ class ActionExecutor:
             raise RuntimeError("Shuffle adapter not configured")
 
         try:
-            execution_id = await shuffle.trigger_workflow(
-                workflow_id, parameters
-            )
+            execution_id = await shuffle.trigger_workflow(workflow_id, parameters)
 
             # Wait for completion (with timeout)
             import asyncio
+
             max_wait = 300  # 5 minutes
             poll_interval = 5
 
@@ -251,7 +278,11 @@ class ActionExecutor:
                     # Run isolation artifact
                     result = await velo.collect_artifact(
                         client_id,
-                        "Windows.Remediation.Quarantine" if level == "full" else "Windows.Remediation.QuarantinePartial"
+                        (
+                            "Windows.Remediation.Quarantine"
+                            if level == "full"
+                            else "Windows.Remediation.QuarantinePartial"
+                        ),
                     )
                     return {
                         "success": True,
@@ -425,7 +456,11 @@ class ActionExecutor:
                 "success": response.is_success,
                 "action": "http_request",
                 "status_code": response.status_code,
-                "response": response.json() if response.headers.get("content-type", "").startswith("application/json") else response.text[:1000],
+                "response": (
+                    response.json()
+                    if response.headers.get("content-type", "").startswith("application/json")
+                    else response.text[:1000]
+                ),
             }
 
     async def _generic_action(
@@ -452,10 +487,7 @@ class ActionExecutor:
     @classmethod
     def list_actions(cls) -> list[dict[str, Any]]:
         """List all available actions with their schemas."""
-        return [
-            {"id": action_id, **action_def}
-            for action_id, action_def in cls.ACTIONS.items()
-        ]
+        return [{"id": action_id, **action_def} for action_id, action_def in cls.ACTIONS.items()]
 
 
 # Module-level instance

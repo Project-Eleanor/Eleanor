@@ -15,9 +15,7 @@ class SavedQuery(Base):
 
     __tablename__ = "saved_queries"
 
-    id: Mapped[UUID] = mapped_column(
-        UUIDType(), primary_key=True, default=uuid4
-    )
+    id: Mapped[UUID] = mapped_column(UUIDType(), primary_key=True, default=uuid4)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     query: Mapped[str] = mapped_column(Text, nullable=False)
@@ -28,9 +26,7 @@ class SavedQuery(Base):
     created_by: Mapped[UUID | None] = mapped_column(
         UUIDType(), ForeignKey("users.id"), nullable=True
     )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
@@ -47,9 +43,7 @@ class Workbook(Base):
 
     __tablename__ = "workbooks"
 
-    id: Mapped[UUID] = mapped_column(
-        UUIDType(), primary_key=True, default=uuid4
-    )
+    id: Mapped[UUID] = mapped_column(UUIDType(), primary_key=True, default=uuid4)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     definition: Mapped[dict] = mapped_column(JSONBType(), nullable=False, default=dict)
@@ -57,9 +51,7 @@ class Workbook(Base):
     created_by: Mapped[UUID | None] = mapped_column(
         UUIDType(), ForeignKey("users.id"), nullable=True
     )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )

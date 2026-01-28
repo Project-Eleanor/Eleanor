@@ -63,16 +63,11 @@ class Notification(Base):
 
     id: Mapped[UUID] = mapped_column(UUIDType(), primary_key=True, default=uuid4)
     user_id: Mapped[UUID] = mapped_column(
-        UUIDType(),
-        ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True
+        UUIDType(), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
     type: Mapped[NotificationType] = mapped_column(String(50), nullable=False)
     severity: Mapped[NotificationSeverity] = mapped_column(
-        String(20),
-        nullable=False,
-        default=NotificationSeverity.INFO
+        String(20), nullable=False, default=NotificationSeverity.INFO
     )
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     body: Mapped[str | None] = mapped_column(Text)
@@ -87,9 +82,7 @@ class Notification(Base):
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        index=True
+        DateTime(timezone=True), server_default=func.now(), index=True
     )
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
@@ -107,10 +100,7 @@ class NotificationPreference(Base):
 
     id: Mapped[UUID] = mapped_column(UUIDType(), primary_key=True, default=uuid4)
     user_id: Mapped[UUID] = mapped_column(
-        UUIDType(),
-        ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False,
-        unique=True
+        UUIDType(), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True
     )
 
     # Channel preferences
@@ -127,9 +117,7 @@ class NotificationPreference(Base):
     quiet_hours_end: Mapped[str | None] = mapped_column(String(5))
 
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now()
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
     # Relationships

@@ -119,7 +119,9 @@ class UsnJournalParser(BaseParser):
             logger.error(f"Failed to parse USN Journal {source_str}: {e}")
             raise
 
-    def _parse_with_dissect(self, usn_module, fh: BinaryIO, source_name: str) -> Iterator[ParsedEvent]:
+    def _parse_with_dissect(
+        self, usn_module, fh: BinaryIO, source_name: str
+    ) -> Iterator[ParsedEvent]:
         """Parse using dissect.ntfs.usn module."""
         for record in usn_module.UsnParser(fh):
             try:
@@ -160,7 +162,9 @@ class UsnJournalParser(BaseParser):
             except Exception as e:
                 logger.debug(f"Failed to parse USN record {record_num}: {e}")
 
-    def _parse_usn_record(self, data: bytes, source_name: str, record_num: int) -> ParsedEvent | None:
+    def _parse_usn_record(
+        self, data: bytes, source_name: str, record_num: int
+    ) -> ParsedEvent | None:
         """Parse a single USN v2/v3 record."""
         if len(data) < 60:
             return None
@@ -207,7 +211,7 @@ class UsnJournalParser(BaseParser):
             return None
 
         try:
-            filename = data[filename_offset:filename_offset + filename_length].decode("utf-16-le")
+            filename = data[filename_offset : filename_offset + filename_length].decode("utf-16-le")
         except Exception:
             filename = "Unknown"
 
@@ -265,7 +269,11 @@ class UsnJournalParser(BaseParser):
         """Convert a dissect USN record to ParsedEvent."""
         try:
             filename = record.filename if hasattr(record, "filename") else str(record)
-            timestamp = self._filetime_to_datetime(record.timestamp.value) if hasattr(record, "timestamp") else datetime.now(UTC)
+            timestamp = (
+                self._filetime_to_datetime(record.timestamp.value)
+                if hasattr(record, "timestamp")
+                else datetime.now(UTC)
+            )
             reason = record.reason if hasattr(record, "reason") else 0
             attributes = record.file_attributes if hasattr(record, "file_attributes") else 0
 

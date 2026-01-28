@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 try:
     from dissect.target import Target
     from dissect.target.filesystem import VirtualFilesystem
+
     DISSECT_AVAILABLE = True
 except ImportError:
     DISSECT_AVAILABLE = False
@@ -173,16 +174,20 @@ class ShimcacheParser(BaseParser):
                 if offset + 552 > len(data):
                     break
 
-                path = data[offset:offset+520].decode("utf-16-le", errors="ignore").rstrip("\x00")
-                last_mod = self._filetime_to_datetime(data[offset+528:offset+536])
-                size = int.from_bytes(data[offset+536:offset+544], "little")
+                path = (
+                    data[offset : offset + 520].decode("utf-16-le", errors="ignore").rstrip("\x00")
+                )
+                last_mod = self._filetime_to_datetime(data[offset + 528 : offset + 536])
+                size = int.from_bytes(data[offset + 536 : offset + 544], "little")
 
-                entries.append({
-                    "path": path,
-                    "last_modified": last_mod,
-                    "size": size,
-                    "executed": None,
-                })
+                entries.append(
+                    {
+                        "path": path,
+                        "last_modified": last_mod,
+                        "size": size,
+                        "executed": None,
+                    }
+                )
                 offset += 552
 
         except Exception as e:
@@ -197,25 +202,29 @@ class ShimcacheParser(BaseParser):
 
         try:
             while offset + 32 < len(data):
-                path_len = int.from_bytes(data[offset:offset+2], "little")
+                path_len = int.from_bytes(data[offset : offset + 2], "little")
                 if path_len == 0 or path_len > 520:
                     break
 
                 path_offset = offset + 16
-                path = data[path_offset:path_offset+path_len].decode("utf-16-le", errors="ignore")
+                path = data[path_offset : path_offset + path_len].decode(
+                    "utf-16-le", errors="ignore"
+                )
 
                 time_offset = path_offset + path_len
                 if time_offset + 8 <= len(data):
-                    last_mod = self._filetime_to_datetime(data[time_offset:time_offset+8])
+                    last_mod = self._filetime_to_datetime(data[time_offset : time_offset + 8])
                 else:
                     last_mod = None
 
-                entries.append({
-                    "path": path,
-                    "last_modified": last_mod,
-                    "size": None,
-                    "executed": None,
-                })
+                entries.append(
+                    {
+                        "path": path,
+                        "last_modified": last_mod,
+                        "size": None,
+                        "executed": None,
+                    }
+                )
 
                 # Move to next entry
                 offset = time_offset + 16
@@ -234,28 +243,32 @@ class ShimcacheParser(BaseParser):
 
         try:
             while offset + 12 < len(data):
-                sig = data[offset:offset+4]
+                sig = data[offset : offset + 4]
                 if sig != b"10ts":
                     break
 
-                entry_size = int.from_bytes(data[offset+8:offset+12], "little")
-                path_size = int.from_bytes(data[offset+12:offset+14], "little")
+                entry_size = int.from_bytes(data[offset + 8 : offset + 12], "little")
+                path_size = int.from_bytes(data[offset + 12 : offset + 14], "little")
 
                 if path_size > 0 and offset + 16 + path_size <= len(data):
-                    path = data[offset+16:offset+16+path_size].decode("utf-16-le", errors="ignore")
+                    path = data[offset + 16 : offset + 16 + path_size].decode(
+                        "utf-16-le", errors="ignore"
+                    )
 
                     time_offset = offset + 16 + path_size
                     if time_offset + 8 <= len(data):
-                        last_mod = self._filetime_to_datetime(data[time_offset:time_offset+8])
+                        last_mod = self._filetime_to_datetime(data[time_offset : time_offset + 8])
                     else:
                         last_mod = None
 
-                    entries.append({
-                        "path": path,
-                        "last_modified": last_mod,
-                        "size": None,
-                        "executed": None,
-                    })
+                    entries.append(
+                        {
+                            "path": path,
+                            "last_modified": last_mod,
+                            "size": None,
+                            "executed": None,
+                        }
+                    )
 
                 offset += entry_size
                 if entry_size == 0:

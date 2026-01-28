@@ -201,9 +201,7 @@ class RealtimeProcessor:
             try:
                 if rule.rule_type == RuleType.CORRELATION:
                     # Process through correlation engine
-                    matches = await self.correlation_engine.process_realtime_event(
-                        event, db
-                    )
+                    matches = await self.correlation_engine.process_realtime_event(event, db)
 
                     for match in matches:
                         await self._generate_alert(rule, match, event, db)
@@ -318,6 +316,7 @@ class RealtimeProcessor:
             # Handle wildcards
             if "*" in value:
                 import re
+
                 pattern = value.replace("*", ".*")
                 if not re.match(f"^{pattern}$", str(actual_value)):
                     return False
@@ -358,6 +357,7 @@ class RealtimeProcessor:
             True if matches
         """
         import re
+
         regex = pattern.replace("*", ".*")
         return bool(re.match(f"^{regex}$", value))
 
@@ -508,6 +508,7 @@ class RealtimeProcessor:
 
                     # Delete old completed states (older than 24h)
                     from datetime import timedelta
+
                     old_threshold = now - timedelta(hours=24)
 
                     await db.execute(
@@ -559,9 +560,7 @@ class RealtimeProcessor:
                                     message_id,
                                     str(e),
                                 )
-                                await self.event_buffer.move_to_dlq(
-                                    message_id, event, str(e)
-                                )
+                                await self.event_buffer.move_to_dlq(message_id, event, str(e))
 
                         await db.commit()
 

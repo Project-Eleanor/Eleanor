@@ -131,6 +131,7 @@ class WindowsEvtxParser(BaseParser):
                 # For file-like objects, we need to save to temp file
                 # as python-evtx requires file path
                 import tempfile
+
                 with tempfile.NamedTemporaryFile(suffix=".evtx", delete=False) as tmp:
                     tmp.write(source.read())
                     tmp_path = tmp.name
@@ -218,7 +219,9 @@ class WindowsEvtxParser(BaseParser):
         # Extract process info
         process_name = data_fields.get("NewProcessName") or data_fields.get("ProcessName")
         process_id = data_fields.get("NewProcessId") or data_fields.get("ProcessId")
-        parent_process_id = data_fields.get("ParentProcessId") or data_fields.get("CreatorProcessId")
+        parent_process_id = data_fields.get("ParentProcessId") or data_fields.get(
+            "CreatorProcessId"
+        )
         command_line = data_fields.get("CommandLine")
 
         # Extract network info
@@ -250,8 +253,20 @@ class WindowsEvtxParser(BaseParser):
             user_domain=user_domain,
             user_id=user_id,
             process_name=self._extract_filename(process_name) if process_name else None,
-            process_pid=int(process_id, 16) if process_id and process_id.startswith("0x") else (int(process_id) if process_id and process_id.isdigit() else None),
-            process_ppid=int(parent_process_id, 16) if parent_process_id and parent_process_id.startswith("0x") else (int(parent_process_id) if parent_process_id and parent_process_id.isdigit() else None),
+            process_pid=(
+                int(process_id, 16)
+                if process_id and process_id.startswith("0x")
+                else (int(process_id) if process_id and process_id.isdigit() else None)
+            ),
+            process_ppid=(
+                int(parent_process_id, 16)
+                if parent_process_id and parent_process_id.startswith("0x")
+                else (
+                    int(parent_process_id)
+                    if parent_process_id and parent_process_id.isdigit()
+                    else None
+                )
+            ),
             process_command_line=command_line,
             process_executable=process_name,
             source_ip=source_ip,

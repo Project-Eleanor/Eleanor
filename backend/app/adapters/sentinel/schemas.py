@@ -246,15 +246,9 @@ class SentinelAnalyticsRule(BaseModel):
     suppression_enabled: bool | None = Field(None, alias="suppressionEnabled")
     tactics: list[str] = Field(default_factory=list)
     techniques: list[str] = Field(default_factory=list)
-    incident_configuration: dict[str, Any] | None = Field(
-        None, alias="incidentConfiguration"
-    )
-    event_grouping_settings: dict[str, Any] | None = Field(
-        None, alias="eventGroupingSettings"
-    )
-    alert_details_override: dict[str, Any] | None = Field(
-        None, alias="alertDetailsOverride"
-    )
+    incident_configuration: dict[str, Any] | None = Field(None, alias="incidentConfiguration")
+    event_grouping_settings: dict[str, Any] | None = Field(None, alias="eventGroupingSettings")
+    alert_details_override: dict[str, Any] | None = Field(None, alias="alertDetailsOverride")
 
     class Config:
         populate_by_name = True

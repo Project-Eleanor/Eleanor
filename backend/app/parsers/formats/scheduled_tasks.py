@@ -93,7 +93,9 @@ class WindowsScheduledTasksParser(BaseParser):
             # Get registration info
             reg_info = root.find(".//RegistrationInfo", ns) or root.find(".//{*}RegistrationInfo")
             author = self._get_text(reg_info, "Author", ns) or self._get_text(reg_info, "{*}Author")
-            description = self._get_text(reg_info, "Description", ns) or self._get_text(reg_info, "{*}Description")
+            description = self._get_text(reg_info, "Description", ns) or self._get_text(
+                reg_info, "{*}Description"
+            )
             date_str = self._get_text(reg_info, "Date", ns) or self._get_text(reg_info, "{*}Date")
 
             registration_date = datetime.now(UTC)
@@ -123,13 +125,19 @@ class WindowsScheduledTasksParser(BaseParser):
 
             # Get principal (security context)
             principal = root.find(".//Principal", ns) or root.find(".//{*}Principal")
-            user_id = self._get_text(principal, "UserId", ns) or self._get_text(principal, "{*}UserId")
-            run_level = self._get_text(principal, "RunLevel", ns) or self._get_text(principal, "{*}RunLevel")
+            user_id = self._get_text(principal, "UserId", ns) or self._get_text(
+                principal, "{*}UserId"
+            )
+            run_level = self._get_text(principal, "RunLevel", ns) or self._get_text(
+                principal, "{*}RunLevel"
+            )
 
             # Get settings
             settings = root.find(".//Settings", ns) or root.find(".//{*}Settings")
             hidden = self._get_text(settings, "Hidden", ns) or self._get_text(settings, "{*}Hidden")
-            enabled = self._get_text(settings, "Enabled", ns) or self._get_text(settings, "{*}Enabled")
+            enabled = self._get_text(settings, "Enabled", ns) or self._get_text(
+                settings, "{*}Enabled"
+            )
 
             # Build message
             action_summary = ""
@@ -179,10 +187,22 @@ class WindowsScheduledTasksParser(BaseParser):
 
                 # Check for suspicious patterns
                 suspicious_patterns = [
-                    "powershell", "cmd.exe", "wscript", "cscript", "mshta",
-                    "regsvr32", "rundll32", "certutil", "bitsadmin",
-                    "-enc", "-encoded", "-noprofile", "hidden",
-                    "downloadstring", "invoke-expression", "iex",
+                    "powershell",
+                    "cmd.exe",
+                    "wscript",
+                    "cscript",
+                    "mshta",
+                    "regsvr32",
+                    "rundll32",
+                    "certutil",
+                    "bitsadmin",
+                    "-enc",
+                    "-encoded",
+                    "-noprofile",
+                    "hidden",
+                    "downloadstring",
+                    "invoke-expression",
+                    "iex",
                 ]
                 for pattern in suspicious_patterns:
                     if pattern in full_cmd:
@@ -255,7 +275,9 @@ class WindowsScheduledTasksParser(BaseParser):
     def _parse_trigger(self, trigger_elem: Any) -> dict | None:
         """Parse a trigger element."""
         try:
-            trigger_type = trigger_elem.tag.split("}")[-1] if "}" in trigger_elem.tag else trigger_elem.tag
+            trigger_type = (
+                trigger_elem.tag.split("}")[-1] if "}" in trigger_elem.tag else trigger_elem.tag
+            )
 
             trigger_info = {"type": trigger_type}
 
@@ -274,7 +296,9 @@ class WindowsScheduledTasksParser(BaseParser):
     def _parse_action(self, action_elem: Any) -> dict | None:
         """Parse an action element."""
         try:
-            action_type = action_elem.tag.split("}")[-1] if "}" in action_elem.tag else action_elem.tag
+            action_type = (
+                action_elem.tag.split("}")[-1] if "}" in action_elem.tag else action_elem.tag
+            )
 
             action_info = {"type": action_type}
 

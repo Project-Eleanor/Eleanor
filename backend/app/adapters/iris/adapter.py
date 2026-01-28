@@ -126,7 +126,9 @@ class IRISAdapter(CaseManagementAdapter):
                     ver_response = await client.get("/api/versions")
                     ver_result = ver_response.json()
                     ver_data = ver_result.get("data", {})
-                    self._version = ver_data.get("iris_current", ver_data.get("iris_version", "unknown"))
+                    self._version = ver_data.get(
+                        "iris_current", ver_data.get("iris_version", "unknown")
+                    )
                 except Exception:
                     self._version = "connected"
 

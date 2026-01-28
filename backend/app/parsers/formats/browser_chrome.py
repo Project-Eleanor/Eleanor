@@ -343,7 +343,9 @@ class ChromeLoginDataParser(BrowserSQLiteParser):
                     origin_url = row["origin_url"]
                     username = row["username_value"]
                     date_created = webkit_to_datetime(row["date_created"])
-                    date_last_used = webkit_to_datetime(row["date_last_used"]) if row["date_last_used"] else None
+                    date_last_used = (
+                        webkit_to_datetime(row["date_last_used"]) if row["date_last_used"] else None
+                    )
                     times_used = row["times_used"] or 0
 
                     # Extract domain using base class method

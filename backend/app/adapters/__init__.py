@@ -30,6 +30,11 @@ from app.adapters.base import (
     Severity,
     SOARAdapter,
     ThreatIntelAdapter,
+    Ticket,
+    TicketComment,
+    TicketingAdapter,
+    TicketPriority,
+    TicketTransition,
     TimelineAdapter,
 )
 from app.adapters.registry import (
@@ -50,6 +55,11 @@ __all__ = [
     "Severity",
     "SOARAdapter",
     "ThreatIntelAdapter",
+    "Ticket",
+    "TicketComment",
+    "TicketingAdapter",
+    "TicketPriority",
+    "TicketTransition",
     "TimelineAdapter",
     # Registry
     "AdapterRegistry",

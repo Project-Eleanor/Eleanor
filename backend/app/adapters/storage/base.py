@@ -37,7 +37,7 @@ class StorageConfig:
 
     # Advanced options
     multipart_threshold: int = 100 * 1024 * 1024  # 100MB
-    multipart_chunksize: int = 10 * 1024 * 1024   # 10MB
+    multipart_chunksize: int = 10 * 1024 * 1024  # 10MB
     max_concurrency: int = 10
 
     def __post_init__(self) -> None:
@@ -446,7 +446,7 @@ class StorageAdapter(ABC):
             ext_start = safe.rfind(".")
             if ext_start > 0:
                 ext = safe[ext_start:]
-                safe = safe[:255 - len(ext)] + ext
+                safe = safe[: 255 - len(ext)] + ext
             else:
                 safe = safe[:255]
 

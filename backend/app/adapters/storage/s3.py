@@ -376,7 +376,7 @@ class S3StorageAdapter(StorageAdapter):
         results = {key: False for key in keys}
 
         for i in range(0, len(keys), 1000):
-            batch = keys[i:i + 1000]
+            batch = keys[i : i + 1000]
             try:
                 response = self._client.delete_objects(
                     Bucket=self.config.bucket,

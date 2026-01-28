@@ -88,9 +88,7 @@ class IOCExtractor:
         IOCType.SHA1: re.compile(r"\b[a-fA-F0-9]{40}\b"),
         IOCType.SHA256: re.compile(r"\b[a-fA-F0-9]{64}\b"),
         IOCType.SHA512: re.compile(r"\b[a-fA-F0-9]{128}\b"),
-        IOCType.EMAIL: re.compile(
-            r"\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b"
-        ),
+        IOCType.EMAIL: re.compile(r"\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b"),
         IOCType.URL: re.compile(
             r"https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+(?::\d+)?(?:/[-\w./?%&=+#~!@$*,;:()]*)?",
             re.IGNORECASE,
@@ -102,9 +100,7 @@ class IOCExtractor:
             r"\bCVE-\d{4}-\d{4,}\b",
             re.IGNORECASE,
         ),
-        IOCType.MITRE_TECHNIQUE: re.compile(
-            r"\b(?:T|TA)\d{4}(?:\.\d{3})?\b"
-        ),
+        IOCType.MITRE_TECHNIQUE: re.compile(r"\b(?:T|TA)\d{4}(?:\.\d{3})?\b"),
         IOCType.FILEPATH: re.compile(
             r'(?:[A-Za-z]:\\(?:[^\\/:*?"<>|\r\n]+\\)*[^\\/:*?"<>|\r\n]*)|'
             r"(?:/(?:[^/\0]+/)*[^/\0]+)",
@@ -115,29 +111,67 @@ class IOCExtractor:
             re.IGNORECASE,
         ),
         IOCType.BITCOIN_ADDRESS: re.compile(
-            r"\b(?:[13][a-km-zA-HJ-NP-Z1-9]{25,34}|"
-            r"bc1[ac-hj-np-z02-9]{11,71})\b"
+            r"\b(?:[13][a-km-zA-HJ-NP-Z1-9]{25,34}|" r"bc1[ac-hj-np-z02-9]{11,71})\b"
         ),
     }
 
     # TLDs for domain validation (common ones)
     VALID_TLDS = {
-        "com", "org", "net", "edu", "gov", "mil", "int",
-        "io", "co", "me", "info", "biz", "tv", "cc",
-        "us", "uk", "ca", "au", "de", "fr", "jp", "cn", "ru", "br", "in",
-        "eu", "xyz", "online", "site", "tech", "app", "dev",
+        "com",
+        "org",
+        "net",
+        "edu",
+        "gov",
+        "mil",
+        "int",
+        "io",
+        "co",
+        "me",
+        "info",
+        "biz",
+        "tv",
+        "cc",
+        "us",
+        "uk",
+        "ca",
+        "au",
+        "de",
+        "fr",
+        "jp",
+        "cn",
+        "ru",
+        "br",
+        "in",
+        "eu",
+        "xyz",
+        "online",
+        "site",
+        "tech",
+        "app",
+        "dev",
     }
 
     # Common false positive patterns
     FALSE_POSITIVE_DOMAINS = {
-        "example.com", "example.org", "example.net",
-        "localhost.localdomain", "test.com", "test.local",
-        "schema.org", "w3.org", "microsoft.com", "google.com",
+        "example.com",
+        "example.org",
+        "example.net",
+        "localhost.localdomain",
+        "test.com",
+        "test.local",
+        "schema.org",
+        "w3.org",
+        "microsoft.com",
+        "google.com",
     }
 
     FALSE_POSITIVE_IPS = {
-        "0.0.0.0", "127.0.0.1", "255.255.255.255",
-        "1.1.1.1", "8.8.8.8", "8.8.4.4",  # DNS servers
+        "0.0.0.0",
+        "127.0.0.1",
+        "255.255.255.255",
+        "1.1.1.1",
+        "8.8.8.8",
+        "8.8.4.4",  # DNS servers
     }
 
     def __init__(
@@ -210,14 +244,16 @@ class IOCExtractor:
                 end = min(len(text), match_obj.end() + self.context_chars)
                 context = text[start:end]
 
-                matches.append(IOCMatch(
-                    value=normalized,
-                    ioc_type=ioc_type,
-                    start=match_obj.start(),
-                    end=match_obj.end(),
-                    original=value,
-                    context=context,
-                ))
+                matches.append(
+                    IOCMatch(
+                        value=normalized,
+                        ioc_type=ioc_type,
+                        start=match_obj.start(),
+                        end=match_obj.end(),
+                        original=value,
+                        context=context,
+                    )
+                )
 
         # Sort by position
         matches.sort(key=lambda m: m.start)

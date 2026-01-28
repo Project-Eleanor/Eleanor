@@ -176,15 +176,27 @@ class TeamViewerParser(BaseParser):
                     "start": timestamp.isoformat() if timestamp else None,
                     "end": entry.get("end_time").isoformat() if entry.get("end_time") else None,
                 },
-                "user": {
-                    "name": entry.get("local_user"),
-                } if entry.get("local_user") else None,
-                "source": {
-                    "user": {"name": entry.get("remote_name")},
-                } if direction == "incoming" else None,
-                "destination": {
-                    "user": {"id": remote_id},
-                } if direction == "outgoing" else None,
+                "user": (
+                    {
+                        "name": entry.get("local_user"),
+                    }
+                    if entry.get("local_user")
+                    else None
+                ),
+                "source": (
+                    {
+                        "user": {"name": entry.get("remote_name")},
+                    }
+                    if direction == "incoming"
+                    else None
+                ),
+                "destination": (
+                    {
+                        "user": {"id": remote_id},
+                    }
+                    if direction == "outgoing"
+                    else None
+                ),
                 "network": {
                     "application": "TeamViewer",
                     "direction": "inbound" if direction == "incoming" else "outbound",
@@ -404,7 +416,9 @@ class RustDeskParser(BaseParser):
                                 },
                                 "network": {
                                     "application": "RustDesk",
-                                    "direction": "inbound" if direction == "incoming" else "outbound",
+                                    "direction": (
+                                        "inbound" if direction == "incoming" else "outbound"
+                                    ),
                                 },
                                 "eleanor": {
                                     "case_id": case_id,

@@ -59,9 +59,12 @@ class AzureBlobStorageAdapter(StorageAdapter):
             else:
                 # Try DefaultAzureCredential for managed identity
                 from azure.identity import DefaultAzureCredential
+
                 credential = DefaultAzureCredential()
                 if not self.config.endpoint_url:
-                    raise ValueError("Azure endpoint_url required when using DefaultAzureCredential")
+                    raise ValueError(
+                        "Azure endpoint_url required when using DefaultAzureCredential"
+                    )
                 self._client = BlobServiceClient(
                     account_url=self.config.endpoint_url,
                     credential=credential,
@@ -260,7 +263,7 @@ class AzureBlobStorageAdapter(StorageAdapter):
         for chunk in download_stream.chunks():
             # Yield in smaller chunks if needed
             for i in range(0, len(chunk), chunk_size):
-                yield chunk[i:i + chunk_size]
+                yield chunk[i : i + chunk_size]
 
     async def get_download_url(
         self,
@@ -356,6 +359,7 @@ class AzureBlobStorageAdapter(StorageAdapter):
         props = dest_blob.get_blob_properties()
         while props.copy.status == "pending":
             import time
+
             time.sleep(0.5)
             props = dest_blob.get_blob_properties()
 
@@ -409,7 +413,9 @@ class AzureBlobStorageAdapter(StorageAdapter):
                 StorageFile(
                     key=blob.name,
                     size=blob.size,
-                    content_type=blob.content_settings.content_type if blob.content_settings else None,
+                    content_type=(
+                        blob.content_settings.content_type if blob.content_settings else None
+                    ),
                     etag=blob.etag,
                     last_modified=blob.last_modified,
                     metadata=blob.metadata or {},

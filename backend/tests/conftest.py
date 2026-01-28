@@ -506,6 +506,10 @@ class MockSessionFactory:
         stmt_str = str(stmt).lower()
         limit, offset = self._extract_pagination(stmt)
 
+        # Handle simple SELECT 1 health check queries
+        if "select 1" in stmt_str or stmt_str.strip() == "select 1":
+            return MockResult([1])
+
         # GROUP BY queries - return tuples for aggregation
         is_group_by = "group by" in stmt_str
         if is_group_by and ("detection_rules" in stmt_str or "detectionrule" in stmt_str):

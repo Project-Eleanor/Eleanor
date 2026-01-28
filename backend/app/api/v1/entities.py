@@ -78,22 +78,15 @@ async def get_host_profile(
             first_seen=aggs.get("first_seen", {}).get("value_as_string"),
             last_seen=aggs.get("last_seen", {}).get("value_as_string"),
             event_count=total,
-            related_cases=[
-                bucket["key"]
-                for bucket in aggs.get("cases", {}).get("buckets", [])
-            ],
+            related_cases=[bucket["key"] for bucket in aggs.get("cases", {}).get("buckets", [])],
             summary={
                 "event_types": {
                     bucket["key"]: bucket["doc_count"]
                     for bucket in aggs.get("event_types", {}).get("buckets", [])
                 },
-                "users": [
-                    bucket["key"]
-                    for bucket in aggs.get("users", {}).get("buckets", [])
-                ],
+                "users": [bucket["key"] for bucket in aggs.get("users", {}).get("buckets", [])],
                 "top_processes": [
-                    bucket["key"]
-                    for bucket in aggs.get("processes", {}).get("buckets", [])
+                    bucket["key"] for bucket in aggs.get("processes", {}).get("buckets", [])
                 ],
             },
         )
@@ -139,22 +132,15 @@ async def get_user_profile(
             first_seen=aggs.get("first_seen", {}).get("value_as_string"),
             last_seen=aggs.get("last_seen", {}).get("value_as_string"),
             event_count=total,
-            related_cases=[
-                bucket["key"]
-                for bucket in aggs.get("cases", {}).get("buckets", [])
-            ],
+            related_cases=[bucket["key"] for bucket in aggs.get("cases", {}).get("buckets", [])],
             summary={
                 "event_types": {
                     bucket["key"]: bucket["doc_count"]
                     for bucket in aggs.get("event_types", {}).get("buckets", [])
                 },
-                "hosts": [
-                    bucket["key"]
-                    for bucket in aggs.get("hosts", {}).get("buckets", [])
-                ],
+                "hosts": [bucket["key"] for bucket in aggs.get("hosts", {}).get("buckets", [])],
                 "top_processes": [
-                    bucket["key"]
-                    for bucket in aggs.get("processes", {}).get("buckets", [])
+                    bucket["key"] for bucket in aggs.get("processes", {}).get("buckets", [])
                 ],
             },
         )
@@ -209,23 +195,14 @@ async def get_ip_profile(
             first_seen=aggs.get("first_seen", {}).get("value_as_string"),
             last_seen=aggs.get("last_seen", {}).get("value_as_string"),
             event_count=total,
-            related_cases=[
-                bucket["key"]
-                for bucket in aggs.get("cases", {}).get("buckets", [])
-            ],
+            related_cases=[bucket["key"] for bucket in aggs.get("cases", {}).get("buckets", [])],
             summary={
                 "event_types": {
                     bucket["key"]: bucket["doc_count"]
                     for bucket in aggs.get("event_types", {}).get("buckets", [])
                 },
-                "hosts": [
-                    bucket["key"]
-                    for bucket in aggs.get("hosts", {}).get("buckets", [])
-                ],
-                "ports": [
-                    bucket["key"]
-                    for bucket in aggs.get("ports", {}).get("buckets", [])
-                ],
+                "hosts": [bucket["key"] for bucket in aggs.get("hosts", {}).get("buckets", [])],
+                "ports": [bucket["key"] for bucket in aggs.get("ports", {}).get("buckets", [])],
             },
         )
 

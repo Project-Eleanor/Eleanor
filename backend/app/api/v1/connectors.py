@@ -276,7 +276,9 @@ async def test_connector_connectivity(
                 )
 
             # Test Microsoft login endpoint reachability
-            endpoint = f"https://login.microsoftonline.com/{tenant_id}/.well-known/openid-configuration"
+            endpoint = (
+                f"https://login.microsoftonline.com/{tenant_id}/.well-known/openid-configuration"
+            )
             async with httpx.AsyncClient(timeout=10.0) as client:
                 response = await client.get(endpoint)
                 if response.status_code != 200:
@@ -306,7 +308,11 @@ async def test_connector_connectivity(
         elif connector.connector_type == ConnectorType.KAFKA:
             # Test Kafka broker connectivity
             bootstrap_servers = config.get("bootstrap_servers", "localhost:9092")
-            servers = bootstrap_servers.split(",") if isinstance(bootstrap_servers, str) else bootstrap_servers
+            servers = (
+                bootstrap_servers.split(",")
+                if isinstance(bootstrap_servers, str)
+                else bootstrap_servers
+            )
 
             if not servers:
                 return TestResult(
@@ -929,23 +935,23 @@ async def get_connectors_stats(
 ) -> dict[str, Any]:
     """Get overall connector statistics."""
     # Count by status
-    status_query = select(
-        DataConnector.status, func.count(DataConnector.id)
-    ).group_by(DataConnector.status)
+    status_query = select(DataConnector.status, func.count(DataConnector.id)).group_by(
+        DataConnector.status
+    )
     status_result = await db.execute(status_query)
     status_counts = {row[0].value: row[1] for row in status_result.all()}
 
     # Count by health
-    health_query = select(
-        DataConnector.health, func.count(DataConnector.id)
-    ).group_by(DataConnector.health)
+    health_query = select(DataConnector.health, func.count(DataConnector.id)).group_by(
+        DataConnector.health
+    )
     health_result = await db.execute(health_query)
     health_counts = {row[0].value: row[1] for row in health_result.all()}
 
     # Count by type
-    type_query = select(
-        DataConnector.connector_type, func.count(DataConnector.id)
-    ).group_by(DataConnector.connector_type)
+    type_query = select(DataConnector.connector_type, func.count(DataConnector.id)).group_by(
+        DataConnector.connector_type
+    )
     type_result = await db.execute(type_query)
     type_counts = {row[0].value: row[1] for row in type_result.all()}
 

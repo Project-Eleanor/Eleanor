@@ -135,6 +135,7 @@ class FirefoxHistoryParser(BrowserSQLiteParser):
                 domain = None
                 try:
                     from urllib.parse import urlparse
+
                     parsed = urlparse(url)
                     domain = parsed.netloc
                 except Exception:
@@ -204,6 +205,7 @@ class FirefoxHistoryParser(BrowserSQLiteParser):
                 if content:
                     try:
                         import json
+
                         data = json.loads(content)
                         target_path = data.get("targetFileSpec") or data.get("target")
                         if target_path:
@@ -271,6 +273,7 @@ class FirefoxHistoryParser(BrowserSQLiteParser):
                 domain = None
                 try:
                     from urllib.parse import urlparse
+
                     parsed = urlparse(url)
                     domain = parsed.netloc
                 except Exception:

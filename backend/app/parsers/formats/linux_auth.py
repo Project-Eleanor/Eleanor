@@ -25,16 +25,13 @@ AUTH_PATTERNS = {
     "ssh_failed": re.compile(
         r"Failed\s+(?P<method>\S+)\s+for\s+(?:invalid user\s+)?(?P<user>\S+)\s+from\s+(?P<src_ip>\S+)\s+port\s+(?P<src_port>\d+)"
     ),
-    "ssh_invalid_user": re.compile(
-        r"Invalid user\s+(?P<user>\S+)\s+from\s+(?P<src_ip>\S+)"
-    ),
+    "ssh_invalid_user": re.compile(r"Invalid user\s+(?P<user>\S+)\s+from\s+(?P<src_ip>\S+)"),
     "ssh_disconnect": re.compile(
         r"Disconnected from\s+(?:user\s+(?P<user>\S+)\s+)?(?P<src_ip>\S+)\s+port\s+(?P<src_port>\d+)"
     ),
     "ssh_connection_closed": re.compile(
         r"Connection closed by\s+(?:(?P<type>authenticating|invalid)\s+user\s+)?(?P<user>\S+)?\s*(?P<src_ip>\S+)\s+port\s+(?P<src_port>\d+)"
     ),
-
     # sudo events
     "sudo_command": re.compile(
         r"(?P<user>\S+)\s+:\s+TTY=(?P<tty>\S+)\s+;\s+PWD=(?P<pwd>[^;]+)\s*;\s+USER=(?P<target_user>\S+)\s*;\s+COMMAND=(?P<command>.+)"
@@ -45,18 +42,12 @@ AUTH_PATTERNS = {
     "sudo_auth_failure": re.compile(
         r"pam_unix\(sudo:auth\):\s+authentication failure;.*user=(?P<user>\S+)"
     ),
-
     # su events
-    "su_success": re.compile(
-        r"Successful su for\s+(?P<target_user>\S+)\s+by\s+(?P<user>\S+)"
-    ),
-    "su_failed": re.compile(
-        r"FAILED su for\s+(?P<target_user>\S+)\s+by\s+(?P<user>\S+)"
-    ),
+    "su_success": re.compile(r"Successful su for\s+(?P<target_user>\S+)\s+by\s+(?P<user>\S+)"),
+    "su_failed": re.compile(r"FAILED su for\s+(?P<target_user>\S+)\s+by\s+(?P<user>\S+)"),
     "su_session": re.compile(
         r"pam_unix\(su(?:-l)?:session\):\s+session\s+(?P<action>opened|closed)\s+for user\s+(?P<target_user>\S+)(?:\s+by\s+(?P<user>\S+)|\(uid=(?P<uid>\d+)\))?"
     ),
-
     # PAM events
     "pam_session": re.compile(
         r"pam_unix\((?P<service>\S+):session\):\s+session\s+(?P<action>opened|closed)\s+for user\s+(?P<user>\S+)"
@@ -64,24 +55,12 @@ AUTH_PATTERNS = {
     "pam_auth_failure": re.compile(
         r"pam_unix\((?P<service>\S+):auth\):\s+authentication failure;.*user=(?P<user>\S+)"
     ),
-
     # User/group management
-    "useradd": re.compile(
-        r"new user: name=(?P<user>\S+),\s*UID=(?P<uid>\d+),\s*GID=(?P<gid>\d+)"
-    ),
-    "userdel": re.compile(
-        r"delete user '(?P<user>\S+)'"
-    ),
-    "usermod": re.compile(
-        r"change user '(?P<user>\S+)'"
-    ),
-    "groupadd": re.compile(
-        r"new group: name=(?P<group>\S+),\s*GID=(?P<gid>\d+)"
-    ),
-    "passwd_change": re.compile(
-        r"password changed for\s+(?P<user>\S+)"
-    ),
-
+    "useradd": re.compile(r"new user: name=(?P<user>\S+),\s*UID=(?P<uid>\d+),\s*GID=(?P<gid>\d+)"),
+    "userdel": re.compile(r"delete user '(?P<user>\S+)'"),
+    "usermod": re.compile(r"change user '(?P<user>\S+)'"),
+    "groupadd": re.compile(r"new group: name=(?P<group>\S+),\s*GID=(?P<gid>\d+)"),
+    "passwd_change": re.compile(r"password changed for\s+(?P<user>\S+)"),
     # System events
     "cron_session": re.compile(
         r"pam_unix\(cron:session\):\s+session\s+(?P<action>opened|closed)\s+for user\s+(?P<user>\S+)"
@@ -132,8 +111,14 @@ class LinuxAuthLogParser(BaseParser):
                 text = content.decode("utf-8", errors="ignore")[:2000]
                 # Check for common auth log indicators
                 auth_indicators = [
-                    "sshd[", "sudo:", "su[", "pam_unix", "systemd-logind",
-                    "Accepted password", "Failed password", "session opened"
+                    "sshd[",
+                    "sudo:",
+                    "su[",
+                    "pam_unix",
+                    "systemd-logind",
+                    "Accepted password",
+                    "Failed password",
+                    "session opened",
                 ]
                 if any(ind in text for ind in auth_indicators):
                     return True
@@ -154,15 +139,18 @@ class LinuxAuthLogParser(BaseParser):
             # Handle gzipped files
             if isinstance(source, Path) and source.suffix == ".gz":
                 import gzip
+
                 opener = gzip.open(source, "rt", encoding="utf-8", errors="ignore")
             elif isinstance(source, Path):
                 opener = open(source, encoding="utf-8", errors="ignore")
             else:
                 import io
+
                 content = source.read()
                 # Check if gzipped
                 if content[:2] == b"\x1f\x8b":
                     import gzip
+
                     content = gzip.decompress(content)
                 text = content.decode("utf-8", errors="ignore")
                 opener = io.StringIO(text)
@@ -210,8 +198,15 @@ class LinuxAuthLogParser(BaseParser):
                 match = pattern.search(line)
                 if match:
                     return self._create_event(
-                        pattern_name, match, line, timestamp,
-                        hostname, process, pid, source_name, line_num
+                        pattern_name,
+                        match,
+                        line,
+                        timestamp,
+                        hostname,
+                        process,
+                        pid,
+                        source_name,
+                        line_num,
                     )
 
             # Generic parsing for unmatched lines if they contain auth keywords
@@ -233,8 +228,18 @@ class LinuxAuthLogParser(BaseParser):
             return datetime.now(UTC)
 
         month_map = {
-            "Jan": 1, "Feb": 2, "Mar": 3, "Apr": 4, "May": 5, "Jun": 6,
-            "Jul": 7, "Aug": 8, "Sep": 9, "Oct": 10, "Nov": 11, "Dec": 12
+            "Jan": 1,
+            "Feb": 2,
+            "Mar": 3,
+            "Apr": 4,
+            "May": 5,
+            "Jun": 6,
+            "Jul": 7,
+            "Aug": 8,
+            "Sep": 9,
+            "Oct": 10,
+            "Nov": 11,
+            "Dec": 12,
         }
 
         month = month_map.get(match.group("month"), 1)
@@ -245,10 +250,7 @@ class LinuxAuthLogParser(BaseParser):
         current_year = datetime.now().year
 
         try:
-            ts = datetime.strptime(
-                f"{current_year} {month} {day} {time_str}",
-                "%Y %m %d %H:%M:%S"
-            )
+            ts = datetime.strptime(f"{current_year} {month} {day} {time_str}", "%Y %m %d %H:%M:%S")
             return ts.replace(tzinfo=UTC)
         except ValueError:
             return datetime.now(UTC)
@@ -292,8 +294,7 @@ class LinuxAuthLogParser(BaseParser):
         }
 
         categories, types, action, outcome = category_map.get(
-            pattern_name,
-            (["authentication"], ["info"], pattern_name, None)
+            pattern_name, (["authentication"], ["info"], pattern_name, None)
         )
 
         # Build message

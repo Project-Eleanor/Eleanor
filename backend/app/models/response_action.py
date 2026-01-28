@@ -39,9 +39,7 @@ class ResponseAction(Base):
 
     __tablename__ = "response_actions"
 
-    id: Mapped[UUID] = mapped_column(
-        UUIDType(), primary_key=True, default=uuid4
-    )
+    id: Mapped[UUID] = mapped_column(UUIDType(), primary_key=True, default=uuid4)
     tenant_id: Mapped[UUID] = mapped_column(
         UUIDType(), ForeignKey("tenants.id"), nullable=False, index=True
     )
@@ -53,9 +51,7 @@ class ResponseAction(Base):
     )
 
     # Action details
-    action_type: Mapped[str] = mapped_column(
-        String(50), nullable=False, index=True
-    )
+    action_type: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
     status: Mapped[str] = mapped_column(
         String(20), nullable=False, default=ResponseActionStatus.PENDING.value, index=True
     )
@@ -77,12 +73,8 @@ class ResponseAction(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), index=True
     )
-    started_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-    completed_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     user = relationship("User")

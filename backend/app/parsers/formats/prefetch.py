@@ -71,6 +71,7 @@ class WindowsPrefetchParser(DissectParserAdapter):
             return Prefetch.from_file(source)
         # For file-like objects, we need to save to temp
         import tempfile
+
         with tempfile.NamedTemporaryFile(suffix=".pf", delete=False) as tmp:
             tmp.write(source.read())
             tmp_path = tmp.name
@@ -132,7 +133,9 @@ class WindowsPrefetchParser(DissectParserAdapter):
                     if hasattr(vol, "device_path"):
                         vol_info["device_path"] = str(vol.device_path)
                     if hasattr(vol, "serial_number"):
-                        vol_info["serial_number"] = hex(vol.serial_number) if vol.serial_number else None
+                        vol_info["serial_number"] = (
+                            hex(vol.serial_number) if vol.serial_number else None
+                        )
                     volumes.append(vol_info)
 
             # Build message
@@ -147,7 +150,9 @@ class WindowsPrefetchParser(DissectParserAdapter):
                 "run_count": run_count,
                 "last_run_times": [str(t) for t in last_run_times if t],
                 "file_reference_count": file_reference_count,
-                "prefetch_hash": hex(record.prefetch_hash) if hasattr(record, "prefetch_hash") else None,
+                "prefetch_hash": (
+                    hex(record.prefetch_hash) if hasattr(record, "prefetch_hash") else None
+                ),
             }
             if file_references:
                 raw["file_references"] = file_references[:20]  # Limit in raw data
@@ -198,6 +203,7 @@ class WindowsPrefetchParser(DissectParserAdapter):
                     pf = Prefetch.from_file(source)
                 else:
                     import tempfile
+
                     with tempfile.NamedTemporaryFile(suffix=".pf", delete=False) as tmp:
                         tmp.write(source.read())
                         tmp_path = tmp.name

@@ -40,7 +40,10 @@ def validate_duration(duration: str) -> tuple[bool, str | None]:
 
     match = DURATION_PATTERN.match(duration)
     if not match:
-        return False, f"Invalid duration format: {duration}. Use format like '5m', '1h', '30s', '2d'"
+        return (
+            False,
+            f"Invalid duration format: {duration}. Use format like '5m', '1h', '30s', '2d'",
+        )
 
     value = int(match.group(1))
     if value <= 0:
@@ -84,7 +87,7 @@ def condition_to_query(condition: FieldCondition) -> str:
     # Escape special characters in value if string
     if isinstance(value, str):
         escaped_value = value.replace('"', '\\"')
-        if " " in escaped_value or any(c in escaped_value for c in [':', '(', ')', '[', ']']):
+        if " " in escaped_value or any(c in escaped_value for c in [":", "(", ")", "[", "]"]):
             escaped_value = f'"{escaped_value}"'
     else:
         escaped_value = str(value) if value is not None else "*"
@@ -180,11 +183,11 @@ class RuleValidator:
         # Validate window duration
         valid, err = validate_duration(config.window)
         if not valid:
-            errors.append(RuleValidationError(
-                field="window",
-                message=err or "Invalid window",
-                severity="error"
-            ))
+            errors.append(
+                RuleValidationError(
+                    field="window", message=err or "Invalid window", severity="error"
+                )
+            )
 
         # Validate events
         event_ids = set()
@@ -193,31 +196,37 @@ class RuleValidator:
             errors.extend(event_errors)
 
             if event.id in event_ids:
-                errors.append(RuleValidationError(
-                    field=f"events[{i}].id",
-                    message=f"Duplicate event ID: {event.id}",
-                    severity="error"
-                ))
+                errors.append(
+                    RuleValidationError(
+                        field=f"events[{i}].id",
+                        message=f"Duplicate event ID: {event.id}",
+                        severity="error",
+                    )
+                )
             event_ids.add(event.id)
 
         # Validate join fields
         for i, join in enumerate(config.join_on):
             valid, err = validate_field_path(join.field)
             if not valid:
-                errors.append(RuleValidationError(
-                    field=f"join_on[{i}].field",
-                    message=err or "Invalid field path",
-                    severity="error"
-                ))
+                errors.append(
+                    RuleValidationError(
+                        field=f"join_on[{i}].field",
+                        message=err or "Invalid field path",
+                        severity="error",
+                    )
+                )
 
         # Validate thresholds reference valid events
         for i, threshold in enumerate(config.thresholds):
             if threshold.event_id not in event_ids:
-                errors.append(RuleValidationError(
-                    field=f"thresholds[{i}].event_id",
-                    message=f"Threshold references unknown event: {threshold.event_id}",
-                    severity="error"
-                ))
+                errors.append(
+                    RuleValidationError(
+                        field=f"thresholds[{i}].event_id",
+                        message=f"Threshold references unknown event: {threshold.event_id}",
+                        severity="error",
+                    )
+                )
 
         # Validate pattern-specific configuration
         pattern_errors, pattern_warnings = self._validate_pattern(config, event_ids)
@@ -233,51 +242,50 @@ class RuleValidator:
             valid=len(errors) == 0,
             errors=errors,
             warnings=warnings,
-            generated_config=generated_config
+            generated_config=generated_config,
         )
 
-    def _validate_event(
-        self, event: EventDefinition, index: int
-    ) -> list[RuleValidationError]:
+    def _validate_event(self, event: EventDefinition, index: int) -> list[RuleValidationError]:
         """Validate a single event definition."""
         errors = []
         prefix = f"events[{index}]"
 
         if not event.id:
-            errors.append(RuleValidationError(
-                field=f"{prefix}.id",
-                message="Event ID is required",
-                severity="error"
-            ))
+            errors.append(
+                RuleValidationError(
+                    field=f"{prefix}.id", message="Event ID is required", severity="error"
+                )
+            )
 
         if not event.name:
-            errors.append(RuleValidationError(
-                field=f"{prefix}.name",
-                message="Event name is required",
-                severity="error"
-            ))
+            errors.append(
+                RuleValidationError(
+                    field=f"{prefix}.name", message="Event name is required", severity="error"
+                )
+            )
 
         # Validate conditions
         for j, condition in enumerate(event.conditions):
             valid, err = validate_field_path(condition.field)
             if not valid:
-                errors.append(RuleValidationError(
-                    field=f"{prefix}.conditions[{j}].field",
-                    message=err or "Invalid field path",
-                    severity="error"
-                ))
+                errors.append(
+                    RuleValidationError(
+                        field=f"{prefix}.conditions[{j}].field",
+                        message=err or "Invalid field path",
+                        severity="error",
+                    )
+                )
 
             # Validate value for operators that require it
-            if condition.operator not in {
-                ComparisonOperator.EXISTS,
-                ComparisonOperator.NOT_EXISTS
-            }:
+            if condition.operator not in {ComparisonOperator.EXISTS, ComparisonOperator.NOT_EXISTS}:
                 if condition.value is None:
-                    errors.append(RuleValidationError(
-                        field=f"{prefix}.conditions[{j}].value",
-                        message="Value is required for this operator",
-                        severity="error"
-                    ))
+                    errors.append(
+                        RuleValidationError(
+                            field=f"{prefix}.conditions[{j}].value",
+                            message="Value is required for this operator",
+                            severity="error",
+                        )
+                    )
 
         return errors
 
@@ -291,101 +299,127 @@ class RuleValidator:
         match config.pattern_type:
             case PatternType.SEQUENCE:
                 if not config.sequence:
-                    errors.append(RuleValidationError(
-                        field="sequence",
-                        message="Sequence configuration is required for sequence pattern",
-                        severity="error"
-                    ))
+                    errors.append(
+                        RuleValidationError(
+                            field="sequence",
+                            message="Sequence configuration is required for sequence pattern",
+                            severity="error",
+                        )
+                    )
                 elif not config.sequence.order:
-                    errors.append(RuleValidationError(
-                        field="sequence.order",
-                        message="Sequence order must have at least one event",
-                        severity="error"
-                    ))
+                    errors.append(
+                        RuleValidationError(
+                            field="sequence.order",
+                            message="Sequence order must have at least one event",
+                            severity="error",
+                        )
+                    )
                 else:
                     for i, event_id in enumerate(config.sequence.order):
                         if event_id not in event_ids:
-                            errors.append(RuleValidationError(
-                                field=f"sequence.order[{i}]",
-                                message=f"Unknown event ID in sequence: {event_id}",
-                                severity="error"
-                            ))
+                            errors.append(
+                                RuleValidationError(
+                                    field=f"sequence.order[{i}]",
+                                    message=f"Unknown event ID in sequence: {event_id}",
+                                    severity="error",
+                                )
+                            )
 
                 if not config.join_on:
-                    warnings.append(RuleValidationError(
-                        field="join_on",
-                        message="No join fields specified. Sequence will correlate all events regardless of entity.",
-                        severity="warning"
-                    ))
+                    warnings.append(
+                        RuleValidationError(
+                            field="join_on",
+                            message="No join fields specified. Sequence will correlate all events regardless of entity.",
+                            severity="warning",
+                        )
+                    )
 
             case PatternType.TEMPORAL_JOIN:
                 if config.temporal_join:
                     valid, err = validate_duration(config.temporal_join.max_span)
                     if not valid:
-                        errors.append(RuleValidationError(
-                            field="temporal_join.max_span",
-                            message=err or "Invalid duration",
-                            severity="error"
-                        ))
+                        errors.append(
+                            RuleValidationError(
+                                field="temporal_join.max_span",
+                                message=err or "Invalid duration",
+                                severity="error",
+                            )
+                        )
 
                 if len(config.events) < 2:
-                    errors.append(RuleValidationError(
-                        field="events",
-                        message="Temporal join requires at least 2 event types",
-                        severity="error"
-                    ))
+                    errors.append(
+                        RuleValidationError(
+                            field="events",
+                            message="Temporal join requires at least 2 event types",
+                            severity="error",
+                        )
+                    )
 
             case PatternType.AGGREGATION:
                 if not config.aggregation:
-                    errors.append(RuleValidationError(
-                        field="aggregation",
-                        message="Aggregation configuration is required",
-                        severity="error"
-                    ))
+                    errors.append(
+                        RuleValidationError(
+                            field="aggregation",
+                            message="Aggregation configuration is required",
+                            severity="error",
+                        )
+                    )
                 elif not config.aggregation.group_by:
-                    errors.append(RuleValidationError(
-                        field="aggregation.group_by",
-                        message="At least one group_by field is required",
-                        severity="error"
-                    ))
+                    errors.append(
+                        RuleValidationError(
+                            field="aggregation.group_by",
+                            message="At least one group_by field is required",
+                            severity="error",
+                        )
+                    )
                 elif not config.aggregation.having:
-                    errors.append(RuleValidationError(
-                        field="aggregation.having",
-                        message="At least one threshold condition is required",
-                        severity="error"
-                    ))
+                    errors.append(
+                        RuleValidationError(
+                            field="aggregation.having",
+                            message="At least one threshold condition is required",
+                            severity="error",
+                        )
+                    )
 
             case PatternType.SPIKE:
                 if not config.spike:
-                    errors.append(RuleValidationError(
-                        field="spike",
-                        message="Spike configuration is required",
-                        severity="error"
-                    ))
+                    errors.append(
+                        RuleValidationError(
+                            field="spike",
+                            message="Spike configuration is required",
+                            severity="error",
+                        )
+                    )
                 else:
                     valid, err = validate_duration(config.spike.baseline_window)
                     if not valid:
-                        errors.append(RuleValidationError(
-                            field="spike.baseline_window",
-                            message=err or "Invalid duration",
-                            severity="error"
-                        ))
+                        errors.append(
+                            RuleValidationError(
+                                field="spike.baseline_window",
+                                message=err or "Invalid duration",
+                                severity="error",
+                            )
+                        )
 
                     valid, err = validate_duration(config.spike.spike_window)
                     if not valid:
-                        errors.append(RuleValidationError(
-                            field="spike.spike_window",
-                            message=err or "Invalid duration",
-                            severity="error"
-                        ))
+                        errors.append(
+                            RuleValidationError(
+                                field="spike.spike_window",
+                                message=err or "Invalid duration",
+                                severity="error",
+                            )
+                        )
 
                     valid, err = validate_field_path(config.spike.field)
                     if not valid:
-                        errors.append(RuleValidationError(
-                            field="spike.field",
-                            message=err or "Invalid field path",
-                            severity="error"
-                        ))
+                        errors.append(
+                            RuleValidationError(
+                                field="spike.field",
+                                message=err or "Invalid field path",
+                                severity="error",
+                            )
+                        )
 
         return errors, warnings
 
@@ -423,10 +457,9 @@ class RuleValidator:
 
         # Convert thresholds
         for threshold in config.thresholds:
-            correlation_config["thresholds"].append({
-                "event": threshold.event_id,
-                "count": f"{threshold.operator} {threshold.count}"
-            })
+            correlation_config["thresholds"].append(
+                {"event": threshold.event_id, "count": f"{threshold.operator} {threshold.count}"}
+            )
 
         # Add pattern-specific config
         match config.pattern_type:
@@ -449,12 +482,9 @@ class RuleValidator:
                     correlation_config["aggregation"] = {
                         "group_by": config.aggregation.group_by,
                         "having": [
-                            {
-                                "event": h.event_id,
-                                "count": f"{h.operator} {h.count}"
-                            }
+                            {"event": h.event_id, "count": f"{h.operator} {h.count}"}
                             for h in config.aggregation.having
-                        ]
+                        ],
                     }
 
             case PatternType.SPIKE:

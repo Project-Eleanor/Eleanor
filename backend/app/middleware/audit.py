@@ -86,9 +86,7 @@ class RequestAuditMiddleware(BaseHTTPMiddleware):
         sanitized_path = sanitize_path(path)
 
         # Check if we should log this request
-        should_log = self.log_all or any(
-            path.startswith(p) for p in self.ALWAYS_LOG_PATHS
-        )
+        should_log = self.log_all or any(path.startswith(p) for p in self.ALWAYS_LOG_PATHS)
 
         if path in self.EXCLUDE_PATHS:
             should_log = False

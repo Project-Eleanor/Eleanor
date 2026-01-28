@@ -90,8 +90,11 @@ class EventDefinition(BaseModel):
             raise ValueError("Event ID cannot be empty")
         # Allow alphanumeric and underscores
         import re
+
         if not re.match(r"^[a-zA-Z][a-zA-Z0-9_]*$", v):
-            raise ValueError("Event ID must start with a letter and contain only alphanumeric characters and underscores")
+            raise ValueError(
+                "Event ID must start with a letter and contain only alphanumeric characters and underscores"
+            )
         return v
 
 
@@ -172,9 +175,7 @@ class RuleBuilderConfig(BaseModel):
     window: str = Field("5m", description="Correlation time window (e.g., '5m', '1h')")
 
     # Event definitions
-    events: list[EventDefinition] = Field(
-        ..., min_length=1, description="Event type definitions"
-    )
+    events: list[EventDefinition] = Field(..., min_length=1, description="Event type definitions")
 
     # Join configuration
     join_on: list[JoinField] = Field(

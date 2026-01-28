@@ -323,8 +323,7 @@ class TimesketchAdapter(TimelineAdapter):
         objects = result.get("objects", [])
 
         return [
-            self._ts_timeline_to_timeline(TimesketchTimeline(**obj), sketch_id)
-            for obj in objects
+            self._ts_timeline_to_timeline(TimesketchTimeline(**obj), sketch_id) for obj in objects
         ]
 
     async def upload_timeline(

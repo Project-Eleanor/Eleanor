@@ -308,7 +308,9 @@ async def bulk_alert_action(
                     alert.case_id = request.case_id
                     alert.status = AlertStatus.IN_PROGRESS
             else:
-                errors.append({"alert_id": str(alert_id), "error": f"Unknown action: {request.action}"})
+                errors.append(
+                    {"alert_id": str(alert_id), "error": f"Unknown action: {request.action}"}
+                )
                 continue
             processed += 1
         except Exception as e:

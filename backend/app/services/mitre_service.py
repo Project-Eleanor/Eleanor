@@ -24,7 +24,9 @@ from app.models.analytics import DetectionRule, RuleStatus
 logger = logging.getLogger(__name__)
 
 # MITRE ATT&CK STIX data URLs
-ATTACK_ENTERPRISE_URL = "https://raw.githubusercontent.com/mitre/cti/master/enterprise-attack/enterprise-attack.json"
+ATTACK_ENTERPRISE_URL = (
+    "https://raw.githubusercontent.com/mitre/cti/master/enterprise-attack/enterprise-attack.json"
+)
 ATTACK_CACHE_PATH = Path(__file__).parent.parent / "data" / "mitre_attack.json"
 
 
@@ -100,17 +102,28 @@ class MitreAttackService:
 
         # Define tactic order (kill chain phases)
         tactic_order = [
-            "reconnaissance", "resource-development", "initial-access",
-            "execution", "persistence", "privilege-escalation", "defense-evasion",
-            "credential-access", "discovery", "lateral-movement", "collection",
-            "command-and-control", "exfiltration", "impact"
+            "reconnaissance",
+            "resource-development",
+            "initial-access",
+            "execution",
+            "persistence",
+            "privilege-escalation",
+            "defense-evasion",
+            "credential-access",
+            "discovery",
+            "lateral-movement",
+            "collection",
+            "command-and-control",
+            "exfiltration",
+            "impact",
         ]
 
         self._tactics = [
-            tactics_map[tid] for tid in tactics_map
-            if tactics_map[tid]["id"] in tactic_order
+            tactics_map[tid] for tid in tactics_map if tactics_map[tid]["id"] in tactic_order
         ]
-        self._tactics.sort(key=lambda t: tactic_order.index(t["id"]) if t["id"] in tactic_order else 999)
+        self._tactics.sort(
+            key=lambda t: tactic_order.index(t["id"]) if t["id"] in tactic_order else 999
+        )
 
         # Extract techniques
         for obj in objects:
@@ -122,7 +135,8 @@ class MitreAttackService:
                 # Get kill chain phases (tactics)
                 kill_chain = obj.get("kill_chain_phases", [])
                 technique_tactics = [
-                    p["phase_name"] for p in kill_chain
+                    p["phase_name"]
+                    for p in kill_chain
                     if p.get("kill_chain_name") == "mitre-attack"
                 ]
 
@@ -159,22 +173,21 @@ class MitreAttackService:
         """Build matrix structure organized by tactics."""
         self._matrix = []
         for tactic in self._tactics:
-            column = {
-                "tactic": tactic,
-                "techniques": []
-            }
+            column = {"tactic": tactic, "techniques": []}
 
             for tech_id, tech in self._techniques.items():
                 if tactic["id"] in tech["tactics"] and not tech["is_subtechnique"]:
-                    column["techniques"].append({
-                        "id": tech["id"],
-                        "name": tech["name"],
-                        "subtechniques": [
-                            {"id": sub_id, "name": self._techniques[sub_id]["name"]}
-                            for sub_id in tech["subtechniques"]
-                            if sub_id in self._techniques
-                        ]
-                    })
+                    column["techniques"].append(
+                        {
+                            "id": tech["id"],
+                            "name": tech["name"],
+                            "subtechniques": [
+                                {"id": sub_id, "name": self._techniques[sub_id]["name"]}
+                                for sub_id in tech["subtechniques"]
+                                if sub_id in self._techniques
+                            ],
+                        }
+                    )
 
             # Sort techniques by ID
             column["techniques"].sort(key=lambda t: t["id"])
@@ -191,17 +204,57 @@ class MitreAttackService:
         """Load minimal embedded data as fallback."""
         # Minimal fallback with common techniques
         self._tactics = [
-            {"id": "initial-access", "name": "Initial Access", "description": "", "external_id": "TA0001"},
+            {
+                "id": "initial-access",
+                "name": "Initial Access",
+                "description": "",
+                "external_id": "TA0001",
+            },
             {"id": "execution", "name": "Execution", "description": "", "external_id": "TA0002"},
-            {"id": "persistence", "name": "Persistence", "description": "", "external_id": "TA0003"},
-            {"id": "privilege-escalation", "name": "Privilege Escalation", "description": "", "external_id": "TA0004"},
-            {"id": "defense-evasion", "name": "Defense Evasion", "description": "", "external_id": "TA0005"},
-            {"id": "credential-access", "name": "Credential Access", "description": "", "external_id": "TA0006"},
+            {
+                "id": "persistence",
+                "name": "Persistence",
+                "description": "",
+                "external_id": "TA0003",
+            },
+            {
+                "id": "privilege-escalation",
+                "name": "Privilege Escalation",
+                "description": "",
+                "external_id": "TA0004",
+            },
+            {
+                "id": "defense-evasion",
+                "name": "Defense Evasion",
+                "description": "",
+                "external_id": "TA0005",
+            },
+            {
+                "id": "credential-access",
+                "name": "Credential Access",
+                "description": "",
+                "external_id": "TA0006",
+            },
             {"id": "discovery", "name": "Discovery", "description": "", "external_id": "TA0007"},
-            {"id": "lateral-movement", "name": "Lateral Movement", "description": "", "external_id": "TA0008"},
+            {
+                "id": "lateral-movement",
+                "name": "Lateral Movement",
+                "description": "",
+                "external_id": "TA0008",
+            },
             {"id": "collection", "name": "Collection", "description": "", "external_id": "TA0009"},
-            {"id": "command-and-control", "name": "Command and Control", "description": "", "external_id": "TA0011"},
-            {"id": "exfiltration", "name": "Exfiltration", "description": "", "external_id": "TA0010"},
+            {
+                "id": "command-and-control",
+                "name": "Command and Control",
+                "description": "",
+                "external_id": "TA0011",
+            },
+            {
+                "id": "exfiltration",
+                "name": "Exfiltration",
+                "description": "",
+                "external_id": "TA0010",
+            },
             {"id": "impact", "name": "Impact", "description": "", "external_id": "TA0040"},
         ]
         self._matrix = [{"tactic": t, "techniques": []} for t in self._tactics]
@@ -216,8 +269,12 @@ class MitreAttackService:
         return {
             "tactics": self._tactics,
             "matrix": self._matrix,
-            "technique_count": len([t for t in self._techniques.values() if not t["is_subtechnique"]]),
-            "subtechnique_count": len([t for t in self._techniques.values() if t["is_subtechnique"]]),
+            "technique_count": len(
+                [t for t in self._techniques.values() if not t["is_subtechnique"]]
+            ),
+            "subtechnique_count": len(
+                [t for t in self._techniques.values() if t["is_subtechnique"]]
+            ),
             "last_updated": datetime.now(UTC).isoformat(),
         }
 
@@ -234,12 +291,14 @@ class MitreAttackService:
 
         for tech_id, tech in self._techniques.items():
             if query_lower in tech_id.lower() or query_lower in tech["name"].lower():
-                results.append({
-                    "id": tech["id"],
-                    "name": tech["name"],
-                    "tactics": tech["tactics"],
-                    "is_subtechnique": tech["is_subtechnique"],
-                })
+                results.append(
+                    {
+                        "id": tech["id"],
+                        "name": tech["name"],
+                        "tactics": tech["tactics"],
+                        "is_subtechnique": tech["is_subtechnique"],
+                    }
+                )
                 if len(results) >= limit:
                     break
 
@@ -270,7 +329,7 @@ class MitreAttackService:
         # Build coverage map
         coverage: dict[str, dict[str, Any]] = {}
         for rule in rules:
-            for tech_id in (rule.mitre_techniques or []):
+            for tech_id in rule.mitre_techniques or []:
                 if tech_id not in coverage:
                     coverage[tech_id] = {
                         "technique_id": tech_id,
@@ -279,16 +338,23 @@ class MitreAttackService:
                         "rules": [],
                     }
                 coverage[tech_id]["rule_count"] += 1
-                coverage[tech_id]["rules"].append({
-                    "id": str(rule.id),
-                    "name": rule.name,
-                    "severity": rule.severity.value,
-                })
+                coverage[tech_id]["rules"].append(
+                    {
+                        "id": str(rule.id),
+                        "name": rule.name,
+                        "severity": rule.severity.value,
+                    }
+                )
 
         # Calculate coverage statistics
         total_techniques = len([t for t in self._techniques.values() if not t["is_subtechnique"]])
-        covered_techniques = len([c for c in coverage.values()
-                                  if not self._techniques.get(c["technique_id"], {}).get("is_subtechnique", False)])
+        covered_techniques = len(
+            [
+                c
+                for c in coverage.values()
+                if not self._techniques.get(c["technique_id"], {}).get("is_subtechnique", False)
+            ]
+        )
 
         return {
             "coverage_map": list(coverage.values()),
@@ -301,24 +367,29 @@ class MitreAttackService:
             "by_tactic": self._calculate_tactic_coverage(coverage),
         }
 
-    def _calculate_tactic_coverage(self, coverage: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
+    def _calculate_tactic_coverage(
+        self, coverage: dict[str, dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """Calculate coverage per tactic."""
         tactic_stats = []
 
         for tactic in self._tactics:
             tactic_techniques = [
-                t for t in self._techniques.values()
+                t
+                for t in self._techniques.values()
                 if tactic["id"] in t["tactics"] and not t["is_subtechnique"]
             ]
             covered = sum(1 for t in tactic_techniques if t["id"] in coverage)
 
-            tactic_stats.append({
-                "tactic_id": tactic["id"],
-                "tactic_name": tactic["name"],
-                "total_techniques": len(tactic_techniques),
-                "covered_techniques": covered,
-                "coverage_percent": round((covered / max(len(tactic_techniques), 1)) * 100, 1),
-            })
+            tactic_stats.append(
+                {
+                    "tactic_id": tactic["id"],
+                    "tactic_name": tactic["name"],
+                    "total_techniques": len(tactic_techniques),
+                    "covered_techniques": covered,
+                    "coverage_percent": round((covered / max(len(tactic_techniques), 1)) * 100, 1),
+                }
+            )
 
         return tactic_stats
 
@@ -363,6 +434,7 @@ class MitreAttackService:
 
         # Parse time range
         from datetime import timedelta
+
         range_map = {
             "24h": timedelta(hours=24),
             "7d": timedelta(days=7),
@@ -398,13 +470,15 @@ class MitreAttackService:
 
         for tech_id, count in technique_counts.items():
             tech = self._techniques.get(tech_id, {})
-            heatmap_data.append({
-                "technique_id": tech_id,
-                "technique_name": tech.get("name", tech_id),
-                "count": count,
-                "intensity": round(count / max_count, 2),
-                "tactics": tech.get("tactics", []),
-            })
+            heatmap_data.append(
+                {
+                    "technique_id": tech_id,
+                    "technique_name": tech.get("name", tech_id),
+                    "count": count,
+                    "intensity": round(count / max_count, 2),
+                    "tactics": tech.get("tactics", []),
+                }
+            )
 
         # Sort by count
         heatmap_data.sort(key=lambda x: x["count"], reverse=True)
@@ -448,15 +522,20 @@ class MitreAttackService:
 
         layer = {
             "name": layer_name,
-            "versions": {
-                "attack": "14",
-                "navigator": "4.9.1",
-                "layer": "4.5"
-            },
+            "versions": {"attack": "14", "navigator": "4.9.1", "layer": "4.5"},
             "domain": "enterprise-attack",
             "description": f"Eleanor detection coverage - {coverage['statistics']['coverage_percent']}% techniques covered",
             "filters": {
-                "platforms": ["Windows", "Linux", "macOS", "Azure AD", "Office 365", "SaaS", "IaaS", "Google Workspace"]
+                "platforms": [
+                    "Windows",
+                    "Linux",
+                    "macOS",
+                    "Azure AD",
+                    "Office 365",
+                    "SaaS",
+                    "IaaS",
+                    "Google Workspace",
+                ]
             },
             "sorting": 0,
             "layout": {
@@ -465,14 +544,14 @@ class MitreAttackService:
                 "showID": True,
                 "showName": True,
                 "showAggregateScores": True,
-                "countUnscored": False
+                "countUnscored": False,
             },
             "hideDisabled": False,
             "techniques": techniques,
             "gradient": {
                 "colors": ["#ff6666", "#ffe766", "#8ec843"],
                 "minValue": 0,
-                "maxValue": 10
+                "maxValue": 10,
             },
             "legendItems": [
                 {"label": "No coverage", "color": "#ffffff"},
@@ -484,7 +563,7 @@ class MitreAttackService:
             "showTacticRowBackground": True,
             "tacticRowBackground": "#dddddd",
             "selectTechniquesAcrossTactics": True,
-            "selectSubtechniquesWithParent": False
+            "selectSubtechniquesWithParent": False,
         }
 
         return layer
@@ -513,14 +592,16 @@ class MitreAttackService:
         for tech in techniques:
             tech_id = tech.get("techniqueID", "")
             if tech_id in self._techniques:
-                imported.append({
-                    "technique_id": tech_id,
-                    "technique_name": self._techniques[tech_id]["name"],
-                    "score": tech.get("score", 0),
-                    "color": tech.get("color"),
-                    "comment": tech.get("comment"),
-                    "enabled": tech.get("enabled", True),
-                })
+                imported.append(
+                    {
+                        "technique_id": tech_id,
+                        "technique_name": self._techniques[tech_id]["name"],
+                        "score": tech.get("score", 0),
+                        "color": tech.get("color"),
+                        "comment": tech.get("comment"),
+                        "enabled": tech.get("enabled", True),
+                    }
+                )
 
         return {
             "layer_name": layer_data.get("name", "Imported Layer"),

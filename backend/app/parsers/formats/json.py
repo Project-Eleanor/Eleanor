@@ -115,6 +115,7 @@ class GenericJSONParser(BaseParser):
         else:
             # Handle binary stream
             import io
+
             text_stream = io.TextIOWrapper(source, encoding="utf-8", errors="replace")
             yield from self._parse_file(text_stream, source_str)
 
@@ -265,7 +266,9 @@ class GenericJSONParser(BaseParser):
         # Generate based on log type
         if log_type == "aws_cloudtrail":
             event_name = record.get("eventName", "")
-            user = record.get("userIdentity", {}).get("userName", record.get("userIdentity", {}).get("arn", "unknown"))
+            user = record.get("userIdentity", {}).get(
+                "userName", record.get("userIdentity", {}).get("arn", "unknown")
+            )
             return f"CloudTrail: {event_name} by {user}"
 
         elif log_type == "azure_signin":
@@ -433,7 +436,15 @@ class GenericJSONParser(BaseParser):
                     break
 
         # Try to find IP
-        for field in ["ip", "ip_address", "ipAddress", "source_ip", "src_ip", "client_ip", "remote_addr"]:
+        for field in [
+            "ip",
+            "ip_address",
+            "ipAddress",
+            "source_ip",
+            "src_ip",
+            "client_ip",
+            "remote_addr",
+        ]:
             if field in record and record[field]:
                 event.source_ip = record[field]
                 break

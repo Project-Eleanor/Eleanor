@@ -58,8 +58,12 @@ class ParsedEvent:
 
     # ECS base fields
     event_kind: str = "event"  # alert, enrichment, event, metric, state, pipeline_error, signal
-    event_category: list[str] = field(default_factory=list)  # authentication, file, network, process, etc.
-    event_type: list[str] = field(default_factory=list)  # access, change, creation, deletion, info, etc.
+    event_category: list[str] = field(
+        default_factory=list
+    )  # authentication, file, network, process, etc.
+    event_type: list[str] = field(
+        default_factory=list
+    )  # access, change, creation, deletion, info, etc.
     event_action: str | None = None
     event_outcome: str | None = None  # success, failure, unknown
     event_severity: int | None = None  # 0-100
@@ -321,7 +325,9 @@ class BaseParser(ABC):
         """
         if file_path and self.supported_extensions:
             ext = file_path.suffix.lower()
-            return ext in self.supported_extensions or ext.lstrip(".") in [e.lstrip(".") for e in self.supported_extensions]
+            return ext in self.supported_extensions or ext.lstrip(".") in [
+                e.lstrip(".") for e in self.supported_extensions
+            ]
         return True  # Default to True if no extension check possible
 
     @abstractmethod

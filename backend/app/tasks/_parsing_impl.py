@@ -117,9 +117,7 @@ async def run_parsing_job(
             job.parser_type = parser.name
             await session.commit()
 
-            logger.info(
-                f"Parsing evidence {evidence.filename} with parser {parser.name}"
-            )
+            logger.info(f"Parsing evidence {evidence.filename} with parser {parser.name}")
 
             # Parse and index events
             events_parsed = 0
@@ -139,10 +137,12 @@ async def run_parsing_job(
                     doc["case_id"] = str(case_id)
                     doc["evidence_id"] = str(evidence_id)
 
-                    batch.append({
-                        "_index": index_name,
-                        "_source": doc,
-                    })
+                    batch.append(
+                        {
+                            "_index": index_name,
+                            "_source": doc,
+                        }
+                    )
 
                     # Bulk index when batch is full
                     if len(batch) >= batch_size:
@@ -163,7 +163,7 @@ async def run_parsing_job(
                                 "events_parsed": events_parsed,
                                 "events_indexed": events_indexed,
                                 "progress": progress,
-                            }
+                            },
                         )
 
                 except Exception as e:
@@ -226,7 +226,9 @@ async def _bulk_index(es, batch: list[dict]) -> int:
         return 0
 
 
-async def mark_job_failed(job_id: str, error_message: str, error_details: dict | None = None) -> None:
+async def mark_job_failed(
+    job_id: str, error_message: str, error_details: dict | None = None
+) -> None:
     """Mark a parsing job as failed."""
     session_maker = get_task_session_maker()
 

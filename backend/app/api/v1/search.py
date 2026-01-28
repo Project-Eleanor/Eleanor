@@ -36,154 +36,165 @@ ComparisonHandler = Callable[[re.Match[str]], dict[str, Any]]
 
 def _make_match_handler() -> tuple[re.Pattern[str], ComparisonHandler]:
     """Handler for 'contains' operator -> ES match query."""
-    pattern = re.compile(
-        rf"{_FIELD_PATTERN}\s+contains\s+[\"'](.+?)[\"']",
-        re.IGNORECASE
-    )
+    pattern = re.compile(rf"{_FIELD_PATTERN}\s+contains\s+[\"'](.+?)[\"']", re.IGNORECASE)
+
     def handler(match: re.Match[str]) -> dict[str, Any]:
         field, value = match.groups()
         return {"match": {field: value}}
+
     return pattern, handler
 
 
 def _make_prefix_handler() -> tuple[re.Pattern[str], ComparisonHandler]:
     """Handler for 'startswith' operator -> ES prefix query."""
-    pattern = re.compile(
-        rf"{_FIELD_PATTERN}\s+startswith\s+[\"'](.+?)[\"']",
-        re.IGNORECASE
-    )
+    pattern = re.compile(rf"{_FIELD_PATTERN}\s+startswith\s+[\"'](.+?)[\"']", re.IGNORECASE)
+
     def handler(match: re.Match[str]) -> dict[str, Any]:
         field, value = match.groups()
         return {"prefix": {field: value}}
+
     return pattern, handler
 
 
 def _make_endswith_handler() -> tuple[re.Pattern[str], ComparisonHandler]:
     """Handler for 'endswith' operator -> ES wildcard query."""
-    pattern = re.compile(
-        rf"{_FIELD_PATTERN}\s+endswith\s+[\"'](.+?)[\"']",
-        re.IGNORECASE
-    )
+    pattern = re.compile(rf"{_FIELD_PATTERN}\s+endswith\s+[\"'](.+?)[\"']", re.IGNORECASE)
+
     def handler(match: re.Match[str]) -> dict[str, Any]:
         field, value = match.groups()
         return {"wildcard": {field: f"*{value}"}}
+
     return pattern, handler
 
 
 def _make_in_handler() -> tuple[re.Pattern[str], ComparisonHandler]:
     """Handler for 'in' operator -> ES terms query."""
-    pattern = re.compile(
-        rf"{_FIELD_PATTERN}\s+in\s*\(([^)]+)\)",
-        re.IGNORECASE
-    )
+    pattern = re.compile(rf"{_FIELD_PATTERN}\s+in\s*\(([^)]+)\)", re.IGNORECASE)
+
     def handler(match: re.Match[str]) -> dict[str, Any]:
         field = match.group(1)
         values_str = match.group(2)
         values = [v.strip().strip("\"'") for v in values_str.split(",")]
         return {"terms": {field: values}}
+
     return pattern, handler
 
 
 def _make_has_handler() -> tuple[re.Pattern[str], ComparisonHandler]:
     """Handler for 'has' operator -> ES match with AND operator."""
-    pattern = re.compile(
-        rf"{_FIELD_PATTERN}\s+has\s+[\"'](.+?)[\"']",
-        re.IGNORECASE
-    )
+    pattern = re.compile(rf"{_FIELD_PATTERN}\s+has\s+[\"'](.+?)[\"']", re.IGNORECASE)
+
     def handler(match: re.Match[str]) -> dict[str, Any]:
         field, value = match.groups()
         return {"match": {field: {"query": value, "operator": "and"}}}
+
     return pattern, handler
 
 
 def _make_neq_handler() -> tuple[re.Pattern[str], ComparisonHandler]:
     """Handler for '!=' operator -> ES must_not term query."""
     pattern = re.compile(rf"{_FIELD_PATTERN}\s*!=\s*[\"'](.+?)[\"']")
+
     def handler(match: re.Match[str]) -> dict[str, Any]:
         field, value = match.groups()
         return {"bool": {"must_not": [{"term": {field: value}}]}}
+
     return pattern, handler
 
 
 def _make_eq_handler() -> tuple[re.Pattern[str], ComparisonHandler]:
     """Handler for '==' operator -> ES term query."""
     pattern = re.compile(rf"{_FIELD_PATTERN}\s*==\s*[\"'](.+?)[\"']")
+
     def handler(match: re.Match[str]) -> dict[str, Any]:
         field, value = match.groups()
         return {"term": {field: value}}
+
     return pattern, handler
 
 
 def _make_gte_handler() -> tuple[re.Pattern[str], ComparisonHandler]:
     """Handler for '>=' operator -> ES range gte query."""
     pattern = re.compile(rf"{_FIELD_PATTERN}\s*>=\s*(\d+)")
+
     def handler(match: re.Match[str]) -> dict[str, Any]:
         field, value = match.groups()
         return {"range": {field: {"gte": int(value)}}}
+
     return pattern, handler
 
 
 def _make_lte_handler() -> tuple[re.Pattern[str], ComparisonHandler]:
     """Handler for '<=' operator -> ES range lte query."""
     pattern = re.compile(rf"{_FIELD_PATTERN}\s*<=\s*(\d+)")
+
     def handler(match: re.Match[str]) -> dict[str, Any]:
         field, value = match.groups()
         return {"range": {field: {"lte": int(value)}}}
+
     return pattern, handler
 
 
 def _make_gt_handler() -> tuple[re.Pattern[str], ComparisonHandler]:
     """Handler for '>' operator -> ES range gt query."""
     pattern = re.compile(rf"{_FIELD_PATTERN}\s*>\s*(\d+)")
+
     def handler(match: re.Match[str]) -> dict[str, Any]:
         field, value = match.groups()
         return {"range": {field: {"gt": int(value)}}}
+
     return pattern, handler
 
 
 def _make_lt_handler() -> tuple[re.Pattern[str], ComparisonHandler]:
     """Handler for '<' operator -> ES range lt query."""
     pattern = re.compile(rf"{_FIELD_PATTERN}\s*<\s*(\d+)")
+
     def handler(match: re.Match[str]) -> dict[str, Any]:
         field, value = match.groups()
         return {"range": {field: {"lt": int(value)}}}
+
     return pattern, handler
 
 
 def _make_simple_eq_num_handler() -> tuple[re.Pattern[str], ComparisonHandler]:
     """Handler for '=' with numeric value -> ES term query with int."""
     pattern = re.compile(rf"{_FIELD_PATTERN}\s*=\s*(\d+)")
+
     def handler(match: re.Match[str]) -> dict[str, Any]:
         field, value = match.groups()
         return {"term": {field: int(value)}}
+
     return pattern, handler
 
 
 def _make_simple_eq_str_handler() -> tuple[re.Pattern[str], ComparisonHandler]:
     """Handler for '=' with quoted string -> ES term query."""
     pattern = re.compile(rf"{_FIELD_PATTERN}\s*=\s*[\"'](.+?)[\"']")
+
     def handler(match: re.Match[str]) -> dict[str, Any]:
         field, value = match.groups()
         return {"term": {field: value}}
+
     return pattern, handler
 
 
 # Build the dispatch table at module load time
 # Order matters: more specific patterns should come first
 _COMPARISON_DISPATCH_TABLE: list[tuple[re.Pattern[str], ComparisonHandler]] = [
-    _make_match_handler(),      # contains
-    _make_prefix_handler(),     # startswith
-    _make_endswith_handler(),   # endswith
-    _make_in_handler(),         # in
-    _make_has_handler(),        # has
-    _make_neq_handler(),        # !=
-    _make_eq_handler(),         # ==
-    _make_gte_handler(),        # >=
-    _make_lte_handler(),        # <=
-    _make_gt_handler(),         # >
-    _make_lt_handler(),         # <
-    _make_simple_eq_num_handler(),   # = (numeric)
-    _make_simple_eq_str_handler(),   # = (string)
+    _make_match_handler(),  # contains
+    _make_prefix_handler(),  # startswith
+    _make_endswith_handler(),  # endswith
+    _make_in_handler(),  # in
+    _make_has_handler(),  # has
+    _make_neq_handler(),  # !=
+    _make_eq_handler(),  # ==
+    _make_gte_handler(),  # >=
+    _make_lte_handler(),  # <=
+    _make_gt_handler(),  # >
+    _make_lt_handler(),  # <
+    _make_simple_eq_num_handler(),  # = (numeric)
+    _make_simple_eq_str_handler(),  # = (string)
 ]
 
 

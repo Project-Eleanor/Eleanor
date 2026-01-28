@@ -78,8 +78,13 @@ class LinuxSyslogParser(BaseParser):
         if file_path:
             name = file_path.name.lower()
             syslog_names = [
-                "syslog", "messages", "kern.log", "daemon.log",
-                "user.log", "mail.log", "debug"
+                "syslog",
+                "messages",
+                "kern.log",
+                "daemon.log",
+                "user.log",
+                "mail.log",
+                "debug",
             ]
             if any(name.startswith(n) for n in syslog_names):
                 return True
@@ -108,14 +113,17 @@ class LinuxSyslogParser(BaseParser):
             # Handle gzipped files
             if isinstance(source, Path) and source.suffix == ".gz":
                 import gzip
+
                 opener = gzip.open(source, "rt", encoding="utf-8", errors="ignore")
             elif isinstance(source, Path):
                 opener = open(source, encoding="utf-8", errors="ignore")
             else:
                 import io
+
                 content = source.read()
                 if content[:2] == b"\x1f\x8b":
                     import gzip
+
                     content = gzip.decompress(content)
                 text = content.decode("utf-8", errors="ignore")
                 opener = io.StringIO(text)
@@ -234,8 +242,18 @@ class LinuxSyslogParser(BaseParser):
         # Try traditional syslog format
         if groups.get("month") and groups.get("day") and groups.get("time"):
             month_map = {
-                "Jan": 1, "Feb": 2, "Mar": 3, "Apr": 4, "May": 5, "Jun": 6,
-                "Jul": 7, "Aug": 8, "Sep": 9, "Oct": 10, "Nov": 11, "Dec": 12
+                "Jan": 1,
+                "Feb": 2,
+                "Mar": 3,
+                "Apr": 4,
+                "May": 5,
+                "Jun": 6,
+                "Jul": 7,
+                "Aug": 8,
+                "Sep": 9,
+                "Oct": 10,
+                "Nov": 11,
+                "Dec": 12,
             }
 
             month = month_map.get(groups["month"], 1)
@@ -245,8 +263,7 @@ class LinuxSyslogParser(BaseParser):
 
             try:
                 ts = datetime.strptime(
-                    f"{current_year} {month} {day} {time_str}",
-                    "%Y %m %d %H:%M:%S"
+                    f"{current_year} {month} {day} {time_str}", "%Y %m %d %H:%M:%S"
                 )
                 return ts.replace(tzinfo=UTC)
             except ValueError:

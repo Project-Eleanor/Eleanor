@@ -486,6 +486,7 @@ async def apply_update(
             from importlib import reload
 
             from app import config
+
             reload(config)
             new_settings = config.get_settings()
 
@@ -577,6 +578,7 @@ async def get_system_health(
 
     # Check disk space
     import shutil
+
     try:
         usage = shutil.disk_usage("/var/lib/eleanor")
         free_pct = (usage.free / usage.total) * 100

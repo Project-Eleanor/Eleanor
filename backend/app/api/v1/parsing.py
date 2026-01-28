@@ -168,9 +168,7 @@ async def submit_parsing_job(
         job.mark_queued(task.id)
         await db.commit()
 
-        logger.info(
-            f"Submitted parsing job {job.id} for evidence {evidence.filename}"
-        )
+        logger.info(f"Submitted parsing job {job.id} for evidence {evidence.filename}")
 
     except Exception as e:
         logger.error(f"Failed to submit Celery task: {e}")
@@ -255,7 +253,9 @@ async def list_parsing_jobs(
     current_user: Annotated[User, Depends(get_current_user)],
     case_id: UUID | None = Query(None, description="Filter by case"),
     evidence_id: UUID | None = Query(None, description="Filter by evidence"),
-    status_filter: ParsingJobStatus | None = Query(None, alias="status", description="Filter by status"),
+    status_filter: ParsingJobStatus | None = Query(
+        None, alias="status", description="Filter by status"
+    ),
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
 ) -> ParsingJobListResponse:
@@ -326,7 +326,11 @@ async def cancel_parsing_job(
             detail=f"Parsing job {job_id} not found",
         )
 
-    if job.status not in (ParsingJobStatus.PENDING, ParsingJobStatus.QUEUED, ParsingJobStatus.RUNNING):
+    if job.status not in (
+        ParsingJobStatus.PENDING,
+        ParsingJobStatus.QUEUED,
+        ParsingJobStatus.RUNNING,
+    ):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Cannot cancel job in {job.status.value} status",
@@ -405,10 +409,12 @@ async def batch_submit_parsing_jobs(
         try:
             evidence = await db.get(Evidence, evidence_id)
             if not evidence:
-                errors.append({
-                    "evidence_id": str(evidence_id),
-                    "error": "Evidence not found",
-                })
+                errors.append(
+                    {
+                        "evidence_id": str(evidence_id),
+                        "error": "Evidence not found",
+                    }
+                )
                 continue
 
             # Create job
@@ -438,17 +444,21 @@ async def batch_submit_parsing_jobs(
             )
 
             job.mark_queued(task.id)
-            jobs_created.append({
-                "job_id": str(job.id),
-                "evidence_id": str(evidence_id),
-                "celery_task_id": task.id,
-            })
+            jobs_created.append(
+                {
+                    "job_id": str(job.id),
+                    "evidence_id": str(evidence_id),
+                    "celery_task_id": task.id,
+                }
+            )
 
         except Exception as e:
-            errors.append({
-                "evidence_id": str(evidence_id),
-                "error": str(e),
-            })
+            errors.append(
+                {
+                    "evidence_id": str(evidence_id),
+                    "error": str(e),
+                }
+            )
 
     await db.commit()
 

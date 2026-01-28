@@ -98,8 +98,10 @@ class MemoryParser(BaseParser):
         """Run a Volatility 3 plugin and return JSON output."""
         cmd = [
             self.volatility_path,
-            "-f", memory_file,
-            "-r", "json",
+            "-f",
+            memory_file,
+            "-r",
+            "json",
             plugin,
         ]
 
@@ -198,9 +200,7 @@ class MemoryParser(BaseParser):
         """Parse Windows memory dump."""
         # Process list
         logger.info("Running windows.pslist.PsList")
-        result = await asyncio.to_thread(
-            self._run_volatility, memory_file, "windows.pslist.PsList"
-        )
+        result = await asyncio.to_thread(self._run_volatility, memory_file, "windows.pslist.PsList")
         for proc in result.get("data", []):
             yield self._process_to_event(proc, "windows", case_id, evidence_id)
 
@@ -239,7 +239,9 @@ class MemoryParser(BaseParser):
         # File handles
         logger.info("Running windows.handles.Handles")
         result = await asyncio.to_thread(
-            self._run_volatility, memory_file, "windows.handles.Handles",
+            self._run_volatility,
+            memory_file,
+            "windows.handles.Handles",
             extra_args=["--type", "File"],
             timeout=600,
         )
@@ -249,7 +251,9 @@ class MemoryParser(BaseParser):
         # Registry handles
         logger.info("Running windows.handles.Handles (Registry)")
         result = await asyncio.to_thread(
-            self._run_volatility, memory_file, "windows.handles.Handles",
+            self._run_volatility,
+            memory_file,
+            "windows.handles.Handles",
             extra_args=["--type", "Key"],
             timeout=600,
         )
@@ -281,25 +285,19 @@ class MemoryParser(BaseParser):
         """Parse Linux memory dump."""
         # Process list
         logger.info("Running linux.pslist.PsList")
-        result = await asyncio.to_thread(
-            self._run_volatility, memory_file, "linux.pslist.PsList"
-        )
+        result = await asyncio.to_thread(self._run_volatility, memory_file, "linux.pslist.PsList")
         for proc in result.get("data", []):
             yield self._process_to_event(proc, "linux", case_id, evidence_id)
 
         # Bash history
         logger.info("Running linux.bash.Bash")
-        result = await asyncio.to_thread(
-            self._run_volatility, memory_file, "linux.bash.Bash"
-        )
+        result = await asyncio.to_thread(self._run_volatility, memory_file, "linux.bash.Bash")
         for cmd in result.get("data", []):
             yield self._bash_to_event(cmd, case_id, evidence_id)
 
         # Open files
         logger.info("Running linux.lsof.Lsof")
-        result = await asyncio.to_thread(
-            self._run_volatility, memory_file, "linux.lsof.Lsof"
-        )
+        result = await asyncio.to_thread(self._run_volatility, memory_file, "linux.lsof.Lsof")
         for fd in result.get("data", []):
             yield self._lsof_to_event(fd, case_id, evidence_id)
 
@@ -313,17 +311,13 @@ class MemoryParser(BaseParser):
 
         # Malfind
         logger.info("Running linux.malfind.Malfind")
-        result = await asyncio.to_thread(
-            self._run_volatility, memory_file, "linux.malfind.Malfind"
-        )
+        result = await asyncio.to_thread(self._run_volatility, memory_file, "linux.malfind.Malfind")
         for mal in result.get("data", []):
             yield self._malfind_to_event(mal, "linux", case_id, evidence_id)
 
         # Loaded kernel modules
         logger.info("Running linux.lsmod.Lsmod")
-        result = await asyncio.to_thread(
-            self._run_volatility, memory_file, "linux.lsmod.Lsmod"
-        )
+        result = await asyncio.to_thread(self._run_volatility, memory_file, "linux.lsmod.Lsmod")
         for mod in result.get("data", []):
             yield self._module_to_event(mod, "linux", case_id, evidence_id)
 
@@ -336,41 +330,31 @@ class MemoryParser(BaseParser):
         """Parse macOS memory dump."""
         # Process list
         logger.info("Running mac.pslist.PsList")
-        result = await asyncio.to_thread(
-            self._run_volatility, memory_file, "mac.pslist.PsList"
-        )
+        result = await asyncio.to_thread(self._run_volatility, memory_file, "mac.pslist.PsList")
         for proc in result.get("data", []):
             yield self._process_to_event(proc, "mac", case_id, evidence_id)
 
         # Bash history
         logger.info("Running mac.bash.Bash")
-        result = await asyncio.to_thread(
-            self._run_volatility, memory_file, "mac.bash.Bash"
-        )
+        result = await asyncio.to_thread(self._run_volatility, memory_file, "mac.bash.Bash")
         for cmd in result.get("data", []):
             yield self._bash_to_event(cmd, case_id, evidence_id)
 
         # Open files
         logger.info("Running mac.lsof.Lsof")
-        result = await asyncio.to_thread(
-            self._run_volatility, memory_file, "mac.lsof.Lsof"
-        )
+        result = await asyncio.to_thread(self._run_volatility, memory_file, "mac.lsof.Lsof")
         for fd in result.get("data", []):
             yield self._lsof_to_event(fd, case_id, evidence_id)
 
         # Network connections
         logger.info("Running mac.netstat.Netstat")
-        result = await asyncio.to_thread(
-            self._run_volatility, memory_file, "mac.netstat.Netstat"
-        )
+        result = await asyncio.to_thread(self._run_volatility, memory_file, "mac.netstat.Netstat")
         for conn in result.get("data", []):
             yield self._network_to_event(conn, "mac", case_id, evidence_id)
 
         # Malfind
         logger.info("Running mac.malfind.Malfind")
-        result = await asyncio.to_thread(
-            self._run_volatility, memory_file, "mac.malfind.Malfind"
-        )
+        result = await asyncio.to_thread(self._run_volatility, memory_file, "mac.malfind.Malfind")
         for mal in result.get("data", []):
             yield self._malfind_to_event(mal, "mac", case_id, evidence_id)
 
@@ -560,7 +544,9 @@ class MemoryParser(BaseParser):
         # Handle various field naming conventions
         local_addr = conn.get("LocalAddr") or conn.get("local_addr") or conn.get("LocalIp") or "*"
         local_port = conn.get("LocalPort") or conn.get("local_port") or 0
-        remote_addr = conn.get("ForeignAddr") or conn.get("remote_addr") or conn.get("ForeignIp") or "*"
+        remote_addr = (
+            conn.get("ForeignAddr") or conn.get("remote_addr") or conn.get("ForeignIp") or "*"
+        )
         remote_port = conn.get("ForeignPort") or conn.get("remote_port") or 0
         state = conn.get("State") or conn.get("state") or "UNKNOWN"
         proto = conn.get("Proto") or conn.get("protocol") or "tcp"

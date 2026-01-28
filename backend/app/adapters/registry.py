@@ -108,7 +108,9 @@ class AdapterRegistry:
                     "client_cert": getattr(settings, "velociraptor_client_cert", ""),
                     "client_key": getattr(settings, "velociraptor_client_key", ""),
                     "ca_cert": getattr(settings, "velociraptor_ca_cert", ""),
-                    "grpc_server_name": getattr(settings, "velociraptor_grpc_server_name", "VelociraptorServer"),
+                    "grpc_server_name": getattr(
+                        settings, "velociraptor_grpc_server_name", "VelociraptorServer"
+                    ),
                     "username": getattr(settings, "velociraptor_username", ""),
                     "password": getattr(settings, "velociraptor_password", ""),
                 },
@@ -250,7 +252,11 @@ class AdapterRegistry:
                 results[name] = AdapterHealth(
                     adapter_name=name,
                     status=AdapterStatus.DISCONNECTED,
-                    message="Adapter not enabled" if not config or not config.enabled else "Not configured",
+                    message=(
+                        "Adapter not enabled"
+                        if not config or not config.enabled
+                        else "Not configured"
+                    ),
                 )
 
         return results

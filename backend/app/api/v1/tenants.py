@@ -200,9 +200,7 @@ async def create_tenant(
 ) -> Tenant:
     """Create a new tenant organization."""
     # Check if slug already exists
-    existing = await db.execute(
-        select(Tenant).where(Tenant.slug == tenant_data.slug)
-    )
+    existing = await db.execute(select(Tenant).where(Tenant.slug == tenant_data.slug))
     if existing.scalar_one_or_none():
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -265,9 +263,7 @@ async def list_tenants(
     if plan:
         query = query.where(Tenant.plan == plan)
     if search:
-        query = query.where(
-            (Tenant.name.ilike(f"%{search}%")) | (Tenant.slug.ilike(f"%{search}%"))
-        )
+        query = query.where((Tenant.name.ilike(f"%{search}%")) | (Tenant.slug.ilike(f"%{search}%")))
 
     query = query.order_by(Tenant.created_at.desc()).offset(skip).limit(limit)
 
@@ -407,9 +403,7 @@ async def add_tenant_member(
         )
 
     # Verify user exists
-    user_result = await db.execute(
-        select(User).where(User.id == membership_data.user_id)
-    )
+    user_result = await db.execute(select(User).where(User.id == membership_data.user_id))
     user = user_result.scalar_one_or_none()
     if not user:
         raise HTTPException(
@@ -523,9 +517,7 @@ async def update_tenant_member(
         membership.is_default = membership_data.is_default
 
     membership.user_email = membership.user.email if membership.user else None
-    membership.user_display_name = (
-        membership.user.display_name if membership.user else None
-    )
+    membership.user_display_name = membership.user.display_name if membership.user else None
 
     return membership
 

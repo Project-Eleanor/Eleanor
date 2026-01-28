@@ -775,7 +775,9 @@ class SentinelAdapter(BaseAdapter):
             tags=[label.get("labelName", "") for label in incident.labels],
             metadata={
                 "incident_number": incident.incident_number,
-                "classification": incident.classification.value if incident.classification else None,
+                "classification": (
+                    incident.classification.value if incident.classification else None
+                ),
                 "tactics": incident.tactics,
                 "alerts_count": incident.alerts_count,
                 "provider": incident.provider_name,

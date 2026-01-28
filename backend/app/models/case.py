@@ -52,23 +52,17 @@ class Case(Base):
 
     __tablename__ = "cases"
 
-    id: Mapped[UUID] = mapped_column(
-        UUIDType(), primary_key=True, default=uuid4
-    )
+    id: Mapped[UUID] = mapped_column(UUIDType(), primary_key=True, default=uuid4)
     tenant_id: Mapped[UUID] = mapped_column(
         UUIDType(), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    case_number: Mapped[str] = mapped_column(
-        String(50), unique=True, nullable=False, index=True
-    )
+    case_number: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     severity: Mapped[Severity] = mapped_column(
         Enum(Severity), nullable=False, default=Severity.MEDIUM
     )
-    priority: Mapped[Priority] = mapped_column(
-        Enum(Priority), nullable=False, default=Priority.P3
-    )
+    priority: Mapped[Priority] = mapped_column(Enum(Priority), nullable=False, default=Priority.P3)
     status: Mapped[CaseStatus] = mapped_column(
         Enum(CaseStatus), nullable=False, default=CaseStatus.NEW
     )
@@ -82,15 +76,11 @@ class Case(Base):
     )
 
     # Timestamps
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
-    closed_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Tags and MITRE
     tags: Mapped[list[str]] = mapped_column(ArrayType(String), default=list)

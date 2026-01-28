@@ -102,8 +102,7 @@ class EventBuffer:
         """
         # Serialize nested objects
         serialized = {
-            k: json.dumps(v) if isinstance(v, (dict, list)) else str(v)
-            for k, v in event.items()
+            k: json.dumps(v) if isinstance(v, (dict, list)) else str(v) for k, v in event.items()
         }
 
         # Add metadata
@@ -240,11 +239,7 @@ class EventBuffer:
             return []
 
         # Filter by idle time and claim
-        claimable = [
-            p["message_id"]
-            for p in pending
-            if p["time_since_delivered"] >= min_idle_ms
-        ]
+        claimable = [p["message_id"] for p in pending if p["time_since_delivered"] >= min_idle_ms]
 
         if not claimable:
             return []

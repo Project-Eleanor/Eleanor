@@ -191,7 +191,13 @@ WORKBOOK_TEMPLATES = [
                     "position": {"x": 0, "y": 6, "width": 12, "height": 4},
                     "config": {
                         "query": "*",
-                        "columns": ["@timestamp", "host.name", "user.name", "event.action", "message"],
+                        "columns": [
+                            "@timestamp",
+                            "host.name",
+                            "user.name",
+                            "event.action",
+                            "message",
+                        ],
                         "page_size": 10,
                         "sort": {"field": "@timestamp", "order": "desc"},
                     },
@@ -652,14 +658,10 @@ async def _execute_chart_tile(es, index: str, query: str, config: dict) -> TileE
             }
         }
         if split_by:
-            aggs["buckets"]["aggs"] = {
-                "split": {"terms": {"field": split_by, "size": 10}}
-            }
+            aggs["buckets"]["aggs"] = {"split": {"terms": {"field": split_by, "size": 10}}}
     elif group_by:
         # Terms aggregation
-        aggs["buckets"] = {
-            "terms": {"field": group_by, "size": limit}
-        }
+        aggs["buckets"] = {"terms": {"field": group_by, "size": limit}}
 
     result = await es.search(
         index=index,
@@ -679,8 +681,7 @@ async def _execute_chart_tile(es, index: str, query: str, config: dict) -> TileE
         }
         if "split" in bucket:
             item["split"] = [
-                {"key": s["key"], "count": s["doc_count"]}
-                for s in bucket["split"]["buckets"]
+                {"key": s["key"], "count": s["doc_count"]} for s in bucket["split"]["buckets"]
             ]
         data.append(item)
 
@@ -719,10 +720,7 @@ async def _execute_table_tile(es, index: str, query: str, config: dict) -> TileE
         )
 
         buckets = result["aggregations"]["table"]["buckets"]
-        data = [
-            {**b["key"], "count": b["doc_count"]}
-            for b in buckets
-        ]
+        data = [{**b["key"], "count": b["doc_count"]} for b in buckets]
     else:
         # Regular search
         sort = [{sort_config["field"]: sort_config["order"]}]
@@ -765,10 +763,7 @@ async def _execute_timeline_tile(es, index: str, query: str, config: dict) -> Ti
     )
 
     buckets = result["aggregations"]["timeline"]["buckets"]
-    data = [
-        {"timestamp": b["key_as_string"], "count": b["doc_count"]}
-        for b in buckets
-    ]
+    data = [{"timestamp": b["key_as_string"], "count": b["doc_count"]} for b in buckets]
 
     return TileExecuteResponse(
         data=data,

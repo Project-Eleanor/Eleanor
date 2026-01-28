@@ -24,12 +24,14 @@ logger = logging.getLogger(__name__)
 
 try:
     from dissect.ole import OLE
+
     DISSECT_OLE_AVAILABLE = True
 except ImportError:
     DISSECT_OLE_AVAILABLE = False
 
 try:
     from dissect.shellitem import lnk
+
     DISSECT_LNK_AVAILABLE = True
 except ImportError:
     DISSECT_LNK_AVAILABLE = False
@@ -178,7 +180,7 @@ class JumpListParser(BaseParser):
 
             while offset < len(data) - 4:
                 # Look for LNK signature
-                if data[offset:offset+4] == b"\x4c\x00\x00\x00":
+                if data[offset : offset + 4] == b"\x4c\x00\x00\x00":
                     # Find end of this LNK (next signature or end of file)
                     next_lnk = data.find(b"\x4c\x00\x00\x00", offset + 4)
                     if next_lnk == -1:
@@ -218,6 +220,7 @@ class JumpListParser(BaseParser):
         """Parse LNK data using dissect."""
         try:
             from io import BytesIO
+
             lnk_file = lnk.Lnk(BytesIO(data))
 
             return {
@@ -254,12 +257,8 @@ class JumpListParser(BaseParser):
             }
 
             # Parse timestamps from header
-            entry["creation_time"] = self._filetime_to_datetime(
-                struct.unpack("<Q", data[28:36])[0]
-            )
-            entry["access_time"] = self._filetime_to_datetime(
-                struct.unpack("<Q", data[36:44])[0]
-            )
+            entry["creation_time"] = self._filetime_to_datetime(struct.unpack("<Q", data[28:36])[0])
+            entry["access_time"] = self._filetime_to_datetime(struct.unpack("<Q", data[36:44])[0])
             entry["modification_time"] = self._filetime_to_datetime(
                 struct.unpack("<Q", data[44:52])[0]
             )
@@ -300,16 +299,18 @@ class JumpListParser(BaseParser):
 
                 try:
                     # Entry structure (Windows 10 format)
-                    entry_hash = data[offset:offset+8].hex()
-                    filetime = struct.unpack("<Q", data[offset+100:offset+108])[0]
-                    access_count = struct.unpack("<I", data[offset+8:offset+12])[0]
+                    entry_hash = data[offset : offset + 8].hex()
+                    filetime = struct.unpack("<Q", data[offset + 100 : offset + 108])[0]
+                    access_count = struct.unpack("<I", data[offset + 8 : offset + 12])[0]
 
                     # Path starts at offset 130 (variable length, null-terminated UTF-16)
                     path_start = offset + 130
                     if path_start < len(data):
                         path_end = data.find(b"\x00\x00", path_start)
                         if path_end > path_start:
-                            path = data[path_start:path_end+1].decode("utf-16-le", errors="ignore")
+                            path = data[path_start : path_end + 1].decode(
+                                "utf-16-le", errors="ignore"
+                            )
                         else:
                             path = None
                     else:
@@ -330,7 +331,7 @@ class JumpListParser(BaseParser):
                         yield self._create_event(entry, case_id, evidence_id)
 
                     # Move to next entry (entry size is at offset 112-114)
-                    entry_size = struct.unpack("<H", data[offset+112:offset+114])[0]
+                    entry_size = struct.unpack("<H", data[offset + 112 : offset + 114])[0]
                     offset += 130 + entry_size * 2 + 4
 
                 except Exception as e:
@@ -349,7 +350,9 @@ class JumpListParser(BaseParser):
         """Create ECS event from Jump List entry."""
         target_path = entry.get("target_path", "unknown")
         app_name = entry.get("app_name", "unknown")
-        access_time = entry.get("access_time") or entry.get("modification_time") or datetime.now(UTC)
+        access_time = (
+            entry.get("access_time") or entry.get("modification_time") or datetime.now(UTC)
+        )
 
         return ParsedEvent(
             id=str(uuid4()),
@@ -368,7 +371,9 @@ class JumpListParser(BaseParser):
                 },
                 "file": {
                     "path": target_path,
-                    "name": Path(target_path).name if target_path and target_path != "unknown" else None,
+                    "name": (
+                        Path(target_path).name if target_path and target_path != "unknown" else None
+                    ),
                     "accessed": access_time.isoformat() if access_time else None,
                 },
                 "process": {

@@ -387,10 +387,12 @@ class OpenCTIEnrichmentProvider:
             elif entity_type == "Malware" and name:
                 malware.append(name)
             elif entity_type == "Attack-Pattern" and name:
-                attack_patterns.append({
-                    "name": name,
-                    "mitre_id": to_obj.get("x_mitre_id"),
-                })
+                attack_patterns.append(
+                    {
+                        "name": name,
+                        "mitre_id": to_obj.get("x_mitre_id"),
+                    }
+                )
 
         if threat_actors:
             result["threat_actors"] = list(set(threat_actors))

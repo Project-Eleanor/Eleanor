@@ -173,13 +173,15 @@ class ParserRegistry:
         result = []
         for name, parser_class in self._parsers.items():
             parser = parser_class()
-            result.append({
-                "name": name,
-                "description": parser.description,
-                "category": parser.category.value,
-                "extensions": parser.supported_extensions,
-                "mime_types": parser.supported_mime_types,
-            })
+            result.append(
+                {
+                    "name": name,
+                    "description": parser.description,
+                    "category": parser.category.value,
+                    "extensions": parser.supported_extensions,
+                    "mime_types": parser.supported_mime_types,
+                }
+            )
         return result
 
 

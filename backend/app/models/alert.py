@@ -72,12 +72,8 @@ class Alert(Base):
 
     # Occurrence tracking
     hit_count: Mapped[int] = mapped_column(Integer, default=1)
-    first_seen_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
-    )
-    last_seen_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
-    )
+    first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     # MITRE ATT&CK
     mitre_tactics: Mapped[list[str]] = mapped_column(ArrayType(String), default=list)
@@ -104,36 +100,26 @@ class Alert(Base):
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
     )
-    acknowledged_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     closed_by: Mapped[UUID | None] = mapped_column(
         UUIDType(),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
     )
-    closed_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     resolution: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_false_positive: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Timestamps
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
     # Relationships
-    rule: Mapped["DetectionRule | None"] = relationship(
-        "DetectionRule", foreign_keys=[rule_id]
-    )
+    rule: Mapped["DetectionRule | None"] = relationship("DetectionRule", foreign_keys=[rule_id])
     case: Mapped["Case | None"] = relationship("Case", foreign_keys=[case_id])
-    acknowledger: Mapped["User | None"] = relationship(
-        "User", foreign_keys=[acknowledged_by]
-    )
+    acknowledger: Mapped["User | None"] = relationship("User", foreign_keys=[acknowledged_by])
     closer: Mapped["User | None"] = relationship("User", foreign_keys=[closed_by])
 
     def __repr__(self) -> str:

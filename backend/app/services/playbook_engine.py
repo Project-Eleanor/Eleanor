@@ -58,9 +58,7 @@ class PlaybookEngine:
             The created execution record
         """
         # Load playbook
-        result = await db.execute(
-            select(Playbook).where(Playbook.id == playbook_id)
-        )
+        result = await db.execute(select(Playbook).where(Playbook.id == playbook_id))
         playbook = result.scalar_one_or_none()
 
         if not playbook:
@@ -147,9 +145,7 @@ class PlaybookEngine:
                 execution.current_step_id = current_step_id
 
                 # Execute step
-                step_result = await self._execute_step(
-                    execution, step, db
-                )
+                step_result = await self._execute_step(execution, step, db)
 
                 # Record result
                 execution.step_results = [
@@ -253,9 +249,7 @@ class PlaybookEngine:
             raise ValueError("No pending approval found")
 
         # Update approval
-        pending_approval.status = (
-            ApprovalStatus.APPROVED if approved else ApprovalStatus.DENIED
-        )
+        pending_approval.status = ApprovalStatus.APPROVED if approved else ApprovalStatus.DENIED
         pending_approval.approved_by = decided_by
         pending_approval.decision_comment = decision_comment
         pending_approval.decided_at = datetime.now(UTC)

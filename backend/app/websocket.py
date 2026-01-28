@@ -96,9 +96,7 @@ class ConnectionManager:
         # Lock for thread safety
         self._lock = asyncio.Lock()
 
-    async def connect(
-        self, websocket: WebSocket, user_id: str | None = None
-    ) -> str:
+    async def connect(self, websocket: WebSocket, user_id: str | None = None) -> str:
         """Accept a new WebSocket connection."""
         await websocket.accept()
         connection_id = str(uuid4())
@@ -114,9 +112,7 @@ class ConnectionManager:
                     self.user_connections[user_id] = set()
                 self.user_connections[user_id].add(connection_id)
 
-        logger.info(
-            "WebSocket connected: %s (user: %s)", connection_id, user_id or "anonymous"
-        )
+        logger.info("WebSocket connected: %s (user: %s)", connection_id, user_id or "anonymous")
 
         # Send connection confirmation
         await self.send_personal(
@@ -179,17 +175,13 @@ class ConnectionManager:
                 if not self.topic_subscriptions[topic]:
                     del self.topic_subscriptions[topic]
 
-    async def send_personal(
-        self, connection_id: str, message: WebSocketMessage
-    ) -> bool:
+    async def send_personal(self, connection_id: str, message: WebSocketMessage) -> bool:
         """Send a message to a specific connection."""
         if connection_id not in self.active_connections:
             return False
 
         try:
-            await self.active_connections[connection_id].websocket.send_text(
-                message.to_json()
-            )
+            await self.active_connections[connection_id].websocket.send_text(message.to_json())
             return True
         except Exception as e:
             logger.warning("Failed to send message to %s: %s", connection_id, e)

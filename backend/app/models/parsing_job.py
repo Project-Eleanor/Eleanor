@@ -33,9 +33,7 @@ class ParsingJob(Base):
 
     __tablename__ = "parsing_jobs"
 
-    id: Mapped[UUID] = mapped_column(
-        UUIDType(), primary_key=True, default=uuid4
-    )
+    id: Mapped[UUID] = mapped_column(UUIDType(), primary_key=True, default=uuid4)
 
     # References
     evidence_id: Mapped[UUID] = mapped_column(
@@ -52,9 +50,7 @@ class ParsingJob(Base):
     )
 
     # Celery task tracking
-    celery_task_id: Mapped[str | None] = mapped_column(
-        String(255), nullable=True, index=True
-    )
+    celery_task_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
 
     # Parser configuration
     parser_type: Mapped[str] = mapped_column(
@@ -94,15 +90,9 @@ class ParsingJob(Base):
     )
 
     # Timestamps
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
-    started_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-    completed_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     evidence: Mapped["Evidence"] = relationship("Evidence")

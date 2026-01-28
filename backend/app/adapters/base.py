@@ -1130,3 +1130,343 @@ class TimelineAdapter(BaseAdapter):
     ) -> bool:
         """Delete a saved view."""
         ...
+
+
+# =============================================================================
+# TICKETING ADAPTER
+# =============================================================================
+
+
+@dataclass
+class Ticket:
+    """Representation of a ticket in an external ticketing system.
+
+    PATTERN: Data Transfer Object (DTO)
+    Provides a normalized view of tickets across different ticketing systems
+    (Jira, ServiceNow, etc.) enabling consistent handling in Eleanor workflows.
+    """
+
+    ticket_id: str
+    key: str  # External key (e.g., "DFIR-123" in Jira)
+    title: str
+    description: str = ""
+    status: str = "open"
+    priority: str = "medium"
+    assignee: str | None = None
+    reporter: str | None = None
+    labels: list[str] = field(default_factory=list)
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    resolved_at: datetime | None = None
+    resolution: str | None = None
+    case_id: str | None = None  # Linked Eleanor case
+    url: str | None = None  # Web URL to view ticket
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class TicketComment:
+    """A comment on a ticket.
+
+    PATTERN: Data Transfer Object (DTO)
+    Normalizes comment representation across ticketing systems.
+    """
+
+    comment_id: str
+    ticket_id: str
+    author: str
+    body: str
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    is_internal: bool = False  # Internal/private comment
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class TicketTransition:
+    """Available status transition for a ticket.
+
+    PATTERN: Data Transfer Object (DTO)
+    Represents possible workflow transitions in ticketing systems.
+    """
+
+    transition_id: str
+    name: str
+    to_status: str
+    requires_fields: list[str] = field(default_factory=list)
+
+
+class TicketPriority(str, Enum):
+    """Standard ticket priority levels.
+
+    DESIGN DECISION: Using string enum for serialization compatibility
+    and mapping to various ticketing system priority schemes.
+    """
+
+    CRITICAL = "critical"
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+    TRIVIAL = "trivial"
+
+
+class TicketingAdapter(BaseAdapter):
+    """Abstract base for ticketing system integration.
+
+    PATTERN: Adapter Pattern
+    Provides a unified interface for ticketing systems (Jira, ServiceNow, etc.)
+    enabling Eleanor to create, update, and track incident tickets.
+
+    EXTENSION POINT: Implement this class to add new ticketing integrations.
+    See adapters/jira/adapter.py for reference implementation.
+
+    Capabilities:
+    - Ticket CRUD operations
+    - Comment management
+    - Case linking for investigation tracking
+    - Status workflow transitions
+    - Attachment support
+    """
+
+    @abstractmethod
+    async def create_ticket(
+        self,
+        title: str,
+        description: str,
+        priority: TicketPriority | str = TicketPriority.MEDIUM,
+        labels: list[str] | None = None,
+        assignee: str | None = None,
+        project_key: str | None = None,
+        issue_type: str | None = None,
+        custom_fields: dict[str, Any] | None = None,
+    ) -> Ticket:
+        """Create a new ticket.
+
+        Args:
+            title: Ticket summary/title
+            description: Detailed description (supports markdown in most systems)
+            priority: Ticket priority level
+            labels: Tags/labels to apply
+            assignee: Username or email of assignee
+            project_key: Project identifier (e.g., "DFIR" in Jira)
+            issue_type: Type of issue (e.g., "Bug", "Task", "Incident")
+            custom_fields: System-specific custom field values
+
+        Returns:
+            Created ticket with assigned ID and key
+        """
+        ...
+
+    @abstractmethod
+    async def get_ticket(self, ticket_id: str) -> Ticket | None:
+        """Get a ticket by ID or key.
+
+        Args:
+            ticket_id: Ticket ID or key (e.g., "DFIR-123")
+
+        Returns:
+            Ticket if found, None otherwise
+        """
+        ...
+
+    @abstractmethod
+    async def update_ticket(
+        self,
+        ticket_id: str,
+        title: str | None = None,
+        description: str | None = None,
+        priority: TicketPriority | str | None = None,
+        labels: list[str] | None = None,
+        assignee: str | None = None,
+        custom_fields: dict[str, Any] | None = None,
+    ) -> Ticket:
+        """Update an existing ticket.
+
+        Args:
+            ticket_id: Ticket ID or key
+            title: New title (None to keep existing)
+            description: New description
+            priority: New priority
+            labels: New labels (replaces existing)
+            assignee: New assignee
+            custom_fields: Custom field updates
+
+        Returns:
+            Updated ticket
+        """
+        ...
+
+    @abstractmethod
+    async def add_comment(
+        self,
+        ticket_id: str,
+        comment: str,
+        is_internal: bool = False,
+    ) -> TicketComment:
+        """Add a comment to a ticket.
+
+        Args:
+            ticket_id: Ticket ID or key
+            comment: Comment body (supports markdown)
+            is_internal: Whether comment is internal/private
+
+        Returns:
+            Created comment
+        """
+        ...
+
+    @abstractmethod
+    async def get_comments(
+        self,
+        ticket_id: str,
+        limit: int = 50,
+    ) -> list[TicketComment]:
+        """Get comments on a ticket.
+
+        Args:
+            ticket_id: Ticket ID or key
+            limit: Maximum comments to return
+
+        Returns:
+            List of comments, newest first
+        """
+        ...
+
+    @abstractmethod
+    async def link_to_case(
+        self,
+        ticket_id: str,
+        case_id: str,
+        link_type: str = "relates_to",
+    ) -> bool:
+        """Link a ticket to an Eleanor case.
+
+        DESIGN DECISION: Uses custom field or description update to store
+        case reference, as most ticketing systems don't have native
+        Eleanor integration.
+
+        Args:
+            ticket_id: Ticket ID or key
+            case_id: Eleanor case ID
+            link_type: Type of relationship
+
+        Returns:
+            True if linked successfully
+        """
+        ...
+
+    @abstractmethod
+    async def get_transitions(self, ticket_id: str) -> list[TicketTransition]:
+        """Get available status transitions for a ticket.
+
+        Args:
+            ticket_id: Ticket ID or key
+
+        Returns:
+            List of available transitions
+        """
+        ...
+
+    @abstractmethod
+    async def transition_ticket(
+        self,
+        ticket_id: str,
+        transition_id: str,
+        resolution: str | None = None,
+        comment: str | None = None,
+    ) -> Ticket:
+        """Transition a ticket to a new status.
+
+        Args:
+            ticket_id: Ticket ID or key
+            transition_id: Transition ID from get_transitions()
+            resolution: Resolution value (for close transitions)
+            comment: Optional comment to add with transition
+
+        Returns:
+            Updated ticket
+        """
+        ...
+
+    @abstractmethod
+    async def close_ticket(
+        self,
+        ticket_id: str,
+        resolution: str = "Done",
+        comment: str | None = None,
+    ) -> Ticket:
+        """Close a ticket with resolution.
+
+        DESIGN DECISION: Provides convenience method that finds appropriate
+        close transition automatically, as transition IDs vary by system.
+
+        Args:
+            ticket_id: Ticket ID or key
+            resolution: Resolution type (e.g., "Done", "Won't Do", "Duplicate")
+            comment: Optional closing comment
+
+        Returns:
+            Closed ticket
+        """
+        ...
+
+    @abstractmethod
+    async def search_tickets(
+        self,
+        query: str,
+        project_key: str | None = None,
+        status: str | None = None,
+        assignee: str | None = None,
+        labels: list[str] | None = None,
+        limit: int = 50,
+    ) -> list[Ticket]:
+        """Search tickets.
+
+        Args:
+            query: Search query (system-specific syntax)
+            project_key: Filter by project
+            status: Filter by status
+            assignee: Filter by assignee
+            labels: Filter by labels (all must match)
+            limit: Maximum results
+
+        Returns:
+            Matching tickets
+        """
+        ...
+
+    async def add_attachment(
+        self,
+        ticket_id: str,
+        filename: str,
+        content: bytes,
+        content_type: str = "application/octet-stream",
+    ) -> bool:
+        """Add an attachment to a ticket.
+
+        EXTENSION POINT: Override in implementations that support attachments.
+
+        Args:
+            ticket_id: Ticket ID or key
+            filename: Attachment filename
+            content: File content
+            content_type: MIME type
+
+        Returns:
+            True if attached successfully
+        """
+        raise NotImplementedError("Attachments not supported by this adapter")
+
+    async def get_linked_cases(self, ticket_id: str) -> list[str]:
+        """Get Eleanor case IDs linked to a ticket.
+
+        Args:
+            ticket_id: Ticket ID or key
+
+        Returns:
+            List of linked case IDs
+        """
+        ticket = await self.get_ticket(ticket_id)
+        if ticket and ticket.case_id:
+            return [ticket.case_id]
+        return []

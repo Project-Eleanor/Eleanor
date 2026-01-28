@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 try:
     from dissect.regf import RegistryHive
     from dissect.regf.regf import RegistryKey
+
     DISSECT_AVAILABLE = True
 except ImportError:
     DISSECT_AVAILABLE = False
@@ -330,14 +331,22 @@ class AmcacheParser(BaseParser):
                     "path": path,
                     "name": Path(path).name if path else None,
                     "size": entry.get("size"),
-                    "hash": {
-                        "sha1": entry.get("sha1"),
-                    } if entry.get("sha1") else None,
-                    "pe": {
-                        "product": entry.get("product_name"),
-                        "company": entry.get("publisher"),
-                        "file_version": entry.get("bin_file_version") or entry.get("version"),
-                    } if entry.get("product_name") or entry.get("publisher") else None,
+                    "hash": (
+                        {
+                            "sha1": entry.get("sha1"),
+                        }
+                        if entry.get("sha1")
+                        else None
+                    ),
+                    "pe": (
+                        {
+                            "product": entry.get("product_name"),
+                            "company": entry.get("publisher"),
+                            "file_version": entry.get("bin_file_version") or entry.get("version"),
+                        }
+                        if entry.get("product_name") or entry.get("publisher")
+                        else None
+                    ),
                 },
                 "host": {
                     "os": {"type": "windows"},

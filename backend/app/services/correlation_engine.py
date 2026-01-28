@@ -367,17 +367,18 @@ class CorrelationEngine:
                     key=lambda x: x.get("@timestamp", ""),
                 )
 
-                matches.append({
-                    "entity_key": entity_key,
-                    "sequence": sequence_order,
-                    "event_counts": {
-                        eid: len(events_by_type.get(eid, []))
-                        for eid in sequence_order
-                    },
-                    "first_event": contributing_events[0] if contributing_events else None,
-                    "last_event": contributing_events[-1] if contributing_events else None,
-                    "total_events": len(contributing_events),
-                })
+                matches.append(
+                    {
+                        "entity_key": entity_key,
+                        "sequence": sequence_order,
+                        "event_counts": {
+                            eid: len(events_by_type.get(eid, [])) for eid in sequence_order
+                        },
+                        "first_event": contributing_events[0] if contributing_events else None,
+                        "last_event": contributing_events[-1] if contributing_events else None,
+                        "total_events": len(contributing_events),
+                    }
+                )
 
         return {"matches": matches}
 
@@ -472,20 +473,22 @@ class CorrelationEngine:
                 # Check if within window
                 time_diff = abs((ts_b - ts_a).total_seconds())
                 if time_diff <= window.total_seconds():
-                    matches.append({
-                        "entity_key": entity_key,
-                        "event_a": {
-                            "id": event_a_config["id"],
-                            "timestamp": timestamp_a,
-                            "event": event_a,
-                        },
-                        "event_b": {
-                            "id": event_b_config["id"],
-                            "timestamp": timestamp_b,
-                            "event": event_b,
-                        },
-                        "time_diff_seconds": time_diff,
-                    })
+                    matches.append(
+                        {
+                            "entity_key": entity_key,
+                            "event_a": {
+                                "id": event_a_config["id"],
+                                "timestamp": timestamp_a,
+                                "event": event_a,
+                            },
+                            "event_b": {
+                                "id": event_b_config["id"],
+                                "timestamp": timestamp_b,
+                                "event": event_b,
+                            },
+                            "time_diff_seconds": time_diff,
+                        }
+                    )
 
         return {"matches": matches}
 
@@ -512,9 +515,7 @@ class CorrelationEngine:
         group_by = config.get("group_by", [])
         threshold_config = config.get("threshold", {})
 
-        operator, threshold_value = parse_threshold(
-            threshold_config.get("count", ">= 1")
-        )
+        operator, threshold_value = parse_threshold(threshold_config.get("count", ">= 1"))
 
         now = datetime.utcnow()
         window_start = now - window
@@ -578,14 +579,16 @@ class CorrelationEngine:
                 else:
                     # Leaf level - check threshold
                     if check_threshold(count, operator, threshold_value):
-                        matches.append({
-                            "entity_key": "|".join(current_prefix),
-                            "group_values": dict(
-                                zip(group_by[: depth + 1], [key] + [b["key"] for b in prefix])
-                            ),
-                            "count": count,
-                            "threshold": f"{operator} {threshold_value}",
-                        })
+                        matches.append(
+                            {
+                                "entity_key": "|".join(current_prefix),
+                                "group_values": dict(
+                                    zip(group_by[: depth + 1], [key] + [b["key"] for b in prefix])
+                                ),
+                                "count": count,
+                                "threshold": f"{operator} {threshold_value}",
+                            }
+                        )
 
         # Start parsing from first aggregation
         if group_by:
@@ -595,12 +598,14 @@ class CorrelationEngine:
             # No grouping - check total count
             total = response.get("hits", {}).get("total", {}).get("value", 0)
             if check_threshold(total, operator, threshold_value):
-                matches.append({
-                    "entity_key": "*",
-                    "group_values": {},
-                    "count": total,
-                    "threshold": f"{operator} {threshold_value}",
-                })
+                matches.append(
+                    {
+                        "entity_key": "*",
+                        "group_values": {},
+                        "count": total,
+                        "threshold": f"{operator} {threshold_value}",
+                    }
+                )
 
         return {"matches": matches}
 
@@ -633,9 +638,7 @@ class CorrelationEngine:
         baseline_start = now - baseline_window
 
         # Query current period count
-        current_count = await self._count_events(
-            query, current_start, now, rule.indices, group_by
-        )
+        current_count = await self._count_events(query, current_start, now, rule.indices, group_by)
 
         # Query baseline period count (excluding current)
         baseline_count = await self._count_events(
@@ -656,23 +659,27 @@ class CorrelationEngine:
                 if baseline_avg > 0:
                     spike_ratio = current / baseline_avg
                     if spike_ratio >= spike_factor:
-                        matches.append({
-                            "entity_key": entity_key,
-                            "current_count": current,
-                            "baseline_avg": round(baseline_avg, 2),
-                            "spike_ratio": round(spike_ratio, 2),
-                            "spike_factor": spike_factor,
-                        })
+                        matches.append(
+                            {
+                                "entity_key": entity_key,
+                                "current_count": current,
+                                "baseline_avg": round(baseline_avg, 2),
+                                "spike_ratio": round(spike_ratio, 2),
+                                "spike_factor": spike_factor,
+                            }
+                        )
                 elif current > 0:
                     # No baseline but activity now
-                    matches.append({
-                        "entity_key": entity_key,
-                        "current_count": current,
-                        "baseline_avg": 0,
-                        "spike_ratio": float("inf"),
-                        "spike_factor": spike_factor,
-                        "note": "New activity with no baseline",
-                    })
+                    matches.append(
+                        {
+                            "entity_key": entity_key,
+                            "current_count": current,
+                            "baseline_avg": 0,
+                            "spike_ratio": float("inf"),
+                            "spike_factor": spike_factor,
+                            "note": "New activity with no baseline",
+                        }
+                    )
         else:
             # Global spike detection
             current_total = sum(current_count.values()) if current_count else 0
@@ -682,22 +689,26 @@ class CorrelationEngine:
             if baseline_avg > 0:
                 spike_ratio = current_total / baseline_avg
                 if spike_ratio >= spike_factor:
-                    matches.append({
+                    matches.append(
+                        {
+                            "entity_key": "*",
+                            "current_count": current_total,
+                            "baseline_avg": round(baseline_avg, 2),
+                            "spike_ratio": round(spike_ratio, 2),
+                            "spike_factor": spike_factor,
+                        }
+                    )
+            elif current_total > 0:
+                matches.append(
+                    {
                         "entity_key": "*",
                         "current_count": current_total,
-                        "baseline_avg": round(baseline_avg, 2),
-                        "spike_ratio": round(spike_ratio, 2),
+                        "baseline_avg": 0,
+                        "spike_ratio": float("inf"),
                         "spike_factor": spike_factor,
-                    })
-            elif current_total > 0:
-                matches.append({
-                    "entity_key": "*",
-                    "current_count": current_total,
-                    "baseline_avg": 0,
-                    "spike_ratio": float("inf"),
-                    "spike_factor": spike_factor,
-                    "note": "New activity with no baseline",
-                })
+                        "note": "New activity with no baseline",
+                    }
+                )
 
         return {"matches": matches}
 
@@ -807,6 +818,7 @@ class CorrelationEngine:
         counts: dict[str, int] = {}
 
         if group_by:
+
             def extract_counts(aggs: dict, prefix: list, depth: int):
                 agg_key = f"group_{depth}"
                 if agg_key not in aggs:
@@ -980,11 +992,13 @@ class CorrelationEngine:
 
         # Add to matched events
         matched_events = state.state.get("matched_events", [])
-        matched_events.append({
-            "event_id": event.get("_id"),
-            "step": matched_event_id,
-            "timestamp": event.get("@timestamp"),
-        })
+        matched_events.append(
+            {
+                "event_id": event.get("_id"),
+                "step": matched_event_id,
+                "timestamp": event.get("@timestamp"),
+            }
+        )
 
         state.state = {
             **state.state,
@@ -1080,6 +1094,7 @@ async def get_correlation_engine() -> CorrelationEngine:
     global _correlation_engine
     if _correlation_engine is None:
         from app.database import get_elasticsearch
+
         es = await get_elasticsearch()
         _correlation_engine = CorrelationEngine(es)
     return _correlation_engine

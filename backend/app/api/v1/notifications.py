@@ -123,8 +123,7 @@ async def list_notifications(
 
     # Base query
     base_query = select(Notification).where(
-        Notification.user_id == current_user.id,
-        Notification.dismissed == False  # noqa: E712
+        Notification.user_id == current_user.id, Notification.dismissed == False  # noqa: E712
     )
 
     if unread_only:
@@ -142,18 +141,13 @@ async def list_notifications(
     unread_query = select(func.count()).where(
         Notification.user_id == current_user.id,
         Notification.read == False,  # noqa: E712
-        Notification.dismissed == False  # noqa: E712
+        Notification.dismissed == False,  # noqa: E712
     )
     unread_result = await db.execute(unread_query)
     unread_count = unread_result.scalar() or 0
 
     # Get paginated results
-    query = (
-        base_query
-        .order_by(Notification.created_at.desc())
-        .offset(offset)
-        .limit(page_size)
-    )
+    query = base_query.order_by(Notification.created_at.desc()).offset(offset).limit(page_size)
     result = await db.execute(query)
     notifications = result.scalars().all()
 
@@ -175,7 +169,7 @@ async def get_unread_count(
     query = select(func.count()).where(
         Notification.user_id == current_user.id,
         Notification.read == False,  # noqa: E712
-        Notification.dismissed == False  # noqa: E712
+        Notification.dismissed == False,  # noqa: E712
     )
     result = await db.execute(query)
     count = result.scalar() or 0
@@ -302,9 +296,7 @@ async def get_preferences(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> NotificationPreferenceResponse:
     """Get notification preferences for the current user."""
-    query = select(NotificationPreference).where(
-        NotificationPreference.user_id == current_user.id
-    )
+    query = select(NotificationPreference).where(NotificationPreference.user_id == current_user.id)
     result = await db.execute(query)
     prefs = result.scalar_one_or_none()
 
@@ -325,9 +317,7 @@ async def update_preferences(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> NotificationPreferenceResponse:
     """Update notification preferences."""
-    query = select(NotificationPreference).where(
-        NotificationPreference.user_id == current_user.id
-    )
+    query = select(NotificationPreference).where(NotificationPreference.user_id == current_user.id)
     result = await db.execute(query)
     prefs = result.scalar_one_or_none()
 

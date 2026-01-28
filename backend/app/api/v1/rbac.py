@@ -133,7 +133,7 @@ async def list_roles(
             description=r.description,
             is_system=r.is_system,
             priority=r.priority,
-            permissions=[PermissionResponse.model_validate(p) for p in r.permissions]
+            permissions=[PermissionResponse.model_validate(p) for p in r.permissions],
         )
         for r in roles
     ]
@@ -146,11 +146,7 @@ async def get_role(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> RoleResponse:
     """Get a role by ID."""
-    query = (
-        select(Role)
-        .options(selectinload(Role.permissions))
-        .where(Role.id == role_id)
-    )
+    query = select(Role).options(selectinload(Role.permissions)).where(Role.id == role_id)
     result = await db.execute(query)
     role = result.scalar_one_or_none()
 
@@ -163,7 +159,7 @@ async def get_role(
         description=role.description,
         is_system=role.is_system,
         priority=role.priority,
-        permissions=[PermissionResponse.model_validate(p) for p in role.permissions]
+        permissions=[PermissionResponse.model_validate(p) for p in role.permissions],
     )
 
 
@@ -205,7 +201,7 @@ async def create_role(
         description=role.description,
         is_system=role.is_system,
         priority=role.priority,
-        permissions=[PermissionResponse.model_validate(p) for p in role.permissions]
+        permissions=[PermissionResponse.model_validate(p) for p in role.permissions],
     )
 
 
@@ -220,11 +216,7 @@ async def update_role(
     if not current_user.is_admin:
         raise AuthorizationError("Admin access required to update roles")
 
-    query = (
-        select(Role)
-        .options(selectinload(Role.permissions))
-        .where(Role.id == role_id)
-    )
+    query = select(Role).options(selectinload(Role.permissions)).where(Role.id == role_id)
     result = await db.execute(query)
     role = result.scalar_one_or_none()
 
@@ -252,7 +244,7 @@ async def update_role(
         description=role.description,
         is_system=role.is_system,
         priority=role.priority,
-        permissions=[PermissionResponse.model_validate(p) for p in role.permissions]
+        permissions=[PermissionResponse.model_validate(p) for p in role.permissions],
     )
 
 
@@ -310,7 +302,7 @@ async def get_user_permissions(
         username=user.username,
         is_admin=user.is_admin,
         roles=role_names,
-        permissions=sorted(permissions)
+        permissions=sorted(permissions),
     )
 
 
@@ -337,7 +329,7 @@ async def get_my_permissions(
         username=user.username,
         is_admin=user.is_admin,
         roles=role_names,
-        permissions=sorted(permissions)
+        permissions=sorted(permissions),
     )
 
 
@@ -380,7 +372,7 @@ async def assign_user_roles(
         username=user.username,
         is_admin=user.is_admin,
         roles=role_names,
-        permissions=sorted(permissions)
+        permissions=sorted(permissions),
     )
 
 
@@ -391,6 +383,7 @@ async def assign_user_roles(
 
 def require_permission(permission: str):
     """Dependency to require a specific permission."""
+
     async def check_permission(
         current_user: Annotated[User, Depends(get_current_user)],
         db: Annotated[AsyncSession, Depends(get_db)],

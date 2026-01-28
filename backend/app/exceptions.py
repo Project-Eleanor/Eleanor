@@ -222,9 +222,7 @@ def create_error_response(
     )
 
 
-async def eleanor_exception_handler(
-    request: Request, exc: EleanorException
-) -> JSONResponse:
+async def eleanor_exception_handler(request: Request, exc: EleanorException) -> JSONResponse:
     """Handle Eleanor custom exceptions."""
     return create_error_response(
         request=request,
@@ -279,9 +277,7 @@ async def http_exception_handler(request: Request, exc: Exception) -> JSONRespon
             503: ("ServiceUnavailable", "SERVICE_UNAVAILABLE"),
         }
 
-        error_type, code = error_map.get(
-            exc.status_code, ("HTTPError", f"HTTP_{exc.status_code}")
-        )
+        error_type, code = error_map.get(exc.status_code, ("HTTPError", f"HTTP_{exc.status_code}"))
 
         return create_error_response(
             request=request,
@@ -307,9 +303,7 @@ async def generic_exception_handler(request: Request, exc: Exception) -> JSONRes
     import traceback
 
     logger = logging.getLogger(__name__)
-    logger.error(
-        "Unhandled exception: %s\n%s", str(exc), traceback.format_exc()
-    )
+    logger.error("Unhandled exception: %s\n%s", str(exc), traceback.format_exc())
 
     return create_error_response(
         request=request,

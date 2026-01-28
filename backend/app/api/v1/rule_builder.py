@@ -54,7 +54,7 @@ PATTERN_DEFINITIONS = [
             "Brute force followed by successful login",
             "Reconnaissance followed by exploitation",
             "Data staging followed by exfiltration",
-            "Multiple failed access attempts then privilege escalation"
+            "Multiple failed access attempts then privilege escalation",
         ],
         required_config=["events", "sequence.order"],
         example_config={
@@ -62,12 +62,12 @@ PATTERN_DEFINITIONS = [
             "window": "5m",
             "events": [
                 {"id": "failed_login", "query": "event.action:logon_failed"},
-                {"id": "success", "query": "event.action:logon AND event.outcome:success"}
+                {"id": "success", "query": "event.action:logon AND event.outcome:success"},
             ],
             "join_on": [{"field": "user.name"}],
             "sequence": {"order": ["failed_login", "success"]},
-            "thresholds": [{"event": "failed_login", "count": ">= 5"}]
-        }
+            "thresholds": [{"event": "failed_login", "count": ">= 5"}],
+        },
     ),
     PatternDefinition(
         type=PatternType.TEMPORAL_JOIN,
@@ -77,7 +77,7 @@ PATTERN_DEFINITIONS = [
             "Process creation with network connection",
             "File modification with registry change",
             "User creation followed by privilege grant",
-            "Service installation with scheduled task"
+            "Service installation with scheduled task",
         ],
         required_config=["events", "join_on"],
         example_config={
@@ -85,11 +85,11 @@ PATTERN_DEFINITIONS = [
             "window": "1m",
             "events": [
                 {"id": "process", "query": "event.category:process AND event.type:start"},
-                {"id": "network", "query": "event.category:network AND destination.port:443"}
+                {"id": "network", "query": "event.category:network AND destination.port:443"},
             ],
             "join_on": [{"field": "process.pid"}, {"field": "host.name"}],
-            "temporal_join": {"max_span": "30s", "require_all": True}
-        }
+            "temporal_join": {"max_span": "30s", "require_all": True},
+        },
     ),
     PatternDefinition(
         type=PatternType.AGGREGATION,
@@ -99,20 +99,18 @@ PATTERN_DEFINITIONS = [
             "Multiple failed logins from same source",
             "High volume of DNS queries to single domain",
             "Repeated access to sensitive files",
-            "Multiple process spawns by parent"
+            "Multiple process spawns by parent",
         ],
         required_config=["events", "aggregation.group_by", "aggregation.having"],
         example_config={
             "pattern_type": "aggregation",
             "window": "15m",
-            "events": [
-                {"id": "dns_query", "query": "event.category:dns AND dns.type:query"}
-            ],
+            "events": [{"id": "dns_query", "query": "event.category:dns AND dns.type:query"}],
             "aggregation": {
                 "group_by": ["source.ip", "dns.question.name"],
-                "having": [{"event": "dns_query", "count": ">= 100"}]
-            }
-        }
+                "having": [{"event": "dns_query", "count": ">= 100"}],
+            },
+        },
     ),
     PatternDefinition(
         type=PatternType.SPIKE,
@@ -122,23 +120,21 @@ PATTERN_DEFINITIONS = [
             "Sudden increase in failed logins",
             "Traffic spike to external IPs",
             "Unusual file access volume",
-            "Process creation rate anomaly"
+            "Process creation rate anomaly",
         ],
         required_config=["events", "spike.field", "spike.baseline_window"],
         example_config={
             "pattern_type": "spike",
             "window": "5m",
-            "events": [
-                {"id": "login_attempt", "query": "event.action:logon*"}
-            ],
+            "events": [{"id": "login_attempt", "query": "event.action:logon*"}],
             "spike": {
                 "field": "source.ip",
                 "baseline_window": "1h",
                 "spike_window": "5m",
                 "spike_threshold": 3.0,
-                "min_baseline": 10
-            }
-        }
+                "min_baseline": 10,
+            },
+        },
     ),
 ]
 
@@ -181,8 +177,8 @@ async def preview_rule(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={
                 "message": "Invalid rule configuration",
-                "errors": [e.model_dump() for e in validation.errors]
-            }
+                "errors": [e.model_dump() for e in validation.errors],
+            },
         )
 
     # Parse time range
@@ -216,10 +212,14 @@ async def preview_rule(
                 "bool": {
                     "must": [
                         {"query_string": {"query": query_str}},
-                        {"range": {"@timestamp": {
-                            "gte": range_start.isoformat(),
-                            "lte": end_time.isoformat()
-                        }}}
+                        {
+                            "range": {
+                                "@timestamp": {
+                                    "gte": range_start.isoformat(),
+                                    "lte": end_time.isoformat(),
+                                }
+                            }
+                        },
                     ]
                 }
             }
@@ -228,7 +228,7 @@ async def preview_rule(
                 index=index_pattern,
                 query=es_query,
                 size=min(request.limit * 10, 10000),  # Get more events for correlation
-                sort=[{"@timestamp": "asc"}]
+                sort=[{"@timestamp": "asc"}],
             )
 
             hits = [hit["_source"] for hit in response["hits"]["hits"]]
@@ -257,26 +257,23 @@ async def preview_rule(
                 entity_events[entity_key][event_id].append(hit)
 
         # Build correlation matches based on pattern type
-        matches = _build_correlation_matches(
-            request.config, entity_events, request.limit
-        )
+        matches = _build_correlation_matches(request.config, entity_events, request.limit)
 
     except Exception as e:
         logger.error("Preview failed: %s", str(e))
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Preview failed: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Preview failed: {str(e)}"
         )
 
     duration_ms = int((datetime.utcnow() - start_time).total_seconds() * 1000)
 
     return RulePreviewResult(
         total_matches=len(matches),
-        matches=matches[:request.limit],
+        matches=matches[: request.limit],
         events_scanned=events_scanned,
         duration_ms=duration_ms,
         time_range_start=range_start.isoformat(),
-        time_range_end=end_time.isoformat()
+        time_range_end=end_time.isoformat(),
     )
 
 
@@ -301,8 +298,8 @@ async def test_rule(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={
                 "message": "Invalid rule configuration",
-                "errors": [e.model_dump() for e in validation.errors]
-            }
+                "errors": [e.model_dump() for e in validation.errors],
+            },
         )
 
     # Get Elasticsearch client
@@ -327,10 +324,7 @@ async def test_rule(
         parse_duration(request.config.window)
 
         while current_start < request.end_time:
-            current_end = min(
-                current_start + timedelta(hours=1),
-                request.end_time
-            )
+            current_end = min(current_start + timedelta(hours=1), request.end_time)
 
             # Query events for this hour
             all_events: dict[str, list[dict]] = {}
@@ -342,24 +336,23 @@ async def test_rule(
                     "bool": {
                         "must": [
                             {"query_string": {"query": query_str}},
-                            {"range": {"@timestamp": {
-                                "gte": current_start.isoformat(),
-                                "lte": current_end.isoformat()
-                            }}}
+                            {
+                                "range": {
+                                    "@timestamp": {
+                                        "gte": current_start.isoformat(),
+                                        "lte": current_end.isoformat(),
+                                    }
+                                }
+                            },
                         ]
                     }
                 }
 
                 response = await es.search(
-                    index=index_pattern,
-                    query=es_query,
-                    size=10000,
-                    sort=[{"@timestamp": "asc"}]
+                    index=index_pattern, query=es_query, size=10000, sort=[{"@timestamp": "asc"}]
                 )
 
-                all_events[event_def.id] = [
-                    hit["_source"] for hit in response["hits"]["hits"]
-                ]
+                all_events[event_def.id] = [hit["_source"] for hit in response["hits"]["hits"]]
 
             # Group by entity
             entity_events = _group_events_by_entity(
@@ -367,9 +360,7 @@ async def test_rule(
             )
 
             # Build matches
-            hour_matches = _build_correlation_matches(
-                request.config, entity_events, 1000
-            )
+            hour_matches = _build_correlation_matches(request.config, entity_events, 1000)
 
             # Record results
             hour_key = current_start.strftime("%Y-%m-%dT%H:00:00Z")
@@ -387,8 +378,7 @@ async def test_rule(
     except Exception as e:
         logger.error("Test failed: %s", str(e))
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Test failed: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Test failed: {str(e)}"
         )
 
     # Calculate statistics
@@ -400,7 +390,7 @@ async def test_rule(
     top_entities = sorted(
         [{"entity": k, "count": v} for k, v in entity_match_counts.items()],
         key=lambda x: x["count"],
-        reverse=True
+        reverse=True,
     )[:10]
 
     duration_ms = int((datetime.utcnow() - start_time).total_seconds() * 1000)
@@ -411,7 +401,7 @@ async def test_rule(
         top_entities=top_entities,
         sample_matches=all_matches[:20],
         estimated_alerts_per_day=round(estimated_alerts_per_day, 2),
-        duration_ms=duration_ms
+        duration_ms=duration_ms,
     )
 
 
@@ -455,11 +445,7 @@ async def get_available_fields(
                         agg_response = await es.search(
                             index=pattern,
                             size=0,
-                            aggs={
-                                "samples": {
-                                    "terms": {"field": field_path, "size": 10}
-                                }
-                            }
+                            aggs={"samples": {"terms": {"field": field_path, "size": 10}}},
                         )
                         buckets = agg_response["aggregations"]["samples"]["buckets"]
                         field.sample_values = [b["key"] for b in buckets]
@@ -492,17 +478,11 @@ async def import_sigma_rule(
     try:
         sigma_rule = yaml.safe_load(request.sigma_yaml)
     except yaml.YAMLError as e:
-        return SigmaImportResult(
-            success=False,
-            rule_name=None,
-            errors=[f"Invalid YAML: {str(e)}"]
-        )
+        return SigmaImportResult(success=False, rule_name=None, errors=[f"Invalid YAML: {str(e)}"])
 
     if not isinstance(sigma_rule, dict):
         return SigmaImportResult(
-            success=False,
-            rule_name=None,
-            errors=["Sigma rule must be a YAML dictionary"]
+            success=False, rule_name=None, errors=["Sigma rule must be a YAML dictionary"]
         )
 
     # Extract basic info
@@ -516,7 +496,7 @@ async def import_sigma_rule(
         "low": "low",
         "medium": "medium",
         "high": "high",
-        "critical": "critical"
+        "critical": "critical",
     }
     severity = severity_map.get(level, "medium")
 
@@ -542,9 +522,7 @@ async def import_sigma_rule(
         if isinstance(value, dict):
             for field, pattern in value.items():
                 if isinstance(pattern, list):
-                    query_parts.append(
-                        f"({' OR '.join(f'{field}:{p}' for p in pattern)})"
-                    )
+                    query_parts.append(f"({' OR '.join(f'{field}:{p}' for p in pattern)})")
                 else:
                     query_parts.append(f"{field}:{pattern}")
         elif isinstance(value, list):
@@ -579,8 +557,8 @@ async def import_sigma_rule(
                 "events": [{"id": "main", "query": query}],
                 "aggregation": {
                     "group_by": ["user.name"],  # Default grouping
-                    "having": [{"event": "main", "count": ">= 1"}]
-                }
+                    "having": [{"event": "main", "count": ">= 1"}],
+                },
             }
             detection_rule["rule_type"] = "correlation"
             detection_rule["correlation_config"] = correlation_config
@@ -594,7 +572,7 @@ async def import_sigma_rule(
         detection_rule=detection_rule,
         correlation_config=correlation_config,
         warnings=warnings,
-        errors=errors
+        errors=errors,
     )
 
 
@@ -616,8 +594,7 @@ def _get_nested_value(obj: dict, path: str) -> Any:
 
 
 def _group_events_by_entity(
-    all_events: dict[str, list[dict]],
-    join_fields: list[str]
+    all_events: dict[str, list[dict]], join_fields: list[str]
 ) -> dict[str, dict[str, list]]:
     """Group events by entity key."""
     entity_events: dict[str, dict[str, list]] = {}
@@ -642,9 +619,7 @@ def _group_events_by_entity(
 
 
 def _build_correlation_matches(
-    config: RuleBuilderConfig,
-    entity_events: dict[str, dict[str, list]],
-    limit: int
+    config: RuleBuilderConfig, entity_events: dict[str, dict[str, list]], limit: int
 ) -> list[CorrelationMatch]:
     """Build correlation matches from grouped events."""
     matches: list[CorrelationMatch] = []
@@ -674,14 +649,11 @@ def _build_correlation_matches(
         elif config.pattern_type == PatternType.TEMPORAL_JOIN:
             # Check all event types are present
             if config.temporal_join and config.temporal_join.require_all:
-                match_valid = all(
-                    len(events_by_type.get(e.id, [])) > 0
-                    for e in config.events
-                )
+                match_valid = all(len(events_by_type.get(e.id, [])) > 0 for e in config.events)
             else:
-                match_valid = sum(
-                    1 for e in config.events if len(events_by_type.get(e.id, [])) > 0
-                ) >= 2
+                match_valid = (
+                    sum(1 for e in config.events if len(events_by_type.get(e.id, [])) > 0) >= 2
+                )
 
         elif config.pattern_type == PatternType.AGGREGATION:
             if config.aggregation:
@@ -697,28 +669,31 @@ def _build_correlation_matches(
             all_entity_events = []
             for event_id, events in events_by_type.items():
                 for event in events:
-                    all_entity_events.append(EventMatch(
-                        timestamp=event.get("@timestamp", ""),
-                        event_id=event_id,
-                        entity_key=entity_key,
-                        document=event
-                    ))
+                    all_entity_events.append(
+                        EventMatch(
+                            timestamp=event.get("@timestamp", ""),
+                            event_id=event_id,
+                            entity_key=entity_key,
+                            document=event,
+                        )
+                    )
 
             # Sort by timestamp
             all_entity_events.sort(key=lambda x: x.timestamp)
 
             if all_entity_events:
-                matches.append(CorrelationMatch(
-                    entity_key=entity_key,
-                    event_counts={
-                        e.id: len(events_by_type.get(e.id, []))
-                        for e in config.events
-                    },
-                    first_event_time=all_entity_events[0].timestamp,
-                    last_event_time=all_entity_events[-1].timestamp,
-                    total_events=len(all_entity_events),
-                    sample_events=all_entity_events[:5]
-                ))
+                matches.append(
+                    CorrelationMatch(
+                        entity_key=entity_key,
+                        event_counts={
+                            e.id: len(events_by_type.get(e.id, [])) for e in config.events
+                        },
+                        first_event_time=all_entity_events[0].timestamp,
+                        last_event_time=all_entity_events[-1].timestamp,
+                        total_events=len(all_entity_events),
+                        sample_events=all_entity_events[:5],
+                    )
+                )
 
         if len(matches) >= limit:
             break
@@ -738,10 +713,7 @@ def _check_threshold(count: int, operator: str, threshold: int) -> bool:
     return ops.get(operator, lambda x, y: x >= y)(count, threshold)
 
 
-def _extract_fields_from_mapping(
-    properties: dict,
-    prefix: str = ""
-) -> list[AvailableField]:
+def _extract_fields_from_mapping(properties: dict, prefix: str = "") -> list[AvailableField]:
     """Extract fields from Elasticsearch mapping."""
     fields = []
 
@@ -750,9 +722,7 @@ def _extract_fields_from_mapping(
 
         if "properties" in field_def:
             # Nested object
-            fields.extend(_extract_fields_from_mapping(
-                field_def["properties"], path
-            ))
+            fields.extend(_extract_fields_from_mapping(field_def["properties"], path))
         else:
             # Leaf field
             es_type = field_def.get("type", "keyword")
@@ -768,11 +738,8 @@ def _extract_fields_from_mapping(
                 "date": FieldType.DATE,
             }.get(es_type, FieldType.STRING)
 
-            fields.append(AvailableField(
-                path=path,
-                type=field_type,
-                description=None,
-                sample_values=[]
-            ))
+            fields.append(
+                AvailableField(path=path, type=field_type, description=None, sample_values=[])
+            )
 
     return fields

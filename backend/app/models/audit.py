@@ -15,9 +15,7 @@ class AuditLog(Base):
 
     __tablename__ = "audit_log"
 
-    id: Mapped[UUID] = mapped_column(
-        UUIDType(), primary_key=True, default=uuid4
-    )
+    id: Mapped[UUID] = mapped_column(UUIDType(), primary_key=True, default=uuid4)
     user_id: Mapped[UUID | None] = mapped_column(
         UUIDType(), ForeignKey("users.id"), nullable=True, index=True
     )

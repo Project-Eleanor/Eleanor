@@ -55,16 +55,12 @@ class DataConnector(Base):
 
     __tablename__ = "data_connectors"
 
-    id: Mapped[UUID] = mapped_column(
-        UUIDType(), primary_key=True, default=uuid4
-    )
+    id: Mapped[UUID] = mapped_column(UUIDType(), primary_key=True, default=uuid4)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Connector type and status
-    connector_type: Mapped[ConnectorType] = mapped_column(
-        Enum(ConnectorType), nullable=False
-    )
+    connector_type: Mapped[ConnectorType] = mapped_column(Enum(ConnectorType), nullable=False)
     status: Mapped[ConnectorStatus] = mapped_column(
         Enum(ConnectorStatus), nullable=False, default=ConnectorStatus.DISABLED
     )
@@ -100,9 +96,7 @@ class DataConnector(Base):
     exclude_filters: Mapped[dict] = mapped_column(JSONBType(), default=dict)
 
     # Scheduling (for polling connectors)
-    polling_interval: Mapped[int | None] = mapped_column(
-        Integer, nullable=True
-    )  # seconds
+    polling_interval: Mapped[int | None] = mapped_column(Integer, nullable=True)  # seconds
 
     # Statistics
     events_received: Mapped[int] = mapped_column(BigInteger, default=0)
@@ -111,12 +105,8 @@ class DataConnector(Base):
     bytes_received: Mapped[int] = mapped_column(BigInteger, default=0)
 
     # Health tracking
-    last_event_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-    last_error_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    last_event_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_error_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     last_health_check_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
@@ -129,9 +119,7 @@ class DataConnector(Base):
     created_by: Mapped[UUID | None] = mapped_column(
         UUIDType(), ForeignKey("users.id"), nullable=True
     )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
@@ -148,9 +136,7 @@ class ConnectorEvent(Base):
 
     __tablename__ = "connector_events"
 
-    id: Mapped[UUID] = mapped_column(
-        UUIDType(), primary_key=True, default=uuid4
-    )
+    id: Mapped[UUID] = mapped_column(UUIDType(), primary_key=True, default=uuid4)
     connector_id: Mapped[UUID] = mapped_column(
         UUIDType(),
         ForeignKey("data_connectors.id", ondelete="CASCADE"),
@@ -165,9 +151,7 @@ class ConnectorEvent(Base):
     message: Mapped[str | None] = mapped_column(Text, nullable=True)
     details: Mapped[dict] = mapped_column(JSONBType(), default=dict)
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     def __repr__(self) -> str:
         return f"<ConnectorEvent {self.event_type} for {self.connector_id}>"

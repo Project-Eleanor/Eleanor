@@ -130,13 +130,9 @@ class DashboardStats:
                             "field": "@timestamp",
                             "fixed_interval": interval,
                         },
-                        "aggs": {
-                            "by_severity": {
-                                "terms": {"field": "severity"}
-                            }
-                        }
+                        "aggs": {"by_severity": {"terms": {"field": "severity"}}},
                     }
-                }
+                },
             )
 
             buckets = response["aggregations"]["alerts_over_time"]["buckets"]
@@ -145,9 +141,8 @@ class DashboardStats:
                     "timestamp": bucket["key_as_string"],
                     "count": bucket["doc_count"],
                     "by_severity": {
-                        sev["key"]: sev["doc_count"]
-                        for sev in bucket["by_severity"]["buckets"]
-                    }
+                        sev["key"]: sev["doc_count"] for sev in bucket["by_severity"]["buckets"]
+                    },
                 }
                 for bucket in buckets
             ]
@@ -238,10 +233,7 @@ class DashboardStats:
         result = await db.execute(query)
         rows = result.all()
 
-        return {
-            row[0].value: row[1]
-            for row in rows
-        }
+        return {row[0].value: row[1] for row in rows}
 
     async def get_mitre_heatmap(
         self,
@@ -292,14 +284,11 @@ class DashboardStats:
                             "size": 100,
                         }
                     }
-                }
+                },
             )
 
             buckets = response["aggregations"]["techniques"]["buckets"]
-            return {
-                bucket["key"]: bucket["doc_count"]
-                for bucket in buckets
-            }
+            return {bucket["key"]: bucket["doc_count"] for bucket in buckets}
 
         except Exception as e:
             logger.warning("Failed to get MITRE heatmap: %s", str(e))
@@ -412,7 +401,7 @@ class DashboardStats:
                             "gte": since.isoformat(),
                         }
                     }
-                }
+                },
             )
 
             return {
@@ -433,6 +422,7 @@ async def get_dashboard_stats() -> DashboardStats:
     global _dashboard_stats
     if _dashboard_stats is None:
         from app.database import get_elasticsearch
+
         es = await get_elasticsearch()
         _dashboard_stats = DashboardStats(es)
     return _dashboard_stats

@@ -63,9 +63,7 @@ class TenantMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
         self.default_tenant_slug = default_tenant_slug
 
-    async def dispatch(
-        self, request: Request, call_next: RequestResponseEndpoint
-    ) -> Response:
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         """Process the request and set up tenant context."""
         # Clear any existing tenant context
         set_tenant_context(None)

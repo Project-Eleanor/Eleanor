@@ -41,13 +41,13 @@ class ApacheAccessParser(BaseParser):
     # Combined Log Format:
     # %h %l %u %t "%r" %>s %b "%{Referer}i" "%{User-Agent}i"
     COMBINED_PATTERN = re.compile(
-        r'^(\S+)\s+'  # Remote host (IP)
-        r'(\S+)\s+'  # Ident (usually -)
-        r'(\S+)\s+'  # Remote user
-        r'\[([^\]]+)\]\s+'  # Timestamp
+        r"^(\S+)\s+"  # Remote host (IP)
+        r"(\S+)\s+"  # Ident (usually -)
+        r"(\S+)\s+"  # Remote user
+        r"\[([^\]]+)\]\s+"  # Timestamp
         r'"([^"]*(?:\\.[^"]*)*)"\s+'  # Request line
-        r'(\d{3})\s+'  # Status code
-        r'(\S+)'  # Bytes sent
+        r"(\d{3})\s+"  # Status code
+        r"(\S+)"  # Bytes sent
         r'(?:\s+"([^"]*(?:\\.[^"]*)*)"\s+'  # Referer (optional)
         r'"([^"]*(?:\\.[^"]*)*)")?'  # User-Agent (optional)
     )
@@ -151,12 +151,20 @@ class ApacheAccessParser(BaseParser):
                 "source": {
                     "ip": entry.get("client_ip"),
                 },
-                "user": {
-                    "name": entry.get("user"),
-                } if entry.get("user") else None,
-                "user_agent": {
-                    "original": entry.get("user_agent"),
-                } if entry.get("user_agent") else None,
+                "user": (
+                    {
+                        "name": entry.get("user"),
+                    }
+                    if entry.get("user")
+                    else None
+                ),
+                "user_agent": (
+                    {
+                        "original": entry.get("user_agent"),
+                    }
+                    if entry.get("user_agent")
+                    else None
+                ),
                 "http.request.referrer": entry.get("referer"),
                 "eleanor": {
                     "case_id": case_id,
@@ -367,7 +375,11 @@ class IISParser(BaseParser):
                     "outcome": outcome,
                     "module": "iis",
                     "dataset": "iis.access",
-                    "duration": entry.get("time_taken_ms", 0) * 1000000 if entry.get("time_taken_ms") else None,
+                    "duration": (
+                        entry.get("time_taken_ms", 0) * 1000000
+                        if entry.get("time_taken_ms")
+                        else None
+                    ),
                 },
                 "http": {
                     "request": {
@@ -391,12 +403,20 @@ class IISParser(BaseParser):
                     "ip": entry.get("server_ip"),
                     "port": int(entry["server_port"]) if entry.get("server_port") else None,
                 },
-                "user": {
-                    "name": entry.get("user"),
-                } if entry.get("user") else None,
-                "user_agent": {
-                    "original": entry.get("user_agent"),
-                } if entry.get("user_agent") else None,
+                "user": (
+                    {
+                        "name": entry.get("user"),
+                    }
+                    if entry.get("user")
+                    else None
+                ),
+                "user_agent": (
+                    {
+                        "original": entry.get("user_agent"),
+                    }
+                    if entry.get("user_agent")
+                    else None
+                ),
                 "host": {
                     "name": entry.get("server_name"),
                     "os": {"type": "windows"},
@@ -534,9 +554,13 @@ class ApacheErrorParser(BaseParser):
                 "process": {
                     "pid": entry.get("pid"),
                 },
-                "source": {
-                    "ip": client_ip,
-                } if client_ip else None,
+                "source": (
+                    {
+                        "ip": client_ip,
+                    }
+                    if client_ip
+                    else None
+                ),
                 "eleanor": {
                     "case_id": case_id,
                     "evidence_id": evidence_id,

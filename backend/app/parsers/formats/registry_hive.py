@@ -83,7 +83,15 @@ class WindowsRegistryParser(DissectParserAdapter):
         if file_path:
             # Check by name for common hive files
             name = file_path.name.upper()
-            if name in ("SAM", "SYSTEM", "SOFTWARE", "SECURITY", "DEFAULT", "NTUSER.DAT", "USRCLASS.DAT"):
+            if name in (
+                "SAM",
+                "SYSTEM",
+                "SOFTWARE",
+                "SECURITY",
+                "DEFAULT",
+                "NTUSER.DAT",
+                "USRCLASS.DAT",
+            ):
                 return True
 
             # Check by extension
@@ -106,6 +114,7 @@ class WindowsRegistryParser(DissectParserAdapter):
 
     def _iterate_records(self, parser: Any) -> Iterator[Any]:
         """Recursively iterate over registry keys."""
+
         def walk_keys(key, depth=0):
             yield key
 
@@ -139,7 +148,9 @@ class WindowsRegistryParser(DissectParserAdapter):
             # Sort patterns by length (descending) to match most specific pattern first
             event_category = "registry"
             key_path_lower = key_path.lower()
-            for pattern, category in sorted(FORENSIC_PATHS.items(), key=lambda x: len(x[0]), reverse=True):
+            for pattern, category in sorted(
+                FORENSIC_PATHS.items(), key=lambda x: len(x[0]), reverse=True
+            ):
                 if pattern.lower() in key_path_lower:
                     event_category = category
                     break

@@ -30,9 +30,7 @@ class User(Base):
 
     __tablename__ = "users"
 
-    id: Mapped[UUID] = mapped_column(
-        UUIDType(), primary_key=True, default=uuid4
-    )
+    id: Mapped[UUID] = mapped_column(UUIDType(), primary_key=True, default=uuid4)
     username: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     email: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
     display_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
@@ -45,9 +43,7 @@ class User(Base):
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
     roles: Mapped[list[str]] = mapped_column(ArrayType(String), default=list)
     last_login: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
@@ -60,14 +56,10 @@ class User(Base):
         "Case", back_populates="created_by_user", foreign_keys="Case.created_by"
     )
     role_objects: Mapped[list["Role"]] = relationship(
-        "Role",
-        secondary="user_roles",
-        back_populates="users"
+        "Role", secondary="user_roles", back_populates="users"
     )
     tenant_memberships: Mapped[list["TenantMembership"]] = relationship(
-        "TenantMembership",
-        back_populates="user",
-        cascade="all, delete-orphan"
+        "TenantMembership", back_populates="user", cascade="all, delete-orphan"
     )
 
     def __repr__(self) -> str:

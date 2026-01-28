@@ -82,7 +82,9 @@ class EdgeHistoryParser(BrowserSQLiteParser):
                 if entry.get("visit_time"):
                     entry["visit_time"] = self._chrome_time_to_datetime(entry["visit_time"])
                 if entry.get("last_visit_time"):
-                    entry["last_visit_time"] = self._chrome_time_to_datetime(entry["last_visit_time"])
+                    entry["last_visit_time"] = self._chrome_time_to_datetime(
+                        entry["last_visit_time"]
+                    )
 
                 yield self._create_event(entry, case_id, evidence_id)
 
@@ -160,6 +162,7 @@ class EdgeHistoryParser(BrowserSQLiteParser):
         """Extract domain from URL."""
         try:
             from urllib.parse import urlparse
+
             parsed = urlparse(url)
             return parsed.netloc or None
         except Exception:
@@ -235,7 +238,9 @@ class EdgeDownloadsParser(BaseParser):
                 if entry.get("end_time"):
                     entry["end_time"] = self._chrome_time_to_datetime(entry["end_time"])
                 if entry.get("last_access_time"):
-                    entry["last_access_time"] = self._chrome_time_to_datetime(entry["last_access_time"])
+                    entry["last_access_time"] = self._chrome_time_to_datetime(
+                        entry["last_access_time"]
+                    )
 
                 yield self._create_event(entry, case_id, evidence_id)
 
@@ -377,7 +382,9 @@ class EdgeBookmarksParser(BaseParser):
                     "url": item.get("url"),
                     "folder_path": "/".join(path),
                     "date_added": self._chrome_time_to_datetime(int(item.get("date_added", 0))),
-                    "date_modified": self._chrome_time_to_datetime(int(item.get("date_modified", 0))),
+                    "date_modified": self._chrome_time_to_datetime(
+                        int(item.get("date_modified", 0))
+                    ),
                     "guid": item.get("guid"),
                 }
 

@@ -48,9 +48,7 @@ class GCSStorageAdapter(StorageAdapter):
             # Build client
             if self.config.access_key:
                 # access_key contains path to service account JSON
-                self._client = storage.Client.from_service_account_json(
-                    self.config.access_key
-                )
+                self._client = storage.Client.from_service_account_json(self.config.access_key)
             else:
                 # Use application default credentials
                 self._client = storage.Client()

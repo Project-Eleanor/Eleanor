@@ -116,9 +116,7 @@ class VelociraptorAdapter(CollectionAdapter):
             server_name = self.config.extra.get("grpc_server_name", "VelociraptorServer")
             options = [("grpc.ssl_target_name_override", server_name)]
 
-            self._grpc_channel = grpc.secure_channel(
-                self.config.url, credentials, options=options
-            )
+            self._grpc_channel = grpc.secure_channel(self.config.url, credentials, options=options)
             self._grpc_stub = api_pb2_grpc.APIStub(self._grpc_channel)
 
         return self._grpc_channel
@@ -259,7 +257,9 @@ class VelociraptorAdapter(CollectionAdapter):
             query = f"SELECT * FROM clients(search='{search}')"
         if online_only:
             # Filter to clients seen in last 15 minutes
-            query = query.replace("FROM clients", "FROM clients") + " WHERE last_seen_at > now() - 900"
+            query = (
+                query.replace("FROM clients", "FROM clients") + " WHERE last_seen_at > now() - 900"
+            )
 
         query += f" LIMIT {limit} OFFSET {offset}"
 
@@ -289,9 +289,7 @@ class VelociraptorAdapter(CollectionAdapter):
 
     async def get_endpoint(self, client_id: str) -> Endpoint | None:
         """Get a specific endpoint."""
-        rows = await self._vql_query(
-            f"SELECT * FROM clients(client_id='{client_id}')"
-        )
+        rows = await self._vql_query(f"SELECT * FROM clients(client_id='{client_id}')")
         if not rows:
             return None
 
@@ -390,9 +388,7 @@ class VelociraptorAdapter(CollectionAdapter):
     async def get_collection_status(self, job_id: str) -> CollectionJob:
         """Get status of a collection job (flow)."""
         # Extract client_id from flow_id or use VQL
-        rows = await self._vql_query(
-            f"SELECT * FROM flows(flow_id='{job_id}')"
-        )
+        rows = await self._vql_query(f"SELECT * FROM flows(flow_id='{job_id}')")
 
         if not rows:
             return CollectionJob(

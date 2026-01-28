@@ -86,9 +86,11 @@ class RecycleBinParser(BaseParser):
                 # Path is variable length, starts at offset 24
                 path_len = struct.unpack("<I", data[24:28])[0]
                 if len(data) >= 28 + path_len * 2:
-                    entry["original_path"] = data[28:28 + path_len * 2].decode(
-                        "utf-16-le", errors="ignore"
-                    ).rstrip("\x00")
+                    entry["original_path"] = (
+                        data[28 : 28 + path_len * 2]
+                        .decode("utf-16-le", errors="ignore")
+                        .rstrip("\x00")
+                    )
 
             elif header == 2:
                 # Windows 10 format
@@ -100,9 +102,11 @@ class RecycleBinParser(BaseParser):
                 # Path length at offset 24
                 path_len = struct.unpack("<I", data[24:28])[0]
                 if len(data) >= 28 + path_len * 2:
-                    entry["original_path"] = data[28:28 + path_len * 2].decode(
-                        "utf-16-le", errors="ignore"
-                    ).rstrip("\x00")
+                    entry["original_path"] = (
+                        data[28 : 28 + path_len * 2]
+                        .decode("utf-16-le", errors="ignore")
+                        .rstrip("\x00")
+                    )
 
             else:
                 # Try legacy format (pre-Vista)
@@ -113,9 +117,9 @@ class RecycleBinParser(BaseParser):
                 )
                 # Path at offset 16, fixed 520 bytes
                 if len(data) >= 536:
-                    entry["original_path"] = data[16:536].decode(
-                        "utf-16-le", errors="ignore"
-                    ).rstrip("\x00")
+                    entry["original_path"] = (
+                        data[16:536].decode("utf-16-le", errors="ignore").rstrip("\x00")
+                    )
 
             # Extract SID from parent directory
             parent = file_path.parent.name
@@ -160,9 +164,13 @@ class RecycleBinParser(BaseParser):
                     "size": file_size,
                     "directory": str(Path(original_path).parent) if original_path else None,
                 },
-                "user": {
-                    "id": entry.get("user_sid"),
-                } if entry.get("user_sid") else None,
+                "user": (
+                    {
+                        "id": entry.get("user_sid"),
+                    }
+                    if entry.get("user_sid")
+                    else None
+                ),
                 "host": {
                     "os": {"type": "windows"},
                 },

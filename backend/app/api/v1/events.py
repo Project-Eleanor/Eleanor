@@ -128,12 +128,14 @@ async def create_events_bulk(
             indexed += 1
         else:
             errors += 1
-        items.append({
-            "id": index_result.get("_id"),
-            "index": index_result.get("_index"),
-            "status": index_result.get("status"),
-            "error": index_result.get("error"),
-        })
+        items.append(
+            {
+                "id": index_result.get("_id"),
+                "index": index_result.get("_index"),
+                "status": index_result.get("status"),
+                "error": index_result.get("error"),
+            }
+        )
 
     return BulkEventResponse(
         indexed=indexed,

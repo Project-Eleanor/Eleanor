@@ -381,7 +381,9 @@ async def create_rule(
         playbook_id=rule_data.playbook_id,
         references=rule_data.references,
         custom_fields=rule_data.custom_fields,
-        correlation_config=rule_data.correlation_config.model_dump() if rule_data.correlation_config else None,
+        correlation_config=(
+            rule_data.correlation_config.model_dump() if rule_data.correlation_config else None
+        ),
         created_by=current_user.id,
     )
 
@@ -686,9 +688,7 @@ async def run_rule(
     # If threshold exceeded, create alerts
     if exec_result.get("threshold_exceeded") and exec_result.get("hits"):
         alert_generator = get_alert_generator()
-        alerts = await alert_generator.create_alerts_from_rule_execution(
-            rule, exec_result, db
-        )
+        alerts = await alert_generator.create_alerts_from_rule_execution(rule, exec_result, db)
         execution.incidents_created = len(alerts)
         await db.commit()
 
@@ -721,16 +721,16 @@ async def get_analytics_stats(
 ) -> dict:
     """Get analytics statistics."""
     # Count rules by status
-    status_query = select(
-        DetectionRule.status, func.count(DetectionRule.id)
-    ).group_by(DetectionRule.status)
+    status_query = select(DetectionRule.status, func.count(DetectionRule.id)).group_by(
+        DetectionRule.status
+    )
     status_result = await db.execute(status_query)
     status_counts = {row[0].value: row[1] for row in status_result.all()}
 
     # Count rules by severity
-    severity_query = select(
-        DetectionRule.severity, func.count(DetectionRule.id)
-    ).group_by(DetectionRule.severity)
+    severity_query = select(DetectionRule.severity, func.count(DetectionRule.id)).group_by(
+        DetectionRule.severity
+    )
     severity_result = await db.execute(severity_query)
     severity_counts = {row[0].value: row[1] for row in severity_result.all()}
 
@@ -804,9 +804,7 @@ async def run_correlation_rule(
 
     # Execute the correlation rule
     correlation_engine = await get_correlation_engine()
-    exec_result = await correlation_engine.execute_correlation_rule(
-        rule, execution, db
-    )
+    exec_result = await correlation_engine.execute_correlation_rule(rule, execution, db)
 
     return CorrelationExecuteResponse(
         rule_id=exec_result["rule_id"],
@@ -865,9 +863,7 @@ async def test_correlation_config(
 
     start_time = datetime.utcnow()
     try:
-        result = await correlation_engine.execute_correlation_rule(
-            temp_rule, temp_execution, db
-        )
+        result = await correlation_engine.execute_correlation_rule(temp_rule, temp_execution, db)
         duration_ms = int((datetime.utcnow() - start_time).total_seconds() * 1000)
 
         return CorrelationTestResponse(
@@ -959,25 +955,29 @@ async def get_stream_status(
         streams = []
         for stream_name in [EVENT_STREAM, ALERT_STREAM, CORRELATION_STREAM, DEAD_LETTER_STREAM]:
             info = await event_buffer.get_stream_info(stream_name)
-            streams.append(EventStreamStatus(
-                stream=info["stream"],
-                length=info.get("length", 0),
-                first_entry=info.get("first_entry"),
-                last_entry=info.get("last_entry"),
-                groups=info.get("groups", []),
-                error=info.get("error"),
-            ))
+            streams.append(
+                EventStreamStatus(
+                    stream=info["stream"],
+                    length=info.get("length", 0),
+                    first_entry=info.get("first_entry"),
+                    last_entry=info.get("last_entry"),
+                    groups=info.get("groups", []),
+                    error=info.get("error"),
+                )
+            )
 
         return streams
     except Exception as e:
-        return [EventStreamStatus(
-            stream="error",
-            length=0,
-            first_entry=None,
-            last_entry=None,
-            groups=[],
-            error=str(e),
-        )]
+        return [
+            EventStreamStatus(
+                stream="error",
+                length=0,
+                first_entry=None,
+                last_entry=None,
+                groups=[],
+                error=str(e),
+            )
+        ]
 
 
 # =============================================================================

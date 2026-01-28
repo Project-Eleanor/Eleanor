@@ -65,9 +65,7 @@ class Playbook(Base):
 
     __tablename__ = "playbooks"
 
-    id: Mapped[UUID] = mapped_column(
-        UUIDType(), primary_key=True, default=uuid4
-    )
+    id: Mapped[UUID] = mapped_column(UUIDType(), primary_key=True, default=uuid4)
     tenant_id: Mapped[UUID] = mapped_column(
         UUIDType(), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
     )
@@ -141,9 +139,7 @@ class Playbook(Base):
     created_by: Mapped[UUID | None] = mapped_column(
         UUIDType(), ForeignKey("users.id"), nullable=True
     )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
@@ -172,9 +168,7 @@ class PlaybookExecution(Base):
 
     __tablename__ = "playbook_executions"
 
-    id: Mapped[UUID] = mapped_column(
-        UUIDType(), primary_key=True, default=uuid4
-    )
+    id: Mapped[UUID] = mapped_column(UUIDType(), primary_key=True, default=uuid4)
     playbook_id: Mapped[UUID] = mapped_column(
         UUIDType(),
         ForeignKey("playbooks.id", ondelete="CASCADE"),
@@ -192,7 +186,9 @@ class PlaybookExecution(Base):
     current_step_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
 
     # Trigger context
-    trigger_type: Mapped[str | None] = mapped_column(String(50), nullable=True)  # alert, incident, manual
+    trigger_type: Mapped[str | None] = mapped_column(
+        String(50), nullable=True
+    )  # alert, incident, manual
     trigger_id: Mapped[UUID | None] = mapped_column(UUIDType(), nullable=True)  # Alert/Incident ID
 
     # Input/Output
@@ -222,12 +218,8 @@ class PlaybookExecution(Base):
     started_by: Mapped[UUID | None] = mapped_column(
         UUIDType(), ForeignKey("users.id"), nullable=True
     )
-    started_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
-    completed_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     duration_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     # Celery task tracking
@@ -249,9 +241,7 @@ class PlaybookApproval(Base):
 
     __tablename__ = "playbook_approvals"
 
-    id: Mapped[UUID] = mapped_column(
-        UUIDType(), primary_key=True, default=uuid4
-    )
+    id: Mapped[UUID] = mapped_column(UUIDType(), primary_key=True, default=uuid4)
     execution_id: Mapped[UUID] = mapped_column(
         UUIDType(),
         ForeignKey("playbook_executions.id", ondelete="CASCADE"),
@@ -290,15 +280,9 @@ class PlaybookApproval(Base):
     decision_comment: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Timestamps
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
-    expires_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-    decided_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     execution: Mapped["PlaybookExecution"] = relationship(
@@ -316,9 +300,7 @@ class RulePlaybookBinding(Base):
 
     __tablename__ = "rule_playbook_bindings"
 
-    id: Mapped[UUID] = mapped_column(
-        UUIDType(), primary_key=True, default=uuid4
-    )
+    id: Mapped[UUID] = mapped_column(UUIDType(), primary_key=True, default=uuid4)
     rule_id: Mapped[UUID] = mapped_column(
         UUIDType(),
         ForeignKey("detection_rules.id", ondelete="CASCADE"),
@@ -350,9 +332,7 @@ class RulePlaybookBinding(Base):
     created_by: Mapped[UUID | None] = mapped_column(
         UUIDType(), ForeignKey("users.id"), nullable=True
     )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships
     rule: Mapped["DetectionRule"] = relationship("DetectionRule")

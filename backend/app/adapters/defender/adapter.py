@@ -237,8 +237,7 @@ class DefenderAdapter(CollectionAdapter):
         """Search devices by hostname or IP."""
         # Use OData filter for searching
         filter_query = (
-            f"contains(computerDnsName, '{query}') or "
-            f"contains(lastIpAddress, '{query}')"
+            f"contains(computerDnsName, '{query}') or " f"contains(lastIpAddress, '{query}')"
         )
         return await self.list_devices(filter_query=filter_query)
 
@@ -575,7 +574,9 @@ class DefenderAdapter(CollectionAdapter):
         Returns:
             LiveResponseCommand with results.
         """
-        data = {"Commands": [{"type": "RunScript", "params": [{"key": "ScriptName", "value": command}]}]}
+        data = {
+            "Commands": [{"type": "RunScript", "params": [{"key": "ScriptName", "value": command}]}]
+        }
         result = await self._request(
             "POST",
             f"/machines/liveResponseSessions/{session_id}/runCommand",
@@ -664,8 +665,7 @@ class DefenderAdapter(CollectionAdapter):
             filter_query = "healthStatus eq 'Active'"
         if search:
             search_filter = (
-                f"contains(computerDnsName, '{search}') or "
-                f"contains(lastIpAddress, '{search}')"
+                f"contains(computerDnsName, '{search}') or " f"contains(lastIpAddress, '{search}')"
             )
             if filter_query:
                 filter_query = f"({filter_query}) and ({search_filter})"
@@ -773,9 +773,11 @@ class DefenderAdapter(CollectionAdapter):
             artifact_name=action.type.value if action.type else "",
             status=action.status.value if action.status else "pending",
             started_at=action.creation_date_time_utc,
-            completed_at=action.last_update_date_time_utc
-            if action.status in (ActionStatus.SUCCEEDED, ActionStatus.FAILED)
-            else None,
+            completed_at=(
+                action.last_update_date_time_utc
+                if action.status in (ActionStatus.SUCCEEDED, ActionStatus.FAILED)
+                else None
+            ),
             error=action.troubleshoot_info,
         )
 

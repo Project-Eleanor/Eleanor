@@ -15,7 +15,12 @@ role_permissions = Table(
     "role_permissions",
     Base.metadata,
     Column("role_id", UUIDType(), ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True),
-    Column("permission_id", UUIDType(), ForeignKey("permissions.id", ondelete="CASCADE"), primary_key=True),
+    Column(
+        "permission_id",
+        UUIDType(),
+        ForeignKey("permissions.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
 )
 
 # Many-to-many association table for User-Role
@@ -70,9 +75,7 @@ class Permission(Base):
 
     # Relationships
     roles: Mapped[list["Role"]] = relationship(
-        "Role",
-        secondary=role_permissions,
-        back_populates="permissions"
+        "Role", secondary=role_permissions, back_populates="permissions"
     )
 
     __table_args__ = (
@@ -91,18 +94,16 @@ class Role(Base):
     is_system: Mapped[bool] = mapped_column(default=False)  # Built-in roles cannot be deleted
     priority: Mapped[int] = mapped_column(default=0)  # Higher priority roles override lower ones
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
 
     # Relationships
     permissions: Mapped[list[Permission]] = relationship(
-        "Permission",
-        secondary=role_permissions,
-        back_populates="roles"
+        "Permission", secondary=role_permissions, back_populates="roles"
     )
     users: Mapped[list["User"]] = relationship(
-        "User",
-        secondary=user_roles,
-        back_populates="role_objects"
+        "User", secondary=user_roles, back_populates="role_objects"
     )
 
 
@@ -113,7 +114,7 @@ DEFAULT_ROLES = [
         "description": "Full system administrator with all permissions",
         "is_system": True,
         "priority": 100,
-        "permissions": ["*"]  # All permissions
+        "permissions": ["*"],  # All permissions
     },
     {
         "name": "analyst",
@@ -121,14 +122,20 @@ DEFAULT_ROLES = [
         "is_system": True,
         "priority": 50,
         "permissions": [
-            "cases:read", "cases:create", "cases:update",
-            "evidence:read", "evidence:create",
-            "search:read", "search:execute",
+            "cases:read",
+            "cases:create",
+            "cases:update",
+            "evidence:read",
+            "evidence:create",
+            "search:read",
+            "search:execute",
             "entities:read",
-            "enrichment:read", "enrichment:execute",
-            "workflows:read", "workflows:execute",
+            "enrichment:read",
+            "enrichment:execute",
+            "workflows:read",
+            "workflows:execute",
             "analytics:read",
-        ]
+        ],
     },
     {
         "name": "investigator",
@@ -136,15 +143,28 @@ DEFAULT_ROLES = [
         "is_system": True,
         "priority": 60,
         "permissions": [
-            "cases:read", "cases:create", "cases:update", "cases:delete",
-            "evidence:read", "evidence:create", "evidence:update", "evidence:delete",
-            "search:read", "search:execute",
-            "entities:read", "entities:update",
-            "enrichment:read", "enrichment:execute",
-            "collection:read", "collection:execute",
-            "workflows:read", "workflows:execute", "workflows:approve",
-            "analytics:read", "analytics:create",
-        ]
+            "cases:read",
+            "cases:create",
+            "cases:update",
+            "cases:delete",
+            "evidence:read",
+            "evidence:create",
+            "evidence:update",
+            "evidence:delete",
+            "search:read",
+            "search:execute",
+            "entities:read",
+            "entities:update",
+            "enrichment:read",
+            "enrichment:execute",
+            "collection:read",
+            "collection:execute",
+            "workflows:read",
+            "workflows:execute",
+            "workflows:approve",
+            "analytics:read",
+            "analytics:create",
+        ],
     },
     {
         "name": "viewer",
@@ -157,7 +177,7 @@ DEFAULT_ROLES = [
             "search:read",
             "entities:read",
             "analytics:read",
-        ]
+        ],
     },
     {
         "name": "collector",
@@ -166,73 +186,202 @@ DEFAULT_ROLES = [
         "priority": 40,
         "permissions": [
             "cases:read",
-            "evidence:read", "evidence:create", "evidence:update",
-            "collection:read", "collection:execute",
+            "evidence:read",
+            "evidence:create",
+            "evidence:update",
+            "collection:read",
+            "collection:execute",
             "entities:read",
-        ]
+        ],
     },
 ]
 
 DEFAULT_PERMISSIONS = [
     # Cases
-    {"name": "cases:create", "scope": "cases", "action": "create", "description": "Create new cases"},
+    {
+        "name": "cases:create",
+        "scope": "cases",
+        "action": "create",
+        "description": "Create new cases",
+    },
     {"name": "cases:read", "scope": "cases", "action": "read", "description": "View cases"},
     {"name": "cases:update", "scope": "cases", "action": "update", "description": "Update cases"},
     {"name": "cases:delete", "scope": "cases", "action": "delete", "description": "Delete cases"},
-
     # Evidence
-    {"name": "evidence:create", "scope": "evidence", "action": "create", "description": "Upload evidence"},
-    {"name": "evidence:read", "scope": "evidence", "action": "read", "description": "View evidence"},
-    {"name": "evidence:update", "scope": "evidence", "action": "update", "description": "Update evidence"},
-    {"name": "evidence:delete", "scope": "evidence", "action": "delete", "description": "Delete evidence"},
-
+    {
+        "name": "evidence:create",
+        "scope": "evidence",
+        "action": "create",
+        "description": "Upload evidence",
+    },
+    {
+        "name": "evidence:read",
+        "scope": "evidence",
+        "action": "read",
+        "description": "View evidence",
+    },
+    {
+        "name": "evidence:update",
+        "scope": "evidence",
+        "action": "update",
+        "description": "Update evidence",
+    },
+    {
+        "name": "evidence:delete",
+        "scope": "evidence",
+        "action": "delete",
+        "description": "Delete evidence",
+    },
     # Search
-    {"name": "search:read", "scope": "search", "action": "read", "description": "View saved queries"},
-    {"name": "search:execute", "scope": "search", "action": "execute", "description": "Execute searches"},
-    {"name": "search:manage", "scope": "search", "action": "manage", "description": "Manage saved queries"},
-
+    {
+        "name": "search:read",
+        "scope": "search",
+        "action": "read",
+        "description": "View saved queries",
+    },
+    {
+        "name": "search:execute",
+        "scope": "search",
+        "action": "execute",
+        "description": "Execute searches",
+    },
+    {
+        "name": "search:manage",
+        "scope": "search",
+        "action": "manage",
+        "description": "Manage saved queries",
+    },
     # Entities
-    {"name": "entities:read", "scope": "entities", "action": "read", "description": "View entities"},
-    {"name": "entities:update", "scope": "entities", "action": "update", "description": "Update entity tags"},
-
+    {
+        "name": "entities:read",
+        "scope": "entities",
+        "action": "read",
+        "description": "View entities",
+    },
+    {
+        "name": "entities:update",
+        "scope": "entities",
+        "action": "update",
+        "description": "Update entity tags",
+    },
     # Enrichment
-    {"name": "enrichment:read", "scope": "enrichment", "action": "read", "description": "View enrichment data"},
-    {"name": "enrichment:execute", "scope": "enrichment", "action": "execute", "description": "Run enrichments"},
-
+    {
+        "name": "enrichment:read",
+        "scope": "enrichment",
+        "action": "read",
+        "description": "View enrichment data",
+    },
+    {
+        "name": "enrichment:execute",
+        "scope": "enrichment",
+        "action": "execute",
+        "description": "Run enrichments",
+    },
     # Collection
-    {"name": "collection:read", "scope": "collection", "action": "read", "description": "View collection jobs"},
-    {"name": "collection:execute", "scope": "collection", "action": "execute", "description": "Start collections"},
-    {"name": "collection:manage", "scope": "collection", "action": "manage", "description": "Manage endpoints"},
-
+    {
+        "name": "collection:read",
+        "scope": "collection",
+        "action": "read",
+        "description": "View collection jobs",
+    },
+    {
+        "name": "collection:execute",
+        "scope": "collection",
+        "action": "execute",
+        "description": "Start collections",
+    },
+    {
+        "name": "collection:manage",
+        "scope": "collection",
+        "action": "manage",
+        "description": "Manage endpoints",
+    },
     # Workflows
-    {"name": "workflows:read", "scope": "workflows", "action": "read", "description": "View workflows"},
-    {"name": "workflows:execute", "scope": "workflows", "action": "execute", "description": "Trigger workflows"},
-    {"name": "workflows:approve", "scope": "workflows", "action": "approve", "description": "Approve workflow actions"},
-    {"name": "workflows:manage", "scope": "workflows", "action": "manage", "description": "Manage workflow definitions"},
-
+    {
+        "name": "workflows:read",
+        "scope": "workflows",
+        "action": "read",
+        "description": "View workflows",
+    },
+    {
+        "name": "workflows:execute",
+        "scope": "workflows",
+        "action": "execute",
+        "description": "Trigger workflows",
+    },
+    {
+        "name": "workflows:approve",
+        "scope": "workflows",
+        "action": "approve",
+        "description": "Approve workflow actions",
+    },
+    {
+        "name": "workflows:manage",
+        "scope": "workflows",
+        "action": "manage",
+        "description": "Manage workflow definitions",
+    },
     # Integrations
-    {"name": "integrations:read", "scope": "integrations", "action": "read", "description": "View integrations"},
-    {"name": "integrations:manage", "scope": "integrations", "action": "manage", "description": "Manage integrations"},
-
+    {
+        "name": "integrations:read",
+        "scope": "integrations",
+        "action": "read",
+        "description": "View integrations",
+    },
+    {
+        "name": "integrations:manage",
+        "scope": "integrations",
+        "action": "manage",
+        "description": "Manage integrations",
+    },
     # Analytics
-    {"name": "analytics:read", "scope": "analytics", "action": "read", "description": "View detection rules"},
-    {"name": "analytics:create", "scope": "analytics", "action": "create", "description": "Create detection rules"},
-    {"name": "analytics:manage", "scope": "analytics", "action": "manage", "description": "Manage detection rules"},
-
+    {
+        "name": "analytics:read",
+        "scope": "analytics",
+        "action": "read",
+        "description": "View detection rules",
+    },
+    {
+        "name": "analytics:create",
+        "scope": "analytics",
+        "action": "create",
+        "description": "Create detection rules",
+    },
+    {
+        "name": "analytics:manage",
+        "scope": "analytics",
+        "action": "manage",
+        "description": "Manage detection rules",
+    },
     # Connectors
-    {"name": "connectors:read", "scope": "connectors", "action": "read", "description": "View data connectors"},
-    {"name": "connectors:manage", "scope": "connectors", "action": "manage", "description": "Manage data connectors"},
-
+    {
+        "name": "connectors:read",
+        "scope": "connectors",
+        "action": "read",
+        "description": "View data connectors",
+    },
+    {
+        "name": "connectors:manage",
+        "scope": "connectors",
+        "action": "manage",
+        "description": "Manage data connectors",
+    },
     # Users
     {"name": "users:read", "scope": "users", "action": "read", "description": "View users"},
     {"name": "users:manage", "scope": "users", "action": "manage", "description": "Manage users"},
-
     # Admin
-    {"name": "admin:manage", "scope": "admin", "action": "manage", "description": "Full admin access"},
+    {
+        "name": "admin:manage",
+        "scope": "admin",
+        "action": "manage",
+        "description": "Full admin access",
+    },
 ]
 
 
-def get_permission_string(scope: PermissionScope, action: PermissionAction, resource: str | None = None) -> str:
+def get_permission_string(
+    scope: PermissionScope, action: PermissionAction, resource: str | None = None
+) -> str:
     """Generate permission string from components."""
     if resource:
         return f"{scope.value}:{action.value}:{resource}"

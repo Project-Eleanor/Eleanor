@@ -315,10 +315,12 @@ class ResponseActionService:
             select(ResponseAction)
             .where(
                 ResponseAction.tenant_id == tenant_id,
-                ResponseAction.status.in_([
-                    ResponseActionStatus.PENDING.value,
-                    ResponseActionStatus.IN_PROGRESS.value,
-                ]),
+                ResponseAction.status.in_(
+                    [
+                        ResponseActionStatus.PENDING.value,
+                        ResponseActionStatus.IN_PROGRESS.value,
+                    ]
+                ),
             )
             .order_by(ResponseAction.created_at.desc())
             .limit(limit)
@@ -367,10 +369,12 @@ class ResponseActionService:
             .where(
                 ResponseAction.client_id == client_id,
                 ResponseAction.tenant_id == tenant_id,
-                ResponseAction.action_type.in_([
-                    ResponseActionType.ISOLATE.value,
-                    ResponseActionType.RELEASE.value,
-                ]),
+                ResponseAction.action_type.in_(
+                    [
+                        ResponseActionType.ISOLATE.value,
+                        ResponseActionType.RELEASE.value,
+                    ]
+                ),
                 ResponseAction.status == ResponseActionStatus.COMPLETED.value,
             )
             .order_by(ResponseAction.completed_at.desc())

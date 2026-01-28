@@ -121,14 +121,14 @@ class AuthorizedKeysParser(BaseParser):
             try:
                 key_bytes = base64.b64decode(entry["key_data"])
                 entry["fingerprint_md5"] = hashlib.md5(key_bytes).hexdigest()
-                entry["fingerprint_sha256"] = base64.b64encode(
-                    hashlib.sha256(key_bytes).digest()
-                ).decode().rstrip("=")
+                entry["fingerprint_sha256"] = (
+                    base64.b64encode(hashlib.sha256(key_bytes).digest()).decode().rstrip("=")
+                )
             except Exception:
                 pass
 
         if key_type_idx + 2 < len(parts):
-            entry["comment"] = " ".join(parts[key_type_idx + 2:])
+            entry["comment"] = " ".join(parts[key_type_idx + 2 :])
 
             # Extract user@host from comment
             if "@" in entry["comment"]:
@@ -157,8 +157,12 @@ class AuthorizedKeysParser(BaseParser):
                 entry["allowed_hosts"] = match.group(1)
 
         simple_options = [
-            "no-port-forwarding", "no-X11-forwarding", "no-agent-forwarding",
-            "no-pty", "restrict", "cert-authority"
+            "no-port-forwarding",
+            "no-X11-forwarding",
+            "no-agent-forwarding",
+            "no-pty",
+            "restrict",
+            "cert-authority",
         ]
         for opt in simple_options:
             if opt in options_str:
@@ -296,9 +300,9 @@ class KnownHostsParser(BaseParser):
         # Calculate fingerprint
         try:
             key_bytes = base64.b64decode(entry["key_data"])
-            entry["fingerprint_sha256"] = base64.b64encode(
-                hashlib.sha256(key_bytes).digest()
-            ).decode().rstrip("=")
+            entry["fingerprint_sha256"] = (
+                base64.b64encode(hashlib.sha256(key_bytes).digest()).decode().rstrip("=")
+            )
         except Exception:
             pass
 
@@ -457,9 +461,13 @@ class PuTTYParser(BaseParser):
                             "domain": hostname,
                             "port": int(port) if port.isdigit() else 22,
                         },
-                        "user": {
-                            "name": username,
-                        } if username else None,
+                        "user": (
+                            {
+                                "name": username,
+                            }
+                            if username
+                            else None
+                        ),
                         "host": {
                             "os": {"type": "windows"},
                         },

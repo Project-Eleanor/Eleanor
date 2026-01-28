@@ -38,9 +38,7 @@ def batch_index_events(
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
-        result = loop.run_until_complete(
-            _batch_index_async(events, index_name, case_id)
-        )
+        result = loop.run_until_complete(_batch_index_async(events, index_name, case_id))
         return result
     finally:
         loop.close()
@@ -69,10 +67,12 @@ async def _batch_index_async(
         for event in events:
             if case_id:
                 event["case_id"] = case_id
-            actions.append({
-                "_index": index_name,
-                "_source": event,
-            })
+            actions.append(
+                {
+                    "_index": index_name,
+                    "_source": event,
+                }
+            )
 
         # Execute bulk indexing
         success, errors = await async_bulk(
@@ -119,9 +119,7 @@ def reindex_case_events(
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
-        result = loop.run_until_complete(
-            _reindex_async(case_id, source_index, dest_index, query)
-        )
+        result = loop.run_until_complete(_reindex_async(case_id, source_index, dest_index, query))
         return result
     finally:
         loop.close()
@@ -197,9 +195,7 @@ def delete_case_events(
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
-        result = loop.run_until_complete(
-            _delete_events_async(case_id, index_name)
-        )
+        result = loop.run_until_complete(_delete_events_async(case_id, index_name))
         return result
     finally:
         loop.close()
@@ -437,9 +433,7 @@ def get_index_stats(
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
-        result = loop.run_until_complete(
-            _get_stats_async(case_id, index_pattern)
-        )
+        result = loop.run_until_complete(_get_stats_async(case_id, index_pattern))
         return result
     finally:
         loop.close()
@@ -487,12 +481,14 @@ async def _get_stats_async(
             total_docs += doc_count
             total_size += size_bytes
 
-            index_list.append({
-                "name": idx_name,
-                "doc_count": doc_count,
-                "size_bytes": size_bytes,
-                "size_human": _format_bytes(size_bytes),
-            })
+            index_list.append(
+                {
+                    "name": idx_name,
+                    "doc_count": doc_count,
+                    "size_bytes": size_bytes,
+                    "size_human": _format_bytes(size_bytes),
+                }
+            )
 
         return {
             "pattern": pattern,

@@ -46,9 +46,7 @@ class Evidence(Base):
 
     __tablename__ = "evidence"
 
-    id: Mapped[UUID] = mapped_column(
-        UUIDType(), primary_key=True, default=uuid4
-    )
+    id: Mapped[UUID] = mapped_column(UUIDType(), primary_key=True, default=uuid4)
     case_id: Mapped[UUID] = mapped_column(
         UUIDType(),
         ForeignKey("cases.id", ondelete="CASCADE"),
@@ -75,9 +73,7 @@ class Evidence(Base):
 
     # Source information
     source_host: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    collected_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    collected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     collected_by: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     # Upload information
@@ -121,33 +117,23 @@ class CustodyEvent(Base):
 
     __tablename__ = "custody_events"
 
-    id: Mapped[UUID] = mapped_column(
-        UUIDType(), primary_key=True, default=uuid4
-    )
+    id: Mapped[UUID] = mapped_column(UUIDType(), primary_key=True, default=uuid4)
     evidence_id: Mapped[UUID] = mapped_column(
         UUIDType(),
         ForeignKey("evidence.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
-    action: Mapped[CustodyAction] = mapped_column(
-        Enum(CustodyAction), nullable=False
-    )
-    actor_id: Mapped[UUID | None] = mapped_column(
-        UUIDType(), ForeignKey("users.id"), nullable=True
-    )
+    action: Mapped[CustodyAction] = mapped_column(Enum(CustodyAction), nullable=False)
+    actor_id: Mapped[UUID | None] = mapped_column(UUIDType(), ForeignKey("users.id"), nullable=True)
     actor_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     ip_address: Mapped[str | None] = mapped_column(INETType(), nullable=True)
     user_agent: Mapped[str | None] = mapped_column(Text, nullable=True)
     details: Mapped[dict] = mapped_column(JSONBType(), default=dict)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships
-    evidence: Mapped["Evidence"] = relationship(
-        "Evidence", back_populates="custody_events"
-    )
+    evidence: Mapped["Evidence"] = relationship("Evidence", back_populates="custody_events")
     actor: Mapped["User | None"] = relationship("User")
 
     def __repr__(self) -> str:

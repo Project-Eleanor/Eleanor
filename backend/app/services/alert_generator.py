@@ -70,10 +70,12 @@ class AlertGenerator:
             # Add new events to alert
             existing_events = existing_alert.events or []
             for hit in hits[:100]:  # Limit stored events
-                existing_events.append({
-                    "timestamp": hit.get("@timestamp", datetime.utcnow().isoformat()),
-                    "data": hit,
-                })
+                existing_events.append(
+                    {
+                        "timestamp": hit.get("@timestamp", datetime.utcnow().isoformat()),
+                        "data": hit,
+                    }
+                )
             existing_alert.events = existing_events[-100:]  # Keep last 100
 
             created_alerts.append(existing_alert)

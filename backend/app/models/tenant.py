@@ -36,9 +36,7 @@ class Tenant(Base):
 
     __tablename__ = "tenants"
 
-    id: Mapped[UUID] = mapped_column(
-        UUIDType(), primary_key=True, default=uuid4
-    )
+    id: Mapped[UUID] = mapped_column(UUIDType(), primary_key=True, default=uuid4)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     slug: Mapped[str] = mapped_column(
         String(100), unique=True, nullable=False, index=True
@@ -73,9 +71,7 @@ class Tenant(Base):
     domain: Mapped[str | None] = mapped_column(String(255), nullable=True, unique=True)
 
     # Timestamps
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
@@ -118,13 +114,9 @@ class TenantMembership(Base):
     """User membership in a tenant."""
 
     __tablename__ = "tenant_memberships"
-    __table_args__ = (
-        UniqueConstraint("tenant_id", "user_id", name="uq_tenant_user"),
-    )
+    __table_args__ = (UniqueConstraint("tenant_id", "user_id", name="uq_tenant_user"),)
 
-    id: Mapped[UUID] = mapped_column(
-        UUIDType(), primary_key=True, default=uuid4
-    )
+    id: Mapped[UUID] = mapped_column(UUIDType(), primary_key=True, default=uuid4)
     tenant_id: Mapped[UUID] = mapped_column(
         UUIDType(),
         ForeignKey("tenants.id", ondelete="CASCADE"),
@@ -149,9 +141,7 @@ class TenantMembership(Base):
     is_default: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Timestamps
-    joined_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    joined_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="members")
@@ -166,9 +156,7 @@ class TenantAPIKey(Base):
 
     __tablename__ = "tenant_api_keys"
 
-    id: Mapped[UUID] = mapped_column(
-        UUIDType(), primary_key=True, default=uuid4
-    )
+    id: Mapped[UUID] = mapped_column(UUIDType(), primary_key=True, default=uuid4)
     tenant_id: Mapped[UUID] = mapped_column(
         UUIDType(),
         ForeignKey("tenants.id", ondelete="CASCADE"),
@@ -178,7 +166,9 @@ class TenantAPIKey(Base):
 
     # API key details
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    key_prefix: Mapped[str] = mapped_column(String(10), nullable=False)  # First 8 chars for identification
+    key_prefix: Mapped[str] = mapped_column(
+        String(10), nullable=False
+    )  # First 8 chars for identification
     key_hash: Mapped[str] = mapped_column(String(255), nullable=False)  # bcrypt hash
 
     # Permissions and scopes
@@ -188,20 +178,14 @@ class TenantAPIKey(Base):
 
     # Status
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    expires_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Tracking
-    last_used_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_by: Mapped[UUID | None] = mapped_column(
         UUIDType(), ForeignKey("users.id"), nullable=True
     )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="api_keys")
@@ -214,13 +198,9 @@ class TenantAdapterConfig(Base):
     """Per-tenant external system configuration."""
 
     __tablename__ = "tenant_adapter_configs"
-    __table_args__ = (
-        UniqueConstraint("tenant_id", "adapter_type", name="uq_tenant_adapter"),
-    )
+    __table_args__ = (UniqueConstraint("tenant_id", "adapter_type", name="uq_tenant_adapter"),)
 
-    id: Mapped[UUID] = mapped_column(
-        UUIDType(), primary_key=True, default=uuid4
-    )
+    id: Mapped[UUID] = mapped_column(UUIDType(), primary_key=True, default=uuid4)
     tenant_id: Mapped[UUID] = mapped_column(
         UUIDType(),
         ForeignKey("tenants.id", ondelete="CASCADE"),
@@ -255,9 +235,7 @@ class TenantAdapterConfig(Base):
     )  # healthy, unhealthy, unknown
 
     # Timestamps
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )

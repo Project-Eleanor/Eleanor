@@ -195,8 +195,7 @@ async def create_playbook(
     tenant_id = get_current_tenant_id()
     if not tenant_id:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Tenant context required"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Tenant context required"
         )
 
     playbook = Playbook(
@@ -254,16 +253,11 @@ async def get_playbook(
     db: AsyncSession = Depends(get_db),
 ) -> Playbook:
     """Get playbook details."""
-    result = await db.execute(
-        select(Playbook).where(Playbook.id == playbook_id)
-    )
+    result = await db.execute(select(Playbook).where(Playbook.id == playbook_id))
     playbook = result.scalar_one_or_none()
 
     if not playbook:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Playbook not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Playbook not found")
 
     return playbook
 
@@ -275,24 +269,18 @@ async def update_playbook(
     db: AsyncSession = Depends(get_db),
 ) -> Playbook:
     """Update a playbook."""
-    result = await db.execute(
-        select(Playbook).where(Playbook.id == playbook_id)
-    )
+    result = await db.execute(select(Playbook).where(Playbook.id == playbook_id))
     playbook = result.scalar_one_or_none()
 
     if not playbook:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Playbook not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Playbook not found")
 
     update_data = playbook_data.model_dump(exclude_unset=True)
 
     # Convert steps if provided
     if "steps" in update_data and update_data["steps"]:
         update_data["steps"] = [
-            s.model_dump() if hasattr(s, "model_dump") else s
-            for s in update_data["steps"]
+            s.model_dump() if hasattr(s, "model_dump") else s for s in update_data["steps"]
         ]
 
     # Increment version if steps changed
@@ -312,16 +300,11 @@ async def delete_playbook(
     db: AsyncSession = Depends(get_db),
 ) -> None:
     """Delete a playbook (archive it)."""
-    result = await db.execute(
-        select(Playbook).where(Playbook.id == playbook_id)
-    )
+    result = await db.execute(select(Playbook).where(Playbook.id == playbook_id))
     playbook = result.scalar_one_or_none()
 
     if not playbook:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Playbook not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Playbook not found")
 
     playbook.status = PlaybookStatus.ARCHIVED
     logger.info("Archived playbook: %s", playbook.name)
@@ -358,10 +341,7 @@ async def execute_playbook(
         return execution
 
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.get("/executions", response_model=list[ExecutionResponse])
@@ -403,10 +383,7 @@ async def get_execution(
     execution = result.scalar_one_or_none()
 
     if not execution:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Execution not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Execution not found")
 
     return execution
 
@@ -427,10 +404,7 @@ async def cancel_execution(
         )
         return execution
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 # =============================================================================
@@ -444,9 +418,7 @@ async def list_pending_approvals(
 ) -> list[PlaybookApproval]:
     """List pending approval requests."""
     tenant_id = get_current_tenant_id()
-    query = select(PlaybookApproval).where(
-        PlaybookApproval.status == ApprovalStatus.PENDING
-    )
+    query = select(PlaybookApproval).where(PlaybookApproval.status == ApprovalStatus.PENDING)
 
     if tenant_id:
         query = query.where(PlaybookApproval.tenant_id == tenant_id)
@@ -465,21 +437,15 @@ async def approve_step(
 ) -> PlaybookExecution:
     """Approve or deny a playbook step."""
     # Get approval
-    result = await db.execute(
-        select(PlaybookApproval).where(PlaybookApproval.id == approval_id)
-    )
+    result = await db.execute(select(PlaybookApproval).where(PlaybookApproval.id == approval_id))
     approval = result.scalar_one_or_none()
 
     if not approval:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Approval not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Approval not found")
 
     if approval.status != ApprovalStatus.PENDING:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Approval already processed"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Approval already processed"
         )
 
     # Resume execution
@@ -495,10 +461,7 @@ async def approve_step(
         )
         return execution
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 # =============================================================================
@@ -516,19 +479,13 @@ async def bind_playbook_to_rule(
     tenant_id = get_current_tenant_id()
     if not tenant_id:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Tenant context required"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Tenant context required"
         )
 
     # Verify playbook exists
-    playbook_result = await db.execute(
-        select(Playbook).where(Playbook.id == request.playbook_id)
-    )
+    playbook_result = await db.execute(select(Playbook).where(Playbook.id == request.playbook_id))
     if not playbook_result.scalar_one_or_none():
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Playbook not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Playbook not found")
 
     # Check for existing binding
     existing = await db.execute(
@@ -538,10 +495,7 @@ async def bind_playbook_to_rule(
         )
     )
     if existing.scalar_one_or_none():
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Binding already exists"
-        )
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Binding already exists")
 
     binding = RulePlaybookBinding(
         rule_id=rule_id,
@@ -601,10 +555,7 @@ async def unbind_playbook_from_rule(
     binding = result.scalar_one_or_none()
 
     if not binding:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Binding not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Binding not found")
 
     await db.delete(binding)
 

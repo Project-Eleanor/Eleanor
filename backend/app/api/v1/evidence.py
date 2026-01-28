@@ -139,7 +139,9 @@ async def list_evidence(
     current_user: Annotated[User, Depends(get_current_user)],
     case_id: UUID | None = Query(None, description="Filter by case ID"),
     evidence_type: EvidenceType | None = Query(None, description="Filter by evidence type"),
-    status_filter: EvidenceStatus | None = Query(None, alias="status", description="Filter by status"),
+    status_filter: EvidenceStatus | None = Query(
+        None, alias="status", description="Filter by status"
+    ),
     search: str | None = Query(None, description="Search in filename/description"),
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(50, ge=1, le=200, description="Items per page"),
@@ -220,9 +222,7 @@ async def update_evidence(
 ) -> EvidenceResponse:
     """Update evidence metadata."""
     query = (
-        select(Evidence)
-        .options(selectinload(Evidence.uploader))
-        .where(Evidence.id == evidence_id)
+        select(Evidence).options(selectinload(Evidence.uploader)).where(Evidence.id == evidence_id)
     )
     result = await db.execute(query)
     evidence = result.scalar_one_or_none()
@@ -387,6 +387,7 @@ async def upload_evidence(
 
     try:
         import magic
+
         mime_type = magic.from_buffer(first_chunk, mime=True)
     except Exception:
         pass
@@ -483,9 +484,7 @@ async def get_evidence(
 ) -> EvidenceResponse:
     """Get evidence by ID."""
     query = (
-        select(Evidence)
-        .options(selectinload(Evidence.uploader))
-        .where(Evidence.id == evidence_id)
+        select(Evidence).options(selectinload(Evidence.uploader)).where(Evidence.id == evidence_id)
     )
     result = await db.execute(query)
     evidence = result.scalar_one_or_none()

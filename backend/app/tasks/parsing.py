@@ -71,9 +71,8 @@ def parse_evidence(
         asyncio.set_event_loop(loop)
         try:
             from app.tasks._parsing_impl import mark_job_failed
-            loop.run_until_complete(
-                mark_job_failed(job_id, "Task exceeded time limit (2 hours)")
-            )
+
+            loop.run_until_complete(mark_job_failed(job_id, "Task exceeded time limit (2 hours)"))
         finally:
             loop.close()
         raise
@@ -85,6 +84,7 @@ def parse_evidence(
         asyncio.set_event_loop(loop)
         try:
             from app.tasks._parsing_impl import mark_job_failed
+
             loop.run_until_complete(
                 mark_job_failed(job_id, str(e), {"exception_type": type(e).__name__})
             )
@@ -152,6 +152,7 @@ def cancel_parsing_job(job_id: str, celery_task_id: str | None = None) -> dict[s
     asyncio.set_event_loop(loop)
     try:
         from app.tasks._parsing_impl import mark_job_cancelled
+
         loop.run_until_complete(mark_job_cancelled(job_id))
     finally:
         loop.close()

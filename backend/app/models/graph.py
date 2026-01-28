@@ -20,9 +20,7 @@ class SavedGraph(Base):
 
     __tablename__ = "saved_graphs"
 
-    id: Mapped[UUID] = mapped_column(
-        UUIDType(), primary_key=True, default=uuid4
-    )
+    id: Mapped[UUID] = mapped_column(UUIDType(), primary_key=True, default=uuid4)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
 
@@ -35,22 +33,16 @@ class SavedGraph(Base):
     )
 
     # Graph definition (nodes, edges, positions, styling)
-    definition: Mapped[dict] = mapped_column(
-        JSONBType(), nullable=False, default=dict
-    )
+    definition: Mapped[dict] = mapped_column(JSONBType(), nullable=False, default=dict)
 
     # Graph configuration (layout settings, filters, etc.)
-    config: Mapped[dict] = mapped_column(
-        JSONBType(), nullable=False, default=dict
-    )
+    config: Mapped[dict] = mapped_column(JSONBType(), nullable=False, default=dict)
 
     # Ownership
     created_by: Mapped[UUID | None] = mapped_column(
         UUIDType(), ForeignKey("users.id"), nullable=True
     )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )

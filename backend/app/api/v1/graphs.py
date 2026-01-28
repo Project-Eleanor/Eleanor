@@ -42,7 +42,9 @@ class GraphEdge(BaseModel):
 
     source: str = Field(..., description="Source node ID")
     target: str = Field(..., description="Target node ID")
-    relationship: str = Field(..., description="Relationship type: executed, connected_to, logged_into, etc.")
+    relationship: str = Field(
+        ..., description="Relationship type: executed, connected_to, logged_into, etc."
+    )
     weight: int | None = Field(None, description="Edge weight (event count)")
     timestamp: str | None = Field(None, description="Most recent relationship timestamp")
 

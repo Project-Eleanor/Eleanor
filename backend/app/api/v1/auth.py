@@ -116,9 +116,7 @@ class AuthMethodsResponse(BaseModel):
 def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
     """Create a JWT access token."""
     to_encode = data.copy()
-    expire = datetime.now(UTC) + (
-        expires_delta or timedelta(minutes=settings.jwt_expire_minutes)
-    )
+    expire = datetime.now(UTC) + (expires_delta or timedelta(minutes=settings.jwt_expire_minutes))
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, settings.secret_key, algorithm=settings.jwt_algorithm)
 
@@ -134,9 +132,7 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(
-            token, settings.secret_key, algorithms=[settings.jwt_algorithm]
-        )
+        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.jwt_algorithm])
         username: str | None = payload.get("sub")
         if username is None:
             raise credentials_exception
@@ -185,9 +181,7 @@ async def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    if not user.password_hash or not verify_password(
-        form_data.password, user.password_hash
-    ):
+    if not user.password_hash or not verify_password(form_data.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
@@ -202,9 +196,7 @@ async def login(
     await db.commit()
 
     # Create token
-    access_token = create_access_token(
-        data={"sub": user.username, "user_id": str(user.id)}
-    )
+    access_token = create_access_token(data={"sub": user.username, "user_id": str(user.id)})
 
     return Token(
         access_token=access_token,
@@ -596,9 +588,7 @@ async def oidc_callback(
     await db.commit()
 
     # Create Eleanor JWT token
-    eleanor_token = create_access_token(
-        data={"sub": user.username, "user_id": str(user.id)}
-    )
+    eleanor_token = create_access_token(data={"sub": user.username, "user_id": str(user.id)})
 
     return Token(
         access_token=eleanor_token,
@@ -661,9 +651,7 @@ async def oidc_token_exchange(
     await db.commit()
 
     # Create Eleanor JWT token
-    eleanor_token = create_access_token(
-        data={"sub": user.username, "user_id": str(user.id)}
-    )
+    eleanor_token = create_access_token(data={"sub": user.username, "user_id": str(user.id)})
 
     return Token(
         access_token=eleanor_token,
@@ -699,12 +687,14 @@ async def _extract_user_info(
                 )
                 if response.status_code == 200:
                     userinfo = response.json()
-                    user_info.update({
-                        "email": userinfo.get("email") or user_info.get("email"),
-                        "name": userinfo.get("name") or user_info.get("name"),
-                        "preferred_username": userinfo.get("preferred_username")
-                        or user_info.get("preferred_username"),
-                    })
+                    user_info.update(
+                        {
+                            "email": userinfo.get("email") or user_info.get("email"),
+                            "name": userinfo.get("name") or user_info.get("name"),
+                            "preferred_username": userinfo.get("preferred_username")
+                            or user_info.get("preferred_username"),
+                        }
+                    )
         except httpx.HTTPError:
             pass  # Userinfo is optional, continue without it
 
@@ -739,9 +729,7 @@ async def _get_or_create_oidc_user(db: AsyncSession, user_info: dict) -> User:
         if oidc_roles:
             user.roles = oidc_roles
             # Check for admin role
-            user.is_admin = "admin" in oidc_roles or "Admin" in user_info.get(
-                "groups", []
-            )
+            user.is_admin = "admin" in oidc_roles or "Admin" in user_info.get("groups", [])
 
         return user
 
@@ -768,9 +756,7 @@ async def _get_or_create_oidc_user(db: AsyncSession, user_info: dict) -> User:
     is_first_user = (count_result.scalar() or 0) == 0
 
     # Check for admin role in OIDC claims
-    is_admin = is_first_user or "admin" in roles or "Admin" in user_info.get(
-        "groups", []
-    )
+    is_admin = is_first_user or "admin" in roles or "Admin" in user_info.get("groups", [])
 
     new_user = User(
         username=username,

@@ -177,9 +177,11 @@ class ShuffleAdapter(SOARAdapter):
             status=status_map.get(shuffle_exec.status, "pending"),
             started_at=shuffle_exec.started_at,
             completed_at=shuffle_exec.completed_at if shuffle_exec.is_finished else None,
-            parameters=json.loads(shuffle_exec.execution_argument)
-            if shuffle_exec.execution_argument
-            else {},
+            parameters=(
+                json.loads(shuffle_exec.execution_argument)
+                if shuffle_exec.execution_argument
+                else {}
+            ),
             results={"output": shuffle_exec.result} if shuffle_exec.result else {},
             error=shuffle_exec.result if shuffle_exec.status == "ABORTED" else None,
         )
@@ -373,9 +375,11 @@ class ShuffleAdapter(SOARAdapter):
                         action="User Input Required",
                         description=f"Workflow '{workflow_name}' is waiting for input",
                         requested_at=shuffle_exec.started_at or datetime.utcnow(),
-                        parameters=json.loads(shuffle_exec.execution_argument)
-                        if shuffle_exec.execution_argument
-                        else {},
+                        parameters=(
+                            json.loads(shuffle_exec.execution_argument)
+                            if shuffle_exec.execution_argument
+                            else {}
+                        ),
                     )
                 )
 
@@ -397,11 +401,13 @@ class ShuffleAdapter(SOARAdapter):
                 f"/api/v1/workflows/executions/{approval_id}/continue",
                 json={
                     "authorization": "",
-                    "result": json.dumps({
-                        "approved": True,
-                        "approved_by": approved_by,
-                        "comment": comment or "",
-                    }),
+                    "result": json.dumps(
+                        {
+                            "approved": True,
+                            "approved_by": approved_by,
+                            "comment": comment or "",
+                        }
+                    ),
                 },
             )
             return True

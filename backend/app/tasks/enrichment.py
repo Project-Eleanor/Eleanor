@@ -40,9 +40,7 @@ def enrich_iocs(
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
-        result = loop.run_until_complete(
-            _enrich_iocs_async(iocs, case_id, update_elasticsearch)
-        )
+        result = loop.run_until_complete(_enrich_iocs_async(iocs, case_id, update_elasticsearch))
         return result
     finally:
         loop.close()
@@ -101,10 +99,12 @@ async def _enrich_iocs_async(
                     else:
                         results["clean"] += 1
 
-                    results["details"].append({
-                        "ioc": ioc,
-                        "enrichment": enrichment,
-                    })
+                    results["details"].append(
+                        {
+                            "ioc": ioc,
+                            "enrichment": enrichment,
+                        }
+                    )
 
             except Exception as e:
                 logger.warning(f"Failed to enrich IOC {ioc_value}: {e}")
@@ -147,9 +147,7 @@ def enrich_entity(
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
-        result = loop.run_until_complete(
-            _enrich_entity_async(entity_type, entity_value, case_id)
-        )
+        result = loop.run_until_complete(_enrich_entity_async(entity_type, entity_value, case_id))
         return result
     finally:
         loop.close()
@@ -196,9 +194,7 @@ async def _enrich_entity_async(
             fields = [fields]
 
         # Query Elasticsearch for entity occurrences
-        should_clauses = [
-            {"term": {field: entity_value}} for field in fields
-        ]
+        should_clauses = [{"term": {field: entity_value}} for field in fields]
 
         index_pattern = f"{settings.elasticsearch_index_prefix}-events-*"
         if case_id:
@@ -227,11 +223,13 @@ async def _enrich_entity_async(
             buckets = aggs.get(key, {}).get("buckets", [])
             for bucket in buckets:
                 if bucket["key"] != entity_value:
-                    enrichment["related_entities"].append({
-                        "type": key.replace("related_", "").rstrip("s"),
-                        "value": bucket["key"],
-                        "count": bucket["doc_count"],
-                    })
+                    enrichment["related_entities"].append(
+                        {
+                            "type": key.replace("related_", "").rstrip("s"),
+                            "value": bucket["key"],
+                            "count": bucket["doc_count"],
+                        }
+                    )
 
         # Try threat intelligence enrichment
         if entity_type in ("ip", "domain", "hash"):
@@ -291,9 +289,7 @@ def batch_enrich_events(
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
-        result = loop.run_until_complete(
-            _batch_enrich_events_async(case_id, index_name)
-        )
+        result = loop.run_until_complete(_batch_enrich_events_async(case_id, index_name))
         return result
     finally:
         loop.close()

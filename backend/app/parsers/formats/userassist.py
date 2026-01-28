@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 try:
     from dissect.regf import RegistryHive
+
     DISSECT_AVAILABLE = True
 except ImportError:
     DISSECT_AVAILABLE = False
@@ -73,7 +74,9 @@ class UserAssistParser(BaseParser):
 
             # Find UserAssist key
             try:
-                ua_key = hive.open("Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\UserAssist")
+                ua_key = hive.open(
+                    "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\UserAssist"
+                )
             except Exception:
                 logger.warning("UserAssist key not found in registry")
                 return

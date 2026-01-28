@@ -183,9 +183,7 @@ async def list_cases(
             assignee_id=case.assignee_id,
             assignee_name=case.assignee.display_name if case.assignee else None,
             created_by=case.created_by,
-            created_by_name=(
-                case.created_by_user.display_name if case.created_by_user else None
-            ),
+            created_by_name=(case.created_by_user.display_name if case.created_by_user else None),
             created_at=case.created_at,
             updated_at=case.updated_at,
             closed_at=case.closed_at,
@@ -292,9 +290,7 @@ async def get_case(
         assignee_id=case.assignee_id,
         assignee_name=case.assignee.display_name if case.assignee else None,
         created_by=case.created_by,
-        created_by_name=(
-            case.created_by_user.display_name if case.created_by_user else None
-        ),
+        created_by_name=(case.created_by_user.display_name if case.created_by_user else None),
         created_at=case.created_at,
         updated_at=case.updated_at,
         closed_at=case.closed_at,
@@ -441,7 +437,9 @@ async def get_case_timeline(
         return []
 
 
-@router.post("/{case_id}/timeline", response_model=TimelineEvent, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{case_id}/timeline", response_model=TimelineEvent, status_code=status.HTTP_201_CREATED
+)
 async def add_timeline_event(
     case_id: UUID,
     event_data: TimelineEventCreate,

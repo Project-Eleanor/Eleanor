@@ -126,10 +126,7 @@ class ProcessorRunner:
                 "priority": processor.priority,
                 "timeout": processor.timeout_seconds,
             }
-            for processor in sorted(
-                self._processors.values(),
-                key=lambda proc: proc.priority
-            )
+            for processor in sorted(self._processors.values(), key=lambda proc: proc.priority)
         ]
 
     def get_processors_for_trigger(self, trigger: ProcessorTrigger) -> list[BaseProcessor]:
@@ -297,7 +294,7 @@ class ProcessorRunner:
 
         # Trim history if needed
         if len(self._execution_history) > self._max_history:
-            self._execution_history = self._execution_history[-self._max_history:]
+            self._execution_history = self._execution_history[-self._max_history :]
 
     def get_history(
         self,

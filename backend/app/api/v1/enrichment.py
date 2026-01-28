@@ -206,12 +206,12 @@ async def enrich_indicator(
                 indicator_type=request.indicator_type,
                 risk_score=result.risk_score,
                 verdict=result.verdict,
-                first_seen=result.indicator.first_seen.isoformat()
-                if result.indicator.first_seen
-                else None,
-                last_seen=result.indicator.last_seen.isoformat()
-                if result.indicator.last_seen
-                else None,
+                first_seen=(
+                    result.indicator.first_seen.isoformat() if result.indicator.first_seen else None
+                ),
+                last_seen=(
+                    result.indicator.last_seen.isoformat() if result.indicator.last_seen else None
+                ),
                 sources=result.indicator.sources,
                 tags=result.indicator.tags,
                 description=result.indicator.description,

@@ -24,6 +24,7 @@ settings = get_settings()
 @dataclass
 class EntityTypeConfig:
     """Configuration for processing a specific entity type in graph building."""
+
     node_type: str
     agg_key: str
     sub_agg_configs: list[dict[str, str]] = field(default_factory=list)
@@ -49,7 +50,12 @@ ENTITY_TYPE_CONFIGS: dict[str, EntityTypeConfig] = {
         node_type="process",
         agg_key="processes",
         sub_agg_configs=[
-            {"sub_agg": "hosts", "target_type": "host", "relationship": "executed", "reverse": True},
+            {
+                "sub_agg": "hosts",
+                "target_type": "host",
+                "relationship": "executed",
+                "reverse": True,
+            },
             {"sub_agg": "users", "target_type": "user", "relationship": "ran", "reverse": True},
         ],
         include_timestamps=False,
@@ -58,7 +64,12 @@ ENTITY_TYPE_CONFIGS: dict[str, EntityTypeConfig] = {
         node_type="file",
         agg_key="files",
         sub_agg_configs=[
-            {"sub_agg": "processes", "target_type": "process", "relationship": "accessed", "reverse": True},
+            {
+                "sub_agg": "processes",
+                "target_type": "process",
+                "relationship": "accessed",
+                "reverse": True,
+            },
         ],
         include_timestamps=False,
     ),
@@ -66,7 +77,12 @@ ENTITY_TYPE_CONFIGS: dict[str, EntityTypeConfig] = {
         node_type="domain",
         agg_key="domains",
         sub_agg_configs=[
-            {"sub_agg": "hosts", "target_type": "host", "relationship": "resolved", "reverse": True},
+            {
+                "sub_agg": "hosts",
+                "target_type": "host",
+                "relationship": "resolved",
+                "reverse": True,
+            },
         ],
         include_timestamps=False,
     ),
@@ -139,12 +155,14 @@ class GraphBuilder:
                     target_id = f"{target_type}:{sub_bucket['key']}"
                     if target_id in node_ids:
                         source, target = (target_id, node_id) if reverse else (node_id, target_id)
-                        edges.append({
-                            "source": source,
-                            "target": target,
-                            "relationship": relationship,
-                            "weight": sub_bucket["doc_count"],
-                        })
+                        edges.append(
+                            {
+                                "source": source,
+                                "target": target,
+                                "relationship": relationship,
+                                "weight": sub_bucket["doc_count"],
+                            }
+                        )
 
     async def build_case_graph(
         self,
@@ -179,7 +197,7 @@ class GraphBuilder:
                     "first_seen": {"min": {"field": "@timestamp"}},
                     "last_seen": {"max": {"field": "@timestamp"}},
                     "event_count": {"value_count": {"field": "@timestamp"}},
-                }
+                },
             }
 
         if "user" in entity_types:
@@ -189,7 +207,7 @@ class GraphBuilder:
                     "first_seen": {"min": {"field": "@timestamp"}},
                     "last_seen": {"max": {"field": "@timestamp"}},
                     "hosts": {"terms": {"field": "host.name", "size": 10}},
-                }
+                },
             }
 
         if "ip" in entity_types:
@@ -199,7 +217,7 @@ class GraphBuilder:
                     "first_seen": {"min": {"field": "@timestamp"}},
                     "last_seen": {"max": {"field": "@timestamp"}},
                     "dest_ips": {"terms": {"field": "destination.ip", "size": 10}},
-                }
+                },
             }
             aggs["dest_ips"] = {
                 "terms": {"field": "destination.ip", "size": max_nodes},
@@ -211,7 +229,7 @@ class GraphBuilder:
                 "aggs": {
                     "hosts": {"terms": {"field": "host.name", "size": 10}},
                     "users": {"terms": {"field": "user.name", "size": 10}},
-                }
+                },
             }
 
         if "file" in entity_types:
@@ -220,7 +238,7 @@ class GraphBuilder:
                 "aggs": {
                     "hosts": {"terms": {"field": "host.name", "size": 10}},
                     "processes": {"terms": {"field": "process.name", "size": 10}},
-                }
+                },
             }
 
         if "domain" in entity_types:
@@ -228,7 +246,7 @@ class GraphBuilder:
                 "terms": {"field": "url.domain", "size": max_nodes},
                 "aggs": {
                     "hosts": {"terms": {"field": "host.name", "size": 10}},
-                }
+                },
             }
 
         # Build query
@@ -280,33 +298,39 @@ class GraphBuilder:
                 node_id = f"ip:{bucket['key']}"
                 if node_id not in node_ids:
                     node_ids.add(node_id)
-                    nodes.append({
-                        "id": node_id,
-                        "label": bucket["key"],
-                        "type": "ip",
-                        "event_count": bucket["doc_count"],
-                        "first_seen": bucket.get("first_seen", {}).get("value_as_string"),
-                        "last_seen": bucket.get("last_seen", {}).get("value_as_string"),
-                    })
+                    nodes.append(
+                        {
+                            "id": node_id,
+                            "label": bucket["key"],
+                            "type": "ip",
+                            "event_count": bucket["doc_count"],
+                            "first_seen": bucket.get("first_seen", {}).get("value_as_string"),
+                            "last_seen": bucket.get("last_seen", {}).get("value_as_string"),
+                        }
+                    )
 
                 # Create edges to destination IPs (and create dest nodes if needed)
                 for dest_bucket in bucket.get("dest_ips", {}).get("buckets", []):
                     dest_id = f"ip:{dest_bucket['key']}"
                     if dest_id not in node_ids:
                         node_ids.add(dest_id)
-                        nodes.append({
-                            "id": dest_id,
-                            "label": dest_bucket["key"],
-                            "type": "ip",
-                            "event_count": dest_bucket["doc_count"],
-                        })
+                        nodes.append(
+                            {
+                                "id": dest_id,
+                                "label": dest_bucket["key"],
+                                "type": "ip",
+                                "event_count": dest_bucket["doc_count"],
+                            }
+                        )
 
-                    edges.append({
-                        "source": node_id,
-                        "target": dest_id,
-                        "relationship": "connected_to",
-                        "weight": dest_bucket["doc_count"],
-                    })
+                    edges.append(
+                        {
+                            "source": node_id,
+                            "target": dest_id,
+                            "relationship": "connected_to",
+                            "weight": dest_bucket["doc_count"],
+                        }
+                    )
 
         # Deduplicate edges
         # Edge deduplication ensures that multiple events creating the same
@@ -327,7 +351,7 @@ class GraphBuilder:
                 "total_nodes": len(nodes),
                 "total_edges": len(unique_edges),
                 "truncated": len(nodes) > max_nodes,
-            }
+            },
         }
 
     async def expand_node(
@@ -407,7 +431,12 @@ class GraphBuilder:
         }
 
         relationship_map = {
-            "host": {"user": "logged_into", "process": "executed", "ip": "has_ip", "domain": "resolved"},
+            "host": {
+                "user": "logged_into",
+                "process": "executed",
+                "ip": "has_ip",
+                "domain": "resolved",
+            },
             "user": {"host": "logged_into", "process": "ran"},
             "ip": {"ip": "connected_to", "host": "from_host"},
             "process": {"host": "ran_on", "user": "ran_by", "file": "accessed"},
@@ -424,22 +453,26 @@ class GraphBuilder:
 
                 if new_node_id not in node_ids:
                     node_ids.add(new_node_id)
-                    nodes.append({
-                        "id": new_node_id,
-                        "label": bucket["key"],
-                        "type": entity_type,
-                        "event_count": bucket["doc_count"],
-                    })
+                    nodes.append(
+                        {
+                            "id": new_node_id,
+                            "label": bucket["key"],
+                            "type": entity_type,
+                            "event_count": bucket["doc_count"],
+                        }
+                    )
 
                 # Determine relationship
                 rel = relationship_map.get(node_type, {}).get(entity_type, "related_to")
 
-                edges.append({
-                    "source": node_id,
-                    "target": new_node_id,
-                    "relationship": rel,
-                    "weight": bucket["doc_count"],
-                })
+                edges.append(
+                    {
+                        "source": node_id,
+                        "target": new_node_id,
+                        "relationship": rel,
+                        "weight": bucket["doc_count"],
+                    }
+                )
 
         return {
             "nodes": nodes,
@@ -528,12 +561,14 @@ class GraphBuilder:
             rel_type = edge["relationship"]
             if rel_type not in relationships_by_type:
                 relationships_by_type[rel_type] = []
-            relationships_by_type[rel_type].append({
-                "entity_id": edge["target"],
-                "entity_type": edge["target"].split(":")[0],
-                "entity_value": edge["target"].split(":", 1)[1],
-                "event_count": edge["weight"],
-            })
+            relationships_by_type[rel_type].append(
+                {
+                    "entity_id": edge["target"],
+                    "entity_type": edge["target"].split(":")[0],
+                    "entity_value": edge["target"].split(":", 1)[1],
+                    "event_count": edge["weight"],
+                }
+            )
 
         return {
             "entity_id": node_id,

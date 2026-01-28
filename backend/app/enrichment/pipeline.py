@@ -146,10 +146,9 @@ class EnrichmentPipeline:
         unique_iocs = {(m.value, m.ioc_type): m for m in matches}
 
         # Enrich each IOC
-        results = await asyncio.gather(*[
-            self.enrich_indicator(match.value, match.ioc_type)
-            for match in unique_iocs.values()
-        ])
+        results = await asyncio.gather(
+            *[self.enrich_indicator(match.value, match.ioc_type) for match in unique_iocs.values()]
+        )
 
         return list(results)
 
@@ -238,10 +237,7 @@ class EnrichmentPipeline:
             async with semaphore:
                 return await self.enrich_indicator(indicator, ioc_type)
 
-        tasks = [
-            enrich_with_semaphore(indicator, ioc_type)
-            for indicator, ioc_type in indicators
-        ]
+        tasks = [enrich_with_semaphore(indicator, ioc_type) for indicator, ioc_type in indicators]
 
         return await asyncio.gather(*tasks)
 
@@ -370,6 +366,7 @@ class EnrichmentPipeline:
 
         try:
             import json
+
             cached_data = await self.redis.get(cache_key)
             if cached_data:
                 data = json.loads(cached_data)
@@ -410,6 +407,7 @@ class EnrichmentPipeline:
 
         try:
             import json
+
             await self.redis.set(
                 cache_key,
                 json.dumps(result.to_dict()),

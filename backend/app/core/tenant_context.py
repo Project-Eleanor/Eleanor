@@ -42,9 +42,7 @@ class TenantContext:
 
 
 # Context variable for storing current tenant
-_tenant_context: ContextVar[TenantContext | None] = ContextVar(
-    "tenant_context", default=None
-)
+_tenant_context: ContextVar[TenantContext | None] = ContextVar("tenant_context", default=None)
 
 
 def set_tenant_context(context: TenantContext | None) -> None:

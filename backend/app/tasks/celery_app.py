@@ -33,21 +33,17 @@ celery_app.conf.update(
     result_serializer="json",
     timezone="UTC",
     enable_utc=True,
-
     # Task execution settings
     task_time_limit=7200,  # 2 hours hard limit
     task_soft_time_limit=7000,  # Soft limit for cleanup
     task_acks_late=True,  # Acknowledge after task completes
     task_reject_on_worker_lost=True,  # Re-queue if worker dies
-
     # Result settings
     result_expires=86400,  # Results expire after 24 hours
     result_extended=True,  # Include additional result metadata
-
     # Retry settings
     task_default_retry_delay=60,  # 1 minute between retries
     task_max_retries=3,
-
     # Routing
     task_default_queue="default",
     task_queues={
@@ -68,18 +64,15 @@ celery_app.conf.update(
             "routing_key": "enrichment",
         },
     },
-
     # Task routes
     task_routes={
         "app.tasks.parsing.*": {"queue": "default"},
         "app.tasks.enrichment.*": {"queue": "enrichment"},
         "app.tasks.indexing.*": {"queue": "default"},
     },
-
     # Worker settings
     worker_prefetch_multiplier=1,  # Fair task distribution
     worker_concurrency=4,  # Concurrent tasks per worker
-
     # Logging
     worker_hijack_root_logger=False,
     worker_log_format="[%(asctime)s: %(levelname)s/%(processName)s] %(message)s",

@@ -25,8 +25,12 @@ class ECSNormalizer:
     ECS_VERSION = "8.11"
 
     # IP address patterns
-    IPV4_PATTERN = re.compile(r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$")
-    IPV6_PATTERN = re.compile(r"^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$|^::(?:[0-9a-fA-F]{1,4}:){0,6}[0-9a-fA-F]{1,4}$|^(?:[0-9a-fA-F]{1,4}:){1,6}::$")
+    IPV4_PATTERN = re.compile(
+        r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
+    )
+    IPV6_PATTERN = re.compile(
+        r"^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$|^::(?:[0-9a-fA-F]{1,4}:){0,6}[0-9a-fA-F]{1,4}$|^(?:[0-9a-fA-F]{1,4}:){1,6}::$"
+    )
 
     # Hash patterns
     MD5_PATTERN = re.compile(r"^[a-fA-F0-9]{32}$")
@@ -212,7 +216,9 @@ class ECSNormalizer:
 
         return fields
 
-    def _build_network_fields(self, event: ParsedEvent) -> tuple[dict | None, dict | None, dict | None]:
+    def _build_network_fields(
+        self, event: ParsedEvent
+    ) -> tuple[dict | None, dict | None, dict | None]:
         """Build ECS source.*, destination.*, and network.* fields."""
         source = None
         destination = None
@@ -250,6 +256,7 @@ class ECSNormalizer:
         # Parse URL components
         try:
             from urllib.parse import urlparse
+
             parsed = urlparse(event.url_full)
             if parsed.scheme:
                 fields["scheme"] = parsed.scheme
@@ -298,11 +305,12 @@ class ECSNormalizer:
         # Remove any existing separators
         mac = mac.replace(":", "").replace("-", "").replace(".", "")
         # Add colons
-        return ":".join(mac[i:i+2] for i in range(0, len(mac), 2))
+        return ":".join(mac[i : i + 2] for i in range(0, len(mac), 2))
 
     def _parse_command_line(self, command_line: str) -> list[str]:
         """Parse a command line into arguments."""
         import shlex
+
         try:
             return shlex.split(command_line)
         except ValueError:

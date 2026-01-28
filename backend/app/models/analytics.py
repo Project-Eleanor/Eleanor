@@ -48,9 +48,7 @@ class DetectionRule(Base):
 
     __tablename__ = "detection_rules"
 
-    id: Mapped[UUID] = mapped_column(
-        UUIDType(), primary_key=True, default=uuid4
-    )
+    id: Mapped[UUID] = mapped_column(UUIDType(), primary_key=True, default=uuid4)
     tenant_id: Mapped[UUID] = mapped_column(
         UUIDType(), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
     )
@@ -76,12 +74,8 @@ class DetectionRule(Base):
     indices: Mapped[list[str]] = mapped_column(ArrayType(String), default=list)
 
     # Schedule (for scheduled rules)
-    schedule_interval: Mapped[int | None] = mapped_column(
-        Integer, nullable=True
-    )  # minutes
-    lookback_period: Mapped[int | None] = mapped_column(
-        Integer, nullable=True
-    )  # minutes
+    schedule_interval: Mapped[int | None] = mapped_column(Integer, nullable=True)  # minutes
+    lookback_period: Mapped[int | None] = mapped_column(Integer, nullable=True)  # minutes
 
     # Threshold configuration
     threshold_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
@@ -113,15 +107,11 @@ class DetectionRule(Base):
     created_by: Mapped[UUID | None] = mapped_column(
         UUIDType(), ForeignKey("users.id"), nullable=True
     )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
-    last_run_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    last_run_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Statistics
     hit_count: Mapped[int] = mapped_column(Integer, default=0)
@@ -143,9 +133,7 @@ class RuleExecution(Base):
 
     __tablename__ = "rule_executions"
 
-    id: Mapped[UUID] = mapped_column(
-        UUIDType(), primary_key=True, default=uuid4
-    )
+    id: Mapped[UUID] = mapped_column(UUIDType(), primary_key=True, default=uuid4)
     rule_id: Mapped[UUID] = mapped_column(
         UUIDType(),
         ForeignKey("detection_rules.id", ondelete="CASCADE"),
@@ -154,12 +142,8 @@ class RuleExecution(Base):
     )
 
     # Execution details
-    started_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
-    completed_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     # Results
@@ -174,9 +158,7 @@ class RuleExecution(Base):
     incidents_created: Mapped[int] = mapped_column(Integer, default=0)
 
     # Relationships
-    rule: Mapped["DetectionRule"] = relationship(
-        "DetectionRule", back_populates="executions"
-    )
+    rule: Mapped["DetectionRule"] = relationship("DetectionRule", back_populates="executions")
 
     def __repr__(self) -> str:
         return f"<RuleExecution {self.rule_id} at {self.started_at}>"
@@ -199,9 +181,7 @@ class CorrelationState(Base):
 
     __tablename__ = "correlation_states"
 
-    id: Mapped[UUID] = mapped_column(
-        UUIDType(), primary_key=True, default=uuid4
-    )
+    id: Mapped[UUID] = mapped_column(UUIDType(), primary_key=True, default=uuid4)
     rule_id: Mapped[UUID] = mapped_column(
         UUIDType(),
         ForeignKey("detection_rules.id", ondelete="CASCADE"),
@@ -223,12 +203,8 @@ class CorrelationState(Base):
     # }
 
     # Time window tracking
-    window_start: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
-    )
-    window_end: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
-    )
+    window_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    window_end: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     # Status
     status: Mapped[CorrelationStateStatus] = mapped_column(
@@ -238,9 +214,7 @@ class CorrelationState(Base):
     )
 
     # Timestamps
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
