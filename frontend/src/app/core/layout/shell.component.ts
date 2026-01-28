@@ -87,12 +87,12 @@ interface NavGroup {
 
         <div class="sidebar-footer">
           <mat-divider></mat-divider>
-          <div class="integration-status" [matTooltip]="'Integration Status'" matTooltipPosition="right">
+          <a class="integration-status" routerLink="/connectors" [matTooltip]="'View Integration Status'" matTooltipPosition="right">
             <mat-icon [class]="integrationStatusClass()">{{ integrationStatusIcon() }}</mat-icon>
             @if (!sidebarCollapsed()) {
               <span>{{ healthyCount() }}/{{ totalCount() }} Healthy</span>
             }
-          </div>
+          </a>
         </div>
       </aside>
 
@@ -164,12 +164,14 @@ interface NavGroup {
       overflow: hidden;
     }
 
-    /* Sidebar - Refined */
+    /* Sidebar - Glassmorphism style */
     .sidebar {
       width: 240px;
       min-width: 240px;
-      background: var(--bg-secondary);
-      border-right: 1px solid var(--border-color);
+      background: rgba(18, 23, 31, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-right: 1px solid rgba(74, 158, 255, 0.1);
       display: flex;
       flex-direction: column;
       transition: width 0.2s ease, min-width 0.2s ease;
@@ -185,7 +187,7 @@ interface NavGroup {
         height: 200px;
         background: radial-gradient(ellipse at 50% 0%, var(--glow-accent) 0%, transparent 70%);
         pointer-events: none;
-        opacity: 0.5;
+        opacity: 0.6;
       }
 
       &.collapsed {
@@ -343,8 +345,19 @@ interface NavGroup {
       font-size: 12px;
       color: var(--text-secondary);
       border-radius: 8px;
-      background: var(--bg-primary);
-      border: 1px solid var(--border-color);
+      background: rgba(10, 14, 20, 0.6);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(74, 158, 255, 0.1);
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: rgba(10, 14, 20, 0.8);
+        border-color: rgba(74, 158, 255, 0.25);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), 0 0 12px rgba(74, 158, 255, 0.1);
+      }
 
       mat-icon {
         font-size: 18px;
@@ -366,15 +379,17 @@ interface NavGroup {
       background: var(--bg-primary);
     }
 
-    /* Header - Refined */
+    /* Header - Glassmorphism style */
     .header {
       display: flex;
       align-items: center;
       justify-content: space-between;
       height: 68px;
       padding: 0 28px;
-      background: var(--bg-secondary);
-      border-bottom: 1px solid var(--border-color);
+      background: rgba(18, 23, 31, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(74, 158, 255, 0.1);
       position: relative;
     }
 

@@ -471,15 +471,23 @@ a {
   }
 }
 
-// Force all dialog overlay panes to center (fix for left-aligned dialogs)
+// Force all dialog overlay panes to center (fix for misaligned dialogs)
 .cdk-global-overlay-wrapper {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
+  pointer-events: auto;
 }
 
-.cdk-overlay-pane:not(.mat-mdc-select-panel):not(.mat-mdc-autocomplete-panel) {
+.cdk-overlay-pane.mat-mdc-dialog-panel {
+  position: static !important;
   margin: auto !important;
+  max-height: 90vh !important;
+}
+
+// Ensure dialog backdrop covers the whole screen
+.cdk-overlay-backdrop.cdk-overlay-dark-backdrop {
+  background: rgba(0, 0, 0, 0.6);
 }
 
 // Glassmorphism card utility class

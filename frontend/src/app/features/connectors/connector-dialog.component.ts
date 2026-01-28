@@ -321,6 +321,15 @@ interface ConfigField {
     .type-icon.api_polling { background: rgba(76, 175, 80, 0.15); color: #4CAF50; }
     .type-icon.file_upload { background: rgba(121, 85, 72, 0.15); color: #795548; }
     .type-icon.custom { background: rgba(158, 158, 158, 0.15); color: #9E9E9E; }
+    /* Phase 4 connector types */
+    .type-icon.gcp_cloud_logging { background: rgba(66, 133, 244, 0.15); color: #4285F4; }
+    .type-icon.aws_security_hub { background: rgba(255, 153, 0, 0.15); color: #FF9900; }
+    .type-icon.azure_event_hub { background: rgba(0, 120, 212, 0.15); color: #0078D4; }
+    .type-icon.fluentd { background: rgba(0, 150, 136, 0.15); color: #009688; }
+    .type-icon.wef { background: rgba(33, 150, 243, 0.15); color: #2196F3; }
+    .type-icon.okta { background: rgba(0, 123, 255, 0.15); color: #007BFF; }
+    .type-icon.crowdstrike_fdr { background: rgba(244, 67, 54, 0.15); color: #F44336; }
+    .type-icon.splunk_hec { background: rgba(139, 195, 74, 0.15); color: #8BC34A; }
 
     .type-info h4 {
       margin: 0 0 4px;
@@ -585,6 +594,103 @@ export class ConnectorDialogComponent implements OnInit {
       description: 'Custom connector with manual configuration',
       configFields: [
         { key: 'custom_config', label: 'Custom Configuration (JSON)', type: 'textarea', placeholder: '{}' }
+      ]
+    },
+    // Phase 4 Connector Types
+    {
+      type: 'gcp_cloud_logging',
+      label: 'GCP Cloud Logging',
+      icon: 'cloud_queue',
+      description: 'Ingest logs from Google Cloud Platform',
+      configFields: [
+        { key: 'project_id', label: 'GCP Project ID', type: 'text', required: true },
+        { key: 'credentials_json', label: 'Service Account JSON', type: 'textarea', required: true, placeholder: '{"type": "service_account", ...}' },
+        { key: 'log_filter', label: 'Log Filter', type: 'textarea', placeholder: 'resource.type="gce_instance"' }
+      ]
+    },
+    {
+      type: 'aws_security_hub',
+      label: 'AWS Security Hub',
+      icon: 'security',
+      description: 'Ingest findings from AWS Security Hub',
+      configFields: [
+        { key: 'aws_access_key', label: 'AWS Access Key', type: 'text', required: true },
+        { key: 'aws_secret_key', label: 'AWS Secret Key', type: 'password', required: true },
+        { key: 'region', label: 'AWS Region', type: 'text', required: true, placeholder: 'us-east-1' },
+        { key: 'product_arns', label: 'Product ARNs (optional)', type: 'textarea', placeholder: 'Filter by specific products' }
+      ]
+    },
+    {
+      type: 'azure_event_hub',
+      label: 'Azure Event Hub',
+      icon: 'hub',
+      description: 'Stream events from Azure Event Hub',
+      configFields: [
+        { key: 'connection_string', label: 'Connection String', type: 'password', required: true },
+        { key: 'event_hub_name', label: 'Event Hub Name', type: 'text', required: true },
+        { key: 'consumer_group', label: 'Consumer Group', type: 'text', placeholder: '$Default' }
+      ]
+    },
+    {
+      type: 'fluentd',
+      label: 'Fluentd/Fluent Bit',
+      icon: 'route',
+      description: 'Receive logs from Fluentd or Fluent Bit',
+      configFields: [
+        { key: 'port', label: 'Port', type: 'number', required: true, placeholder: '24224' },
+        { key: 'protocol', label: 'Protocol', type: 'select', options: [
+          { value: 'forward', label: 'Forward Protocol' }, { value: 'http', label: 'HTTP' }
+        ]},
+        { key: 'shared_key', label: 'Shared Key', type: 'password' }
+      ]
+    },
+    {
+      type: 'wef',
+      label: 'Windows Event Forwarding',
+      icon: 'dns',
+      description: 'Receive Windows events via WEF subscriptions',
+      configFields: [
+        { key: 'subscription_id', label: 'Subscription ID', type: 'text', required: true },
+        { key: 'collector_url', label: 'Collector URL', type: 'text', required: true, placeholder: 'https://collector.example.com:5985/wsman' },
+        { key: 'channels', label: 'Event Channels', type: 'textarea', placeholder: 'Security, System, Application' }
+      ]
+    },
+    {
+      type: 'okta',
+      label: 'Okta',
+      icon: 'fingerprint',
+      description: 'Collect Okta system and authentication logs',
+      configFields: [
+        { key: 'domain', label: 'Okta Domain', type: 'text', required: true, placeholder: 'your-org.okta.com' },
+        { key: 'api_token', label: 'API Token', type: 'password', required: true },
+        { key: 'log_types', label: 'Log Types', type: 'select', options: [
+          { value: 'all', label: 'All Logs' }, { value: 'system', label: 'System Logs' }, { value: 'auth', label: 'Authentication Only' }
+        ]}
+      ]
+    },
+    {
+      type: 'crowdstrike_fdr',
+      label: 'CrowdStrike FDR',
+      icon: 'radar',
+      description: 'Ingest CrowdStrike Falcon Data Replicator logs',
+      configFields: [
+        { key: 'aws_access_key', label: 'AWS Access Key', type: 'text', required: true },
+        { key: 'aws_secret_key', label: 'AWS Secret Key', type: 'password', required: true },
+        { key: 'sqs_queue_url', label: 'SQS Queue URL', type: 'text', required: true },
+        { key: 'region', label: 'AWS Region', type: 'text', required: true, placeholder: 'us-west-2' }
+      ]
+    },
+    {
+      type: 'splunk_hec',
+      label: 'Splunk HEC',
+      icon: 'data_exploration',
+      description: 'Receive events via Splunk HTTP Event Collector',
+      configFields: [
+        { key: 'port', label: 'HEC Port', type: 'number', required: true, placeholder: '8088' },
+        { key: 'ssl_enabled', label: 'SSL Enabled', type: 'select', options: [
+          { value: 'true', label: 'Yes' }, { value: 'false', label: 'No' }
+        ]},
+        { key: 'token', label: 'HEC Token', type: 'password', required: true }
       ]
     }
   ];
