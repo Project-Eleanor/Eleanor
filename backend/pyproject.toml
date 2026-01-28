@@ -128,11 +128,17 @@ module = [
     "app.services.*",
     "app.notifications.*",
     "app.middleware.*",
-    "app.parsers.formats.*",
+    "app.parsers.*",
     "app.enrichment.*",
     "app.detection.*",
     "app.adapters.*",
     "app.connectors.*",
+    "app.models.*",
+    "app.api.*",
+    "app.tasks.*",
+    "app.processors.*",
+    "app.websocket",
+    "app.main",
 ]
 disallow_untyped_defs = false
 warn_return_any = false
