@@ -7,12 +7,19 @@ Uses scapy for packet parsing.
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, BinaryIO, Iterator
+from typing import TYPE_CHECKING, Any, BinaryIO, Iterator
 
 from app.parsers.base import BaseParser, ParsedEvent, ParserCategory
 from app.parsers.registry import register_parser
 
+if TYPE_CHECKING:
+    from scapy.packet import Packet
+
 logger = logging.getLogger(__name__)
+
+# Type alias for connection tracking dictionary
+ConnectionKey = tuple[str, str, int, int]  # (src_ip, dst_ip, src_port, dst_port)
+ConnectionInfo = dict[str, Any]
 
 # PCAP magic numbers
 PCAP_MAGIC_LE = b"\xd4\xc3\xb2\xa1"  # Little endian
@@ -117,10 +124,10 @@ class PcapParser(BaseParser):
 
     def _parse_packet(
         self,
-        pkt,
+        pkt: "Packet",
         source_name: str,
         pkt_num: int,
-        connections: dict,
+        connections: dict[ConnectionKey, ConnectionInfo],
     ) -> ParsedEvent | None:
         """Parse a single packet."""
         from scapy.all import IP, TCP, UDP, DNS, ICMP, HTTP, Raw

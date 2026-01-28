@@ -1,4 +1,5 @@
-import { Component, OnInit, OnDestroy, computed, signal, effect } from '@angular/core';
+import { Component, OnInit, OnDestroy, computed, signal, effect, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -764,6 +765,8 @@ export class SocDashboardComponent implements OnInit, OnDestroy {
 
   hasSeverityData = computed(() => this.totalSeverityCount() > 0);
 
+  private destroyRef = inject(DestroyRef);
+
   constructor(
     dashboardService: RealtimeDashboardService,
     wsService: WebSocketService
@@ -771,12 +774,12 @@ export class SocDashboardComponent implements OnInit, OnDestroy {
     this.dashboardService = dashboardService;
     this.wsService = wsService;
 
-    // Track WebSocket status
-    effect(() => {
-      this.wsService.status$.subscribe(status => {
+    // Track WebSocket status with proper cleanup
+    this.wsService.status$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(status => {
         this.wsStatus.set(status);
       });
-    });
   }
 
   ngOnInit(): void {

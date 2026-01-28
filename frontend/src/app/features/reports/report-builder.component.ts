@@ -21,6 +21,7 @@ import { MatStepperModule } from '@angular/material/stepper';
 import { MatCardModule } from '@angular/material/card';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
+import { LoggingService } from '../../core/services/logging.service';
 
 export type ReportTemplate = 'executive' | 'technical' | 'full' | 'ioc' | 'timeline';
 export type SectionType = 'summary' | 'findings' | 'timeline' | 'iocs' | 'artifacts' | 'graph' | 'recommendations' | 'appendix' | 'custom';
@@ -1003,6 +1004,7 @@ export class ReportBuilderComponent implements OnInit {
   private router = inject(Router);
   private http = inject(HttpClient);
   private snackBar = inject(MatSnackBar);
+  private logger = inject(LoggingService);
 
   caseId = signal<string | null>(null);
   caseName = signal<string | null>(null);
@@ -1087,7 +1089,7 @@ export class ReportBuilderComponent implements OnInit {
         this.metadata.title = `Forensic Investigation Report: ${caseData.name}`;
       }
     } catch (error) {
-      console.error('Failed to load case info:', error);
+      this.logger.error('Failed to load case info', error as Error, { component: 'ReportBuilderComponent' });
     }
   }
 
@@ -1249,7 +1251,7 @@ export class ReportBuilderComponent implements OnInit {
 
       this.snackBar.open('Report saved', 'Close', { duration: 2000 });
     } catch (error) {
-      console.error('Failed to save report:', error);
+      this.logger.error('Failed to save report', error as Error, { component: 'ReportBuilderComponent' });
       this.snackBar.open('Failed to save report', 'Close', { duration: 3000 });
     } finally {
       this.isSaving.set(false);
@@ -1283,7 +1285,7 @@ export class ReportBuilderComponent implements OnInit {
 
       this.snackBar.open(`Report exported as ${format.toUpperCase()}`, 'Close', { duration: 2000 });
     } catch (error) {
-      console.error('Failed to export report:', error);
+      this.logger.error('Failed to export report', error as Error, { component: 'ReportBuilderComponent' });
       this.snackBar.open('Failed to export report', 'Close', { duration: 3000 });
     } finally {
       this.isExporting.set(false);

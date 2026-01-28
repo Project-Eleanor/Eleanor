@@ -119,14 +119,17 @@ class ProcessorRunner:
         """
         return [
             {
-                "name": p.name,
-                "description": p.description,
-                "triggers": [t.value for t in p.triggers],
-                "enabled": p.enabled,
-                "priority": p.priority,
-                "timeout": p.timeout_seconds,
+                "name": processor.name,
+                "description": processor.description,
+                "triggers": [trigger.value for trigger in processor.triggers],
+                "enabled": processor.enabled,
+                "priority": processor.priority,
+                "timeout": processor.timeout_seconds,
             }
-            for p in sorted(self._processors.values(), key=lambda x: x.priority)
+            for processor in sorted(
+                self._processors.values(),
+                key=lambda proc: proc.priority
+            )
         ]
 
     def get_processors_for_trigger(self, trigger: ProcessorTrigger) -> list[BaseProcessor]:

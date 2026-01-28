@@ -16,7 +16,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.alert import Alert, AlertSeverity, AlertStatus
-from app.models.analytics import DetectionRule
+from app.models.analytics import DetectionRule, RuleSeverity
 
 logger = logging.getLogger(__name__)
 
@@ -121,7 +121,7 @@ class AlertGenerator:
 
         return created_alerts
 
-    def _map_severity(self, rule_severity) -> AlertSeverity:
+    def _map_severity(self, rule_severity: RuleSeverity) -> AlertSeverity:
         """Map rule severity to alert severity.
 
         Args:

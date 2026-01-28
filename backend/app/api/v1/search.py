@@ -1,7 +1,7 @@
 """Search API endpoints for hunting and queries."""
 
 import re
-from typing import Annotated, Any
+from typing import Annotated, Any, Callable
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -17,6 +17,173 @@ from app.models.workbook import SavedQuery
 
 router = APIRouter()
 settings = get_settings()
+
+
+# =============================================================================
+# PATTERN: Compiled Regex Dispatch Table
+# Pre-compiled regex patterns with associated handler functions for efficient
+# KQL expression parsing. This replaces the sequential if-else regex matching
+# with a single-pass dispatch table lookup.
+# =============================================================================
+
+# Field pattern common to all operators (word characters with optional dots)
+_FIELD_PATTERN = r"(\w+(?:\.\w+)*)"
+
+# Handler type: takes regex match and returns ES query dict
+ComparisonHandler = Callable[[re.Match[str]], dict[str, Any]]
+
+
+def _make_match_handler() -> tuple[re.Pattern[str], ComparisonHandler]:
+    """Handler for 'contains' operator -> ES match query."""
+    pattern = re.compile(
+        rf"{_FIELD_PATTERN}\s+contains\s+[\"'](.+?)[\"']",
+        re.IGNORECASE
+    )
+    def handler(match: re.Match[str]) -> dict[str, Any]:
+        field, value = match.groups()
+        return {"match": {field: value}}
+    return pattern, handler
+
+
+def _make_prefix_handler() -> tuple[re.Pattern[str], ComparisonHandler]:
+    """Handler for 'startswith' operator -> ES prefix query."""
+    pattern = re.compile(
+        rf"{_FIELD_PATTERN}\s+startswith\s+[\"'](.+?)[\"']",
+        re.IGNORECASE
+    )
+    def handler(match: re.Match[str]) -> dict[str, Any]:
+        field, value = match.groups()
+        return {"prefix": {field: value}}
+    return pattern, handler
+
+
+def _make_endswith_handler() -> tuple[re.Pattern[str], ComparisonHandler]:
+    """Handler for 'endswith' operator -> ES wildcard query."""
+    pattern = re.compile(
+        rf"{_FIELD_PATTERN}\s+endswith\s+[\"'](.+?)[\"']",
+        re.IGNORECASE
+    )
+    def handler(match: re.Match[str]) -> dict[str, Any]:
+        field, value = match.groups()
+        return {"wildcard": {field: f"*{value}"}}
+    return pattern, handler
+
+
+def _make_in_handler() -> tuple[re.Pattern[str], ComparisonHandler]:
+    """Handler for 'in' operator -> ES terms query."""
+    pattern = re.compile(
+        rf"{_FIELD_PATTERN}\s+in\s*\(([^)]+)\)",
+        re.IGNORECASE
+    )
+    def handler(match: re.Match[str]) -> dict[str, Any]:
+        field = match.group(1)
+        values_str = match.group(2)
+        values = [v.strip().strip("\"'") for v in values_str.split(",")]
+        return {"terms": {field: values}}
+    return pattern, handler
+
+
+def _make_has_handler() -> tuple[re.Pattern[str], ComparisonHandler]:
+    """Handler for 'has' operator -> ES match with AND operator."""
+    pattern = re.compile(
+        rf"{_FIELD_PATTERN}\s+has\s+[\"'](.+?)[\"']",
+        re.IGNORECASE
+    )
+    def handler(match: re.Match[str]) -> dict[str, Any]:
+        field, value = match.groups()
+        return {"match": {field: {"query": value, "operator": "and"}}}
+    return pattern, handler
+
+
+def _make_neq_handler() -> tuple[re.Pattern[str], ComparisonHandler]:
+    """Handler for '!=' operator -> ES must_not term query."""
+    pattern = re.compile(rf"{_FIELD_PATTERN}\s*!=\s*[\"'](.+?)[\"']")
+    def handler(match: re.Match[str]) -> dict[str, Any]:
+        field, value = match.groups()
+        return {"bool": {"must_not": [{"term": {field: value}}]}}
+    return pattern, handler
+
+
+def _make_eq_handler() -> tuple[re.Pattern[str], ComparisonHandler]:
+    """Handler for '==' operator -> ES term query."""
+    pattern = re.compile(rf"{_FIELD_PATTERN}\s*==\s*[\"'](.+?)[\"']")
+    def handler(match: re.Match[str]) -> dict[str, Any]:
+        field, value = match.groups()
+        return {"term": {field: value}}
+    return pattern, handler
+
+
+def _make_gte_handler() -> tuple[re.Pattern[str], ComparisonHandler]:
+    """Handler for '>=' operator -> ES range gte query."""
+    pattern = re.compile(rf"{_FIELD_PATTERN}\s*>=\s*(\d+)")
+    def handler(match: re.Match[str]) -> dict[str, Any]:
+        field, value = match.groups()
+        return {"range": {field: {"gte": int(value)}}}
+    return pattern, handler
+
+
+def _make_lte_handler() -> tuple[re.Pattern[str], ComparisonHandler]:
+    """Handler for '<=' operator -> ES range lte query."""
+    pattern = re.compile(rf"{_FIELD_PATTERN}\s*<=\s*(\d+)")
+    def handler(match: re.Match[str]) -> dict[str, Any]:
+        field, value = match.groups()
+        return {"range": {field: {"lte": int(value)}}}
+    return pattern, handler
+
+
+def _make_gt_handler() -> tuple[re.Pattern[str], ComparisonHandler]:
+    """Handler for '>' operator -> ES range gt query."""
+    pattern = re.compile(rf"{_FIELD_PATTERN}\s*>\s*(\d+)")
+    def handler(match: re.Match[str]) -> dict[str, Any]:
+        field, value = match.groups()
+        return {"range": {field: {"gt": int(value)}}}
+    return pattern, handler
+
+
+def _make_lt_handler() -> tuple[re.Pattern[str], ComparisonHandler]:
+    """Handler for '<' operator -> ES range lt query."""
+    pattern = re.compile(rf"{_FIELD_PATTERN}\s*<\s*(\d+)")
+    def handler(match: re.Match[str]) -> dict[str, Any]:
+        field, value = match.groups()
+        return {"range": {field: {"lt": int(value)}}}
+    return pattern, handler
+
+
+def _make_simple_eq_num_handler() -> tuple[re.Pattern[str], ComparisonHandler]:
+    """Handler for '=' with numeric value -> ES term query with int."""
+    pattern = re.compile(rf"{_FIELD_PATTERN}\s*=\s*(\d+)")
+    def handler(match: re.Match[str]) -> dict[str, Any]:
+        field, value = match.groups()
+        return {"term": {field: int(value)}}
+    return pattern, handler
+
+
+def _make_simple_eq_str_handler() -> tuple[re.Pattern[str], ComparisonHandler]:
+    """Handler for '=' with quoted string -> ES term query."""
+    pattern = re.compile(rf"{_FIELD_PATTERN}\s*=\s*[\"'](.+?)[\"']")
+    def handler(match: re.Match[str]) -> dict[str, Any]:
+        field, value = match.groups()
+        return {"term": {field: value}}
+    return pattern, handler
+
+
+# Build the dispatch table at module load time
+# Order matters: more specific patterns should come first
+_COMPARISON_DISPATCH_TABLE: list[tuple[re.Pattern[str], ComparisonHandler]] = [
+    _make_match_handler(),      # contains
+    _make_prefix_handler(),     # startswith
+    _make_endswith_handler(),   # endswith
+    _make_in_handler(),         # in
+    _make_has_handler(),        # has
+    _make_neq_handler(),        # !=
+    _make_eq_handler(),         # ==
+    _make_gte_handler(),        # >=
+    _make_lte_handler(),        # <=
+    _make_gt_handler(),         # >
+    _make_lt_handler(),         # <
+    _make_simple_eq_num_handler(),   # = (numeric)
+    _make_simple_eq_str_handler(),   # = (string)
+]
 
 
 class SearchRequest(BaseModel):
@@ -116,13 +283,39 @@ def kql_to_elasticsearch(kql: str) -> dict[str, Any]:
 
 
 def _parse_kql_expression(expr: str) -> dict[str, Any]:
-    """Parse a KQL expression into ES query DSL."""
+    """Parse a KQL expression into ES query DSL.
+
+    PATTERN: Recursive Descent Parser
+    This parser uses recursive descent with operator precedence handling.
+
+    ## Operator Precedence (lowest to highest)
+    1. OR  - Boolean disjunction, parsed first (lowest precedence)
+    2. AND - Boolean conjunction
+    3. NOT - Boolean negation (prefix operator)
+    4. Comparison operators (==, !=, <, >, <=, >=, contains, etc.)
+
+    ## Parenthesis Handling
+    The depth counter tracks nested parentheses to ensure operators
+    inside parentheses are not split at the current recursion level.
+    When depth > 0, we're inside a nested expression.
+
+    ## Quote Handling
+    Strings in single or double quotes are preserved as literals.
+    The in_quote flag prevents splitting on operators within strings.
+
+    Args:
+        expr: KQL expression string to parse
+
+    Returns:
+        Elasticsearch query DSL dictionary
+    """
     expr = expr.strip()
 
     if not expr:
         return {"match_all": {}}
 
-    # Handle parentheses
+    # Handle parentheses - unwrap if entire expression is wrapped
+    # Uses depth tracking to verify the outer parens match
     if expr.startswith("(") and expr.endswith(")"):
         # Check if entire expression is wrapped in parens
         depth = 0
@@ -132,6 +325,7 @@ def _parse_kql_expression(expr: str) -> dict[str, Any]:
                 depth += 1
             elif c == ")":
                 depth -= 1
+            # If depth hits 0 before the end, parens don't wrap the whole expr
             if depth == 0 and i < len(expr) - 1:
                 all_wrapped = False
                 break
@@ -160,18 +354,40 @@ def _parse_kql_expression(expr: str) -> dict[str, Any]:
 
 
 def _split_by_operator(expr: str, op: str) -> list[str]:
-    """Split expression by operator, respecting parentheses and quotes."""
+    """Split expression by operator, respecting parentheses and quotes.
+
+    State Machine for parsing:
+    - depth: Tracks parenthesis nesting level (0 = top level)
+    - in_quote: Whether currently inside a quoted string
+    - quote_char: The quote character that opened the current string (' or ")
+
+    The parser only splits on the operator when:
+    1. Not inside a quoted string (in_quote == False)
+    2. At the top level of nesting (depth == 0)
+    3. The remaining text starts with the operator (case-insensitive)
+
+    Escape sequences: Backslash-escaped quotes (\\" or \\') do not toggle
+    the in_quote state.
+
+    Args:
+        expr: Expression string to split
+        op: Operator string to split on (e.g., " and ", " or ")
+
+    Returns:
+        List of expression parts, with the operator removed
+    """
     parts = []
-    depth = 0
-    in_quote = False
-    quote_char = None
-    current = []
+    depth = 0  # Parenthesis depth counter
+    in_quote = False  # Currently inside a quoted string
+    quote_char = None  # The quote character that opened current string
+    current = []  # Characters of current part being accumulated
     i = 0
     op_lower = op.lower()
 
     while i < len(expr):
         c = expr[i]
 
+        # Handle quote state transitions (skip escaped quotes)
         if c in ('"', "'") and (i == 0 or expr[i - 1] != "\\"):
             if not in_quote:
                 in_quote = True
@@ -180,12 +396,14 @@ def _split_by_operator(expr: str, op: str) -> list[str]:
                 in_quote = False
                 quote_char = None
 
+        # Only track depth and check for operators outside of quotes
         if not in_quote:
             if c == "(":
                 depth += 1
             elif c == ")":
                 depth -= 1
 
+            # At top level, check if we hit the operator
             if depth == 0:
                 remaining = expr[i:].lower()
                 if remaining.startswith(op_lower):
@@ -204,100 +422,31 @@ def _split_by_operator(expr: str, op: str) -> list[str]:
 
 
 def _parse_comparison(expr: str) -> dict[str, Any]:
-    """Parse a single comparison expression."""
+    """Parse a single comparison expression using compiled regex dispatch table.
+
+    PATTERN: Dispatch Table Pattern
+    Uses pre-compiled regex patterns with associated handlers for O(n) matching
+    where n is the number of operators. This is more efficient than the previous
+    sequential if-else chain and easier to extend with new operators.
+
+    The dispatch table is defined at module load time, so regex compilation
+    happens once, not on every call.
+
+    Args:
+        expr: Comparison expression to parse (e.g., "field == 'value'")
+
+    Returns:
+        Elasticsearch query DSL dictionary
+    """
     expr = expr.strip()
 
-    # Handle 'contains' operator
-    contains_match = re.match(
-        r"(\w+(?:\.\w+)*)\s+contains\s+[\"'](.+?)[\"']", expr, re.IGNORECASE
-    )
-    if contains_match:
-        field, value = contains_match.groups()
-        return {"match": {field: value}}
+    # Try each pattern in the dispatch table
+    for pattern, handler in _COMPARISON_DISPATCH_TABLE:
+        match = pattern.match(expr)
+        if match:
+            return handler(match)
 
-    # Handle 'startswith' operator
-    startswith_match = re.match(
-        r"(\w+(?:\.\w+)*)\s+startswith\s+[\"'](.+?)[\"']", expr, re.IGNORECASE
-    )
-    if startswith_match:
-        field, value = startswith_match.groups()
-        return {"prefix": {field: value}}
-
-    # Handle 'endswith' operator
-    endswith_match = re.match(
-        r"(\w+(?:\.\w+)*)\s+endswith\s+[\"'](.+?)[\"']", expr, re.IGNORECASE
-    )
-    if endswith_match:
-        field, value = endswith_match.groups()
-        return {"wildcard": {field: f"*{value}"}}
-
-    # Handle 'in' operator
-    in_match = re.match(
-        r"(\w+(?:\.\w+)*)\s+in\s*\(([^)]+)\)", expr, re.IGNORECASE
-    )
-    if in_match:
-        field = in_match.group(1)
-        values_str = in_match.group(2)
-        values = [v.strip().strip("\"'") for v in values_str.split(",")]
-        return {"terms": {field: values}}
-
-    # Handle 'has' operator (like contains for keywords)
-    has_match = re.match(
-        r"(\w+(?:\.\w+)*)\s+has\s+[\"'](.+?)[\"']", expr, re.IGNORECASE
-    )
-    if has_match:
-        field, value = has_match.groups()
-        return {"match": {field: {"query": value, "operator": "and"}}}
-
-    # Handle != (not equal)
-    neq_match = re.match(r"(\w+(?:\.\w+)*)\s*!=\s*[\"'](.+?)[\"']", expr)
-    if neq_match:
-        field, value = neq_match.groups()
-        return {"bool": {"must_not": [{"term": {field: value}}]}}
-
-    # Handle == (equal)
-    eq_match = re.match(r"(\w+(?:\.\w+)*)\s*==\s*[\"'](.+?)[\"']", expr)
-    if eq_match:
-        field, value = eq_match.groups()
-        return {"term": {field: value}}
-
-    # Handle >= (greater or equal)
-    gte_match = re.match(r"(\w+(?:\.\w+)*)\s*>=\s*(\d+)", expr)
-    if gte_match:
-        field, value = gte_match.groups()
-        return {"range": {field: {"gte": int(value)}}}
-
-    # Handle <= (less or equal)
-    lte_match = re.match(r"(\w+(?:\.\w+)*)\s*<=\s*(\d+)", expr)
-    if lte_match:
-        field, value = lte_match.groups()
-        return {"range": {field: {"lte": int(value)}}}
-
-    # Handle > (greater than)
-    gt_match = re.match(r"(\w+(?:\.\w+)*)\s*>\s*(\d+)", expr)
-    if gt_match:
-        field, value = gt_match.groups()
-        return {"range": {field: {"gt": int(value)}}}
-
-    # Handle < (less than)
-    lt_match = re.match(r"(\w+(?:\.\w+)*)\s*<\s*(\d+)", expr)
-    if lt_match:
-        field, value = lt_match.groups()
-        return {"range": {field: {"lt": int(value)}}}
-
-    # Handle = (simple equal without quotes - for numbers)
-    simple_eq_match = re.match(r"(\w+(?:\.\w+)*)\s*=\s*(\d+)", expr)
-    if simple_eq_match:
-        field, value = simple_eq_match.groups()
-        return {"term": {field: int(value)}}
-
-    # Handle = with quotes
-    simple_eq_str_match = re.match(r"(\w+(?:\.\w+)*)\s*=\s*[\"'](.+?)[\"']", expr)
-    if simple_eq_str_match:
-        field, value = simple_eq_str_match.groups()
-        return {"term": {field: value}}
-
-    # Fallback: treat as query string
+    # Fallback: treat as query string for free-text search
     return {"query_string": {"query": expr}}
 
 

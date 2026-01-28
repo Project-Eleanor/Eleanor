@@ -5,7 +5,7 @@ and other incident response actions with comprehensive audit logging.
 """
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.adapters import get_registry
 from app.api.v1.auth import get_current_user
 from app.database import get_db
-from app.models.response_action import ResponseActionStatus, ResponseActionType
+from app.models.response_action import ResponseAction, ResponseActionStatus, ResponseActionType
 from app.models.user import User
 from app.services.audit import AuditService, ResponseActionService
 
@@ -126,6 +126,36 @@ async def get_response_service(
 ) -> ResponseActionService:
     """Dependency for response action service."""
     return ResponseActionService(db, audit)
+
+
+# PATTERN: DTO Mapping Helper
+# Centralizes the conversion from ResponseAction domain model to ResponseActionInfo DTO.
+# This eliminates repeated field mapping code across multiple endpoints.
+def _to_response_action_info(action: ResponseAction) -> ResponseActionInfo:
+    """Convert a ResponseAction model to a ResponseActionInfo DTO.
+
+    Args:
+        action: The ResponseAction domain model instance
+
+    Returns:
+        ResponseActionInfo DTO with all fields mapped from the domain model
+    """
+    return ResponseActionInfo(
+        id=action.id,
+        action_type=action.action_type,
+        status=action.status,
+        client_id=action.client_id,
+        hostname=action.hostname,
+        target_details=action.target_details,
+        reason=action.reason,
+        job_id=action.job_id,
+        case_id=action.case_id,
+        user_id=action.user_id,
+        created_at=action.created_at,
+        started_at=action.started_at,
+        completed_at=action.completed_at,
+        error_message=action.error_message,
+    )
 
 
 # =============================================================================
@@ -587,25 +617,7 @@ async def list_response_actions(
         client_id=client_id,
     )
 
-    return [
-        ResponseActionInfo(
-            id=a.id,
-            action_type=a.action_type,
-            status=a.status,
-            client_id=a.client_id,
-            hostname=a.hostname,
-            target_details=a.target_details,
-            reason=a.reason,
-            job_id=a.job_id,
-            case_id=a.case_id,
-            user_id=a.user_id,
-            created_at=a.created_at,
-            started_at=a.started_at,
-            completed_at=a.completed_at,
-            error_message=a.error_message,
-        )
-        for a in actions
-    ]
+    return [_to_response_action_info(action) for action in actions]
 
 
 @router.get("/actions/{action_id}", response_model=ResponseActionInfo)
@@ -630,22 +642,7 @@ async def get_response_action(
             detail="Access denied to this response action",
         )
 
-    return ResponseActionInfo(
-        id=action.id,
-        action_type=action.action_type,
-        status=action.status,
-        client_id=action.client_id,
-        hostname=action.hostname,
-        target_details=action.target_details,
-        reason=action.reason,
-        job_id=action.job_id,
-        case_id=action.case_id,
-        user_id=action.user_id,
-        created_at=action.created_at,
-        started_at=action.started_at,
-        completed_at=action.completed_at,
-        error_message=action.error_message,
-    )
+    return _to_response_action_info(action)
 
 
 @router.get("/actions/client/{client_id}", response_model=list[ResponseActionInfo])
@@ -662,25 +659,7 @@ async def get_client_actions(
         limit=limit,
     )
 
-    return [
-        ResponseActionInfo(
-            id=a.id,
-            action_type=a.action_type,
-            status=a.status,
-            client_id=a.client_id,
-            hostname=a.hostname,
-            target_details=a.target_details,
-            reason=a.reason,
-            job_id=a.job_id,
-            case_id=a.case_id,
-            user_id=a.user_id,
-            created_at=a.created_at,
-            started_at=a.started_at,
-            completed_at=a.completed_at,
-            error_message=a.error_message,
-        )
-        for a in actions
-    ]
+    return [_to_response_action_info(action) for action in actions]
 
 
 @router.get("/actions/case/{case_id}", response_model=list[ResponseActionInfo])
@@ -697,24 +676,6 @@ async def get_case_actions(
     )
 
     # Filter by tenant
-    actions = [a for a in actions if a.tenant_id == current_user.tenant_id]
+    tenant_actions = [action for action in actions if action.tenant_id == current_user.tenant_id]
 
-    return [
-        ResponseActionInfo(
-            id=a.id,
-            action_type=a.action_type,
-            status=a.status,
-            client_id=a.client_id,
-            hostname=a.hostname,
-            target_details=a.target_details,
-            reason=a.reason,
-            job_id=a.job_id,
-            case_id=a.case_id,
-            user_id=a.user_id,
-            created_at=a.created_at,
-            started_at=a.started_at,
-            completed_at=a.completed_at,
-            error_message=a.error_message,
-        )
-        for a in actions
-    ]
+    return [_to_response_action_info(action) for action in tenant_actions]

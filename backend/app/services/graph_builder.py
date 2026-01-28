@@ -5,6 +5,7 @@ graph structures for visualization.
 """
 
 import logging
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 from uuid import UUID
@@ -17,11 +18,134 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 
+# PATTERN: Configuration-Driven Entity Processing
+# Entity type configurations drive the graph building process uniformly.
+# Each config defines how to extract nodes and edges for that entity type,
+# eliminating repeated processing logic for each entity type.
+@dataclass
+class EntityTypeConfig:
+    """Configuration for processing a specific entity type in graph building."""
+    node_type: str
+    agg_key: str
+    sub_agg_configs: list[dict[str, str]] = field(default_factory=list)
+    include_timestamps: bool = True
+
+
+# Entity type configuration mapping
+ENTITY_TYPE_CONFIGS: dict[str, EntityTypeConfig] = {
+    "host": EntityTypeConfig(
+        node_type="host",
+        agg_key="hosts",
+        include_timestamps=True,
+    ),
+    "user": EntityTypeConfig(
+        node_type="user",
+        agg_key="users",
+        sub_agg_configs=[
+            {"sub_agg": "hosts", "target_type": "host", "relationship": "logged_into"}
+        ],
+        include_timestamps=True,
+    ),
+    "process": EntityTypeConfig(
+        node_type="process",
+        agg_key="processes",
+        sub_agg_configs=[
+            {"sub_agg": "hosts", "target_type": "host", "relationship": "executed", "reverse": True},
+            {"sub_agg": "users", "target_type": "user", "relationship": "ran", "reverse": True},
+        ],
+        include_timestamps=False,
+    ),
+    "file": EntityTypeConfig(
+        node_type="file",
+        agg_key="files",
+        sub_agg_configs=[
+            {"sub_agg": "processes", "target_type": "process", "relationship": "accessed", "reverse": True},
+        ],
+        include_timestamps=False,
+    ),
+    "domain": EntityTypeConfig(
+        node_type="domain",
+        agg_key="domains",
+        sub_agg_configs=[
+            {"sub_agg": "hosts", "target_type": "host", "relationship": "resolved", "reverse": True},
+        ],
+        include_timestamps=False,
+    ),
+}
+
+
 class GraphBuilder:
     """Builds investigation graphs from case events."""
 
     def __init__(self, es_client: AsyncElasticsearch):
         self.es = es_client
+
+    def _process_entity_buckets(
+        self,
+        aggregations: dict[str, Any],
+        config: EntityTypeConfig,
+        nodes: list[dict[str, Any]],
+        edges: list[dict[str, Any]],
+        node_ids: set[str],
+    ) -> None:
+        """Process aggregation buckets for an entity type and extract nodes/edges.
+
+        PATTERN: Template Method for Entity Processing
+        This method provides a uniform way to process all entity types based on
+        their configuration, eliminating code duplication across different
+        entity type handlers.
+
+        Algorithm:
+        1. Extract buckets from the configured aggregation key
+        2. For each bucket, create a node with the entity type prefix
+        3. Extract optional timestamp metadata (first_seen, last_seen)
+        4. Process sub-aggregations to create edges to related entities
+
+        Args:
+            aggregations: Elasticsearch aggregation results
+            config: Entity type configuration defining processing behavior
+            nodes: List to append new nodes to (mutated in place)
+            edges: List to append new edges to (mutated in place)
+            node_ids: Set of existing node IDs for deduplication (mutated in place)
+        """
+        buckets = aggregations.get(config.agg_key, {}).get("buckets", [])
+
+        for bucket in buckets:
+            node_id = f"{config.node_type}:{bucket['key']}"
+            if node_id in node_ids:
+                continue
+
+            node_ids.add(node_id)
+            node_data: dict[str, Any] = {
+                "id": node_id,
+                "label": bucket["key"],
+                "type": config.node_type,
+                "event_count": bucket.get("event_count", {}).get("value", bucket["doc_count"]),
+            }
+
+            if config.include_timestamps:
+                node_data["first_seen"] = bucket.get("first_seen", {}).get("value_as_string")
+                node_data["last_seen"] = bucket.get("last_seen", {}).get("value_as_string")
+
+            nodes.append(node_data)
+
+            # Process sub-aggregations to create edges
+            for sub_config in config.sub_agg_configs:
+                sub_agg = sub_config["sub_agg"]
+                target_type = sub_config["target_type"]
+                relationship = sub_config["relationship"]
+                reverse = sub_config.get("reverse", False)
+
+                for sub_bucket in bucket.get(sub_agg, {}).get("buckets", []):
+                    target_id = f"{target_type}:{sub_bucket['key']}"
+                    if target_id in node_ids:
+                        source, target = (target_id, node_id) if reverse else (node_id, target_id)
+                        edges.append({
+                            "source": source,
+                            "target": target,
+                            "relationship": relationship,
+                            "weight": sub_bucket["doc_count"],
+                        })
 
     async def build_case_graph(
         self,
@@ -129,168 +253,65 @@ class GraphBuilder:
         )
 
         # Build graph from aggregations
-        nodes = []
-        edges = []
-        node_ids = set()
+        # PATTERN: Two-pass graph construction
+        # Pass 1: Create all nodes first so node_ids set is populated for edge validation
+        # Pass 2: Process configurations to create edges between existing nodes
+        nodes: list[dict[str, Any]] = []
+        edges: list[dict[str, Any]] = []
+        node_ids: set[str] = set()
 
         aggregations = result.get("aggregations", {})
 
-        # Process hosts
-        for bucket in aggregations.get("hosts", {}).get("buckets", []):
-            node_id = f"host:{bucket['key']}"
-            if node_id not in node_ids:
-                node_ids.add(node_id)
-                nodes.append({
-                    "id": node_id,
-                    "label": bucket["key"],
-                    "type": "host",
-                    "event_count": bucket.get("event_count", {}).get("value", bucket["doc_count"]),
-                    "first_seen": bucket.get("first_seen", {}).get("value_as_string"),
-                    "last_seen": bucket.get("last_seen", {}).get("value_as_string"),
-                })
+        # Process standard entity types using configuration-driven approach
+        for entity_type in ["host", "user", "process", "file", "domain"]:
+            if entity_type in entity_types and entity_type in ENTITY_TYPE_CONFIGS:
+                self._process_entity_buckets(
+                    aggregations,
+                    ENTITY_TYPE_CONFIGS[entity_type],
+                    nodes,
+                    edges,
+                    node_ids,
+                )
 
-        # Process users and create user->host edges
-        for bucket in aggregations.get("users", {}).get("buckets", []):
-            node_id = f"user:{bucket['key']}"
-            if node_id not in node_ids:
-                node_ids.add(node_id)
-                nodes.append({
-                    "id": node_id,
-                    "label": bucket["key"],
-                    "type": "user",
-                    "event_count": bucket["doc_count"],
-                    "first_seen": bucket.get("first_seen", {}).get("value_as_string"),
-                    "last_seen": bucket.get("last_seen", {}).get("value_as_string"),
-                })
+        # Process IPs specially due to source->dest relationship pattern
+        # IP processing requires special handling for the bidirectional
+        # source_ip -> dest_ip relationship which creates edges dynamically
+        if "ip" in entity_types:
+            for bucket in aggregations.get("source_ips", {}).get("buckets", []):
+                node_id = f"ip:{bucket['key']}"
+                if node_id not in node_ids:
+                    node_ids.add(node_id)
+                    nodes.append({
+                        "id": node_id,
+                        "label": bucket["key"],
+                        "type": "ip",
+                        "event_count": bucket["doc_count"],
+                        "first_seen": bucket.get("first_seen", {}).get("value_as_string"),
+                        "last_seen": bucket.get("last_seen", {}).get("value_as_string"),
+                    })
 
-            # Create edges to hosts
-            for host_bucket in bucket.get("hosts", {}).get("buckets", []):
-                host_id = f"host:{host_bucket['key']}"
-                if host_id in node_ids:
+                # Create edges to destination IPs (and create dest nodes if needed)
+                for dest_bucket in bucket.get("dest_ips", {}).get("buckets", []):
+                    dest_id = f"ip:{dest_bucket['key']}"
+                    if dest_id not in node_ids:
+                        node_ids.add(dest_id)
+                        nodes.append({
+                            "id": dest_id,
+                            "label": dest_bucket["key"],
+                            "type": "ip",
+                            "event_count": dest_bucket["doc_count"],
+                        })
+
                     edges.append({
                         "source": node_id,
-                        "target": host_id,
-                        "relationship": "logged_into",
-                        "weight": host_bucket["doc_count"],
-                    })
-
-        # Process IPs and create network edges
-        ip_nodes = set()
-        for bucket in aggregations.get("source_ips", {}).get("buckets", []):
-            node_id = f"ip:{bucket['key']}"
-            if node_id not in node_ids:
-                node_ids.add(node_id)
-                ip_nodes.add(node_id)
-                nodes.append({
-                    "id": node_id,
-                    "label": bucket["key"],
-                    "type": "ip",
-                    "event_count": bucket["doc_count"],
-                    "first_seen": bucket.get("first_seen", {}).get("value_as_string"),
-                    "last_seen": bucket.get("last_seen", {}).get("value_as_string"),
-                })
-
-            # Create edges to destination IPs
-            for dest_bucket in bucket.get("dest_ips", {}).get("buckets", []):
-                dest_id = f"ip:{dest_bucket['key']}"
-                if dest_id not in node_ids:
-                    node_ids.add(dest_id)
-                    ip_nodes.add(dest_id)
-                    nodes.append({
-                        "id": dest_id,
-                        "label": dest_bucket["key"],
-                        "type": "ip",
-                        "event_count": dest_bucket["doc_count"],
-                    })
-
-                edges.append({
-                    "source": node_id,
-                    "target": dest_id,
-                    "relationship": "connected_to",
-                    "weight": dest_bucket["doc_count"],
-                })
-
-        # Process processes
-        for bucket in aggregations.get("processes", {}).get("buckets", []):
-            node_id = f"process:{bucket['key']}"
-            if node_id not in node_ids:
-                node_ids.add(node_id)
-                nodes.append({
-                    "id": node_id,
-                    "label": bucket["key"],
-                    "type": "process",
-                    "event_count": bucket["doc_count"],
-                })
-
-            # Create edges to hosts
-            for host_bucket in bucket.get("hosts", {}).get("buckets", []):
-                host_id = f"host:{host_bucket['key']}"
-                if host_id in node_ids:
-                    edges.append({
-                        "source": host_id,
-                        "target": node_id,
-                        "relationship": "executed",
-                        "weight": host_bucket["doc_count"],
-                    })
-
-            # Create edges to users
-            for user_bucket in bucket.get("users", {}).get("buckets", []):
-                user_id = f"user:{user_bucket['key']}"
-                if user_id in node_ids:
-                    edges.append({
-                        "source": user_id,
-                        "target": node_id,
-                        "relationship": "ran",
-                        "weight": user_bucket["doc_count"],
-                    })
-
-        # Process files
-        for bucket in aggregations.get("files", {}).get("buckets", []):
-            node_id = f"file:{bucket['key']}"
-            if node_id not in node_ids:
-                node_ids.add(node_id)
-                nodes.append({
-                    "id": node_id,
-                    "label": bucket["key"],
-                    "type": "file",
-                    "event_count": bucket["doc_count"],
-                })
-
-            # Create edges to processes
-            for proc_bucket in bucket.get("processes", {}).get("buckets", []):
-                proc_id = f"process:{proc_bucket['key']}"
-                if proc_id in node_ids:
-                    edges.append({
-                        "source": proc_id,
-                        "target": node_id,
-                        "relationship": "accessed",
-                        "weight": proc_bucket["doc_count"],
-                    })
-
-        # Process domains
-        for bucket in aggregations.get("domains", {}).get("buckets", []):
-            node_id = f"domain:{bucket['key']}"
-            if node_id not in node_ids:
-                node_ids.add(node_id)
-                nodes.append({
-                    "id": node_id,
-                    "label": bucket["key"],
-                    "type": "domain",
-                    "event_count": bucket["doc_count"],
-                })
-
-            # Create edges to hosts
-            for host_bucket in bucket.get("hosts", {}).get("buckets", []):
-                host_id = f"host:{host_bucket['key']}"
-                if host_id in node_ids:
-                    edges.append({
-                        "source": host_id,
-                        "target": node_id,
-                        "relationship": "resolved",
-                        "weight": host_bucket["doc_count"],
+                        "target": dest_id,
+                        "relationship": "connected_to",
+                        "weight": dest_bucket["doc_count"],
                     })
 
         # Deduplicate edges
+        # Edge deduplication ensures that multiple events creating the same
+        # relationship only result in a single edge (weight captures frequency)
         seen_edges = set()
         unique_edges = []
         for edge in edges:

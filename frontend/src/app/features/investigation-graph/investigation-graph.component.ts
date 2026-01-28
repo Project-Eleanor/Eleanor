@@ -20,6 +20,7 @@ import { MatListModule } from '@angular/material/list';
 
 import { CytoscapeGraphComponent, LayoutType } from '../../shared/components/cytoscape-graph/cytoscape-graph.component';
 import { GraphService } from '../../core/api/graph.service';
+import { LoggingService } from '../../core/services/logging.service';
 import {
   GraphData,
   GraphNode,
@@ -630,6 +631,7 @@ export class InvestigationGraphComponent implements OnInit {
   private graphService = inject(GraphService);
   private dialog = inject(MatDialog);
   private snackBar = inject(MatSnackBar);
+  private logger = inject(LoggingService);
 
   // Child component reference
   @ViewChild('graphComponent') graphComponent!: CytoscapeGraphComponent;
@@ -684,7 +686,7 @@ export class InvestigationGraphComponent implements OnInit {
 
       this.graphData.set(data || null);
     } catch (error) {
-      console.error('Failed to load graph:', error);
+      this.logger.error('Failed to load graph', error as Error, { component: 'InvestigationGraphComponent', caseId });
       this.snackBar.open('Failed to load graph', 'Close', { duration: 3000 });
     } finally {
       this.loading.set(false);
@@ -708,7 +710,7 @@ export class InvestigationGraphComponent implements OnInit {
 
   onEdgeClick(edge: GraphEdge): void {
     // Could show edge details
-    console.log('Edge clicked:', edge);
+    this.logger.debug('Edge clicked', { component: 'InvestigationGraphComponent', edgeId: edge.id });
   }
 
   async expandNode(node: GraphNode): Promise<void> {
@@ -741,7 +743,7 @@ export class InvestigationGraphComponent implements OnInit {
         }
       }
     } catch (error) {
-      console.error('Failed to expand node:', error);
+      this.logger.error('Failed to expand node', error as Error, { component: 'InvestigationGraphComponent' });
       this.snackBar.open('Failed to expand node', 'Close', { duration: 3000 });
     } finally {
       this.loading.set(false);
@@ -1036,7 +1038,7 @@ export class InvestigationGraphComponent implements OnInit {
 
       this.snackBar.open(`Graph "${savedGraph?.name}" saved successfully`, 'Close', { duration: 3000 });
     } catch (error) {
-      console.error('Failed to save graph:', error);
+      this.logger.error('Failed to save graph', error as Error, { component: 'InvestigationGraphComponent' });
       this.snackBar.open('Failed to save graph', 'Close', { duration: 3000 });
     } finally {
       this.loading.set(false);
@@ -1057,7 +1059,7 @@ export class InvestigationGraphComponent implements OnInit {
       this.savedGraphs.set(response?.items || []);
       this.showLoadDialog.set(true);
     } catch (error) {
-      console.error('Failed to load saved graphs:', error);
+      this.logger.error('Failed to load saved graphs', error as Error, { component: 'InvestigationGraphComponent' });
       this.snackBar.open('Failed to load saved graphs', 'Close', { duration: 3000 });
     } finally {
       this.loading.set(false);
@@ -1099,7 +1101,7 @@ export class InvestigationGraphComponent implements OnInit {
         this.snackBar.open(`Loaded graph "${fullGraph.name}"`, 'Close', { duration: 3000 });
       }
     } catch (error) {
-      console.error('Failed to load saved graph:', error);
+      this.logger.error('Failed to load saved graph', error as Error, { component: 'InvestigationGraphComponent' });
       this.snackBar.open('Failed to load saved graph', 'Close', { duration: 3000 });
     } finally {
       this.loading.set(false);
@@ -1129,7 +1131,7 @@ export class InvestigationGraphComponent implements OnInit {
 
       this.snackBar.open('Graph exported as PNG', 'Close', { duration: 3000 });
     } catch (error) {
-      console.error('Failed to export graph:', error);
+      this.logger.error('Failed to export graph', error as Error, { component: 'InvestigationGraphComponent' });
       this.snackBar.open('Failed to export graph', 'Close', { duration: 3000 });
     }
   }

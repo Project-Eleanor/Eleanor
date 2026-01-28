@@ -268,17 +268,17 @@ async def list_saved_graphs(
     return SavedGraphListResponse(
         items=[
             SavedGraphResponse(
-                id=g.id,
-                name=g.name,
-                description=g.description,
-                case_id=g.case_id,
-                definition=g.definition,
-                config=g.config,
-                created_by=g.created_by,
-                created_at=g.created_at,
-                updated_at=g.updated_at,
+                id=graph.id,
+                name=graph.name,
+                description=graph.description,
+                case_id=graph.case_id,
+                definition=graph.definition,
+                config=graph.config,
+                created_by=graph.created_by,
+                created_at=graph.created_at,
+                updated_at=graph.updated_at,
             )
-            for g in graphs
+            for graph in graphs
         ],
         total=len(graphs),
     )

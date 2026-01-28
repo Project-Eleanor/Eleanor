@@ -168,35 +168,35 @@ async def enrich_indicator(
         # Convert to response format
         threat_actors = [
             ThreatActorInfo(
-                external_id=ta.external_id,
-                name=ta.name,
-                aliases=ta.aliases,
-                description=ta.description,
-                motivation=ta.motivation,
-                sophistication=ta.sophistication,
-                country=ta.country,
+                external_id=threat_actor.external_id,
+                name=threat_actor.name,
+                aliases=threat_actor.aliases,
+                description=threat_actor.description,
+                motivation=threat_actor.motivation,
+                sophistication=threat_actor.sophistication,
+                country=threat_actor.country,
             )
-            for ta in result.threat_actors
+            for threat_actor in result.threat_actors
         ]
 
         campaigns = [
             CampaignInfo(
-                external_id=c.external_id,
-                name=c.name,
-                description=c.description,
-                first_seen=c.first_seen.isoformat() if c.first_seen else None,
-                last_seen=c.last_seen.isoformat() if c.last_seen else None,
+                external_id=campaign.external_id,
+                name=campaign.name,
+                description=campaign.description,
+                first_seen=campaign.first_seen.isoformat() if campaign.first_seen else None,
+                last_seen=campaign.last_seen.isoformat() if campaign.last_seen else None,
             )
-            for c in result.campaigns
+            for campaign in result.campaigns
         ]
 
         related = [
             {
-                "value": ri.value,
-                "type": ri.indicator_type.value,
-                "score": ri.score,
+                "value": related_indicator.value,
+                "type": related_indicator.indicator_type.value,
+                "score": related_indicator.score,
             }
-            for ri in result.related_indicators[:10]  # Limit related
+            for related_indicator in result.related_indicators[:10]  # Limit related
         ]
 
         return EnrichmentResponse(

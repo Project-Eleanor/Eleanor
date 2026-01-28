@@ -13,9 +13,10 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
+import type * as Monaco from 'monaco-editor';
 
 // Monaco types - will be loaded dynamically
-declare const monaco: any;
+declare const monaco: typeof Monaco;
 
 export interface MonacoEditorOptions {
   theme?: string;
@@ -72,10 +73,10 @@ export class MonacoEditorComponent implements OnInit, AfterViewInit, OnDestroy, 
   @Input() options: MonacoEditorOptions = {};
   @Input() language = 'kql';
 
-  @Output() editorReady = new EventEmitter<any>();
+  @Output() editorReady = new EventEmitter<Monaco.editor.IStandaloneCodeEditor>();
   @Output() executeQuery = new EventEmitter<string>();
 
-  private editor: any;
+  private editor: Monaco.editor.IStandaloneCodeEditor | null = null;
   private value = '';
   private monacoLoaded = false;
 

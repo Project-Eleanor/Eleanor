@@ -1,6 +1,7 @@
 import { Injectable, OnDestroy, inject } from '@angular/core';
 import { BehaviorSubject, Observable, Subject, filter, map } from 'rxjs';
 import { AppConfigService } from '../config/app-config.service';
+import { LoggingService } from './logging.service';
 
 export interface WebSocketMessage {
   id: string;
@@ -11,20 +12,60 @@ export interface WebSocketMessage {
 
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 
+/**
+ * PATTERN: Reconnecting WebSocket Service
+ *
+ * Provides a robust WebSocket connection with automatic reconnection,
+ * topic-based subscriptions, and keep-alive ping mechanism.
+ *
+ * ## Reconnection Strategy
+ * Uses exponential backoff for reconnection attempts:
+ * - Base delay: 1000ms (configurable via reconnectDelay)
+ * - Formula: delay = baseDelay * 2^(attemptNumber - 1)
+ * - Example: 1s, 2s, 4s, 8s, 16s
+ * - Maximum attempts: 5 (configurable via maxReconnectAttempts)
+ *
+ * ## State Machine
+ * ```
+ * disconnected -> connecting -> connected
+ *                      |            |
+ *                      v            v
+ *                   error    disconnected (close event)
+ *                      |            |
+ *                      +-----+------+
+ *                            |
+ *                            v
+ *                    [reconnect after delay]
+ * ```
+ *
+ * ## Token Lifetime Considerations
+ * - Token is passed during connect() and used for initial authentication
+ * - On reconnection, the same token is reused; if the token expires during
+ *   disconnection, reconnection will fail with auth error
+ * - Callers should listen to status$ and handle 'error' state by obtaining
+ *   a fresh token and calling connect() again
+ *
+ * ## Subscription Persistence
+ * Topic subscriptions are stored and automatically resubscribed on reconnection.
+ * This ensures no messages are missed after a brief disconnect.
+ */
 @Injectable({
   providedIn: 'root'
 })
 export class WebSocketService implements OnDestroy {
   private readonly config = inject(AppConfigService);
+  private readonly logger = inject(LoggingService);
 
   private socket: WebSocket | null = null;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
+  /** Base delay for exponential backoff (milliseconds) */
   private reconnectDelay = 1000;
   private pingInterval: ReturnType<typeof setInterval> | null = null;
 
   private messagesSubject = new Subject<WebSocketMessage>();
   private statusSubject = new BehaviorSubject<ConnectionStatus>('disconnected');
+  /** Tracks active topic subscriptions for auto-resubscribe on reconnect */
   private subscriptions = new Set<string>();
 
   messages$ = this.messagesSubject.asObservable();
@@ -41,7 +82,7 @@ export class WebSocketService implements OnDestroy {
     this.socket = new WebSocket(wsUrl);
 
     this.socket.onopen = () => {
-      console.log('WebSocket connected');
+      this.logger.info('WebSocket connected', { component: 'WebSocketService' });
       this.statusSubject.next('connected');
       this.reconnectAttempts = 0;
 
@@ -59,17 +100,17 @@ export class WebSocketService implements OnDestroy {
         const message: WebSocketMessage = JSON.parse(event.data);
         this.messagesSubject.next(message);
       } catch (e) {
-        console.error('Failed to parse WebSocket message:', e);
+        this.logger.error('Failed to parse WebSocket message', e as Error, { component: 'WebSocketService' });
       }
     };
 
     this.socket.onerror = (error) => {
-      console.error('WebSocket error:', error);
+      this.logger.error('WebSocket error', undefined, { component: 'WebSocketService' });
       this.statusSubject.next('error');
     };
 
     this.socket.onclose = (event) => {
-      console.log('WebSocket closed:', event.code, event.reason);
+      this.logger.info('WebSocket closed', { component: 'WebSocketService', code: event.code, reason: event.reason });
       this.statusSubject.next('disconnected');
       this.stopPingInterval();
 
@@ -77,7 +118,7 @@ export class WebSocketService implements OnDestroy {
       if (this.reconnectAttempts < this.maxReconnectAttempts) {
         this.reconnectAttempts++;
         const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
-        console.log(`Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})`);
+        this.logger.debug(`Reconnecting in ${delay}ms`, { component: 'WebSocketService', attempt: this.reconnectAttempts });
         setTimeout(() => this.connect(token), delay);
       }
     };

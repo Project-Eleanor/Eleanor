@@ -5,11 +5,15 @@ Extracts events and normalizes to ECS format.
 """
 
 import logging
+import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, BinaryIO, Iterator
+from typing import TYPE_CHECKING, Any, BinaryIO, Iterator
 
 from app.parsers.base import BaseParser, ParsedEvent, ParserCategory
+
+if TYPE_CHECKING:
+    from evtx import PyEvtxParser
 from app.parsers.registry import register_parser
 
 logger = logging.getLogger(__name__)
@@ -140,10 +144,8 @@ class WindowsEvtxParser(BaseParser):
             logger.error(f"Failed to parse EVTX: {e}")
             raise
 
-    def _parse_log(self, log, source_name: str) -> Iterator[ParsedEvent]:
+    def _parse_log(self, log: "PyEvtxParser", source_name: str) -> Iterator[ParsedEvent]:
         """Parse an open EVTX log."""
-        import xml.etree.ElementTree as ET
-
         for record in log.records():
             try:
                 xml_str = record.xml()
@@ -153,7 +155,7 @@ class WindowsEvtxParser(BaseParser):
                 logger.debug(f"Failed to parse record: {e}")
                 continue
 
-    def _parse_record(self, root, source_name: str, record_num: int) -> ParsedEvent:
+    def _parse_record(self, root: ET.Element, source_name: str, record_num: int) -> ParsedEvent:
         """Parse a single EVTX record from XML."""
         ns = {"e": "http://schemas.microsoft.com/win/2004/08/events/event"}
 

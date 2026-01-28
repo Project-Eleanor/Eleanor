@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { Environment } from '../../../environments/environment.interface';
 import { catchError, of, tap } from 'rxjs';
+import { LoggingService } from '../services/logging.service';
 
 /**
  * Runtime configuration that can be loaded from config.json.
@@ -26,6 +27,7 @@ export class AppConfigService {
   private loaded = false;
 
   private readonly http = inject(HttpClient);
+  private readonly logger = inject(LoggingService);
 
   /**
    * Load runtime configuration from config.json.
@@ -36,10 +38,10 @@ export class AppConfigService {
       this.http.get<RuntimeConfig>('/assets/config.json').pipe(
         tap(runtimeConfig => {
           this.mergeConfig(runtimeConfig);
-          console.log('Runtime config loaded:', runtimeConfig);
+          this.logger.info('Runtime config loaded', { component: 'AppConfigService' });
         }),
-        catchError(error => {
-          console.log('No runtime config found, using defaults');
+        catchError(() => {
+          this.logger.debug('No runtime config found, using defaults', { component: 'AppConfigService' });
           return of(null);
         })
       ).subscribe(() => {

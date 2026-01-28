@@ -310,16 +310,16 @@ class OpenCTIEnrichmentProvider:
         phases = node.get("killChainPhases", [])
         if phases:
             result["kill_chain"] = [
-                {"chain": p.get("kill_chain_name"), "phase": p.get("phase_name")}
-                for p in phases
+                {"chain": phase.get("kill_chain_name"), "phase": phase.get("phase_name")}
+                for phase in phases
             ]
 
         # Extract external references
         refs = node.get("externalReferences", [])
         if refs:
             result["references"] = [
-                {"source": r.get("source_name"), "url": r.get("url")}
-                for r in refs
+                {"source": reference.get("source_name"), "url": reference.get("url")}
+                for reference in refs
             ]
 
         # Created by

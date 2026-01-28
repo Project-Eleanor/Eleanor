@@ -339,8 +339,8 @@ class VelociraptorAdapter(CollectionAdapter):
                     name=velo_artifact.name,
                     description=velo_artifact.description,
                     parameters={
-                        p.get("name"): p.get("default")
-                        for p in velo_artifact.parameters
+                        parameter.get("name"): parameter.get("default")
+                        for parameter in velo_artifact.parameters
                     },
                     category=velo_artifact.type,
                 )

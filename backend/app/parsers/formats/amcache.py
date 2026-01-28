@@ -12,7 +12,7 @@ Location: C:\\Windows\\AppCompat\\Programs\\Amcache.hve
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, AsyncIterator
+from typing import TYPE_CHECKING, Any, AsyncIterator
 from uuid import uuid4
 
 from app.parsers.base import BaseParser, ParsedEvent, ParserMetadata
@@ -22,9 +22,11 @@ logger = logging.getLogger(__name__)
 
 try:
     from dissect.regf import RegistryHive
+    from dissect.regf.regf import RegistryKey
     DISSECT_AVAILABLE = True
 except ImportError:
     DISSECT_AVAILABLE = False
+    RegistryKey = None  # type: ignore[misc, assignment]
 
 
 @register_parser
@@ -160,7 +162,7 @@ class AmcacheParser(BaseParser):
             except Exception as e:
                 logger.debug(f"Failed to parse driver entry: {e}")
 
-    def _parse_inventory_app_file_key(self, key: Any) -> dict[str, Any] | None:
+    def _parse_inventory_app_file_key(self, key: "RegistryKey") -> dict[str, Any] | None:
         """Parse InventoryApplicationFile registry key."""
         entry = {"key_name": key.name}
 

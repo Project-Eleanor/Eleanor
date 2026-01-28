@@ -123,6 +123,41 @@ class CorrelationEngine:
     """Engine for executing correlation rules against event streams.
 
     Supports multiple correlation patterns for complex threat detection.
+
+    ## State Persistence & Recovery
+
+    The CorrelationEngine uses the `CorrelationState` database model to persist
+    in-progress correlation states across executions. This is essential for:
+
+    1. **Window Continuity**: Correlation windows often span multiple rule
+       execution cycles. State persistence ensures events from earlier
+       executions are retained until the window expires.
+
+    2. **Service Restart Recovery**: If the service restarts mid-correlation,
+       active states are recovered from the database on next execution.
+
+    3. **Distributed Execution**: When running multiple engine instances,
+       the database provides shared state coordination.
+
+    ## State Lifecycle
+
+    States transition through the following statuses:
+    - ACTIVE: Correlation window is open, accumulating events
+    - TRIGGERED: Pattern was matched, alert was generated
+    - EXPIRED: Window closed without matching (cleaned up automatically)
+
+    ## Cleanup Strategy
+
+    Expired states (window_end < now) are deleted at the start of each
+    execution to prevent unbounded state growth. States that triggered
+    alerts are retained for audit purposes.
+
+    ## Example Usage
+
+    ```python
+    engine = CorrelationEngine(es_client)
+    result = await engine.execute_correlation_rule(rule, execution, db)
+    ```
     """
 
     def __init__(self, es: AsyncElasticsearch):

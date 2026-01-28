@@ -479,33 +479,33 @@ async def list_connectors(
 
     items = [
         ConnectorResponse(
-            id=c.id,
-            name=c.name,
-            description=c.description,
-            connector_type=c.connector_type,
-            status=c.status,
-            health=c.health,
-            config=mask_sensitive_config(c.config, c.connector_type),
-            target_index=c.target_index,
-            data_type=c.data_type,
-            parser_config=c.parser_config,
-            include_filters=c.include_filters,
-            exclude_filters=c.exclude_filters,
-            polling_interval=c.polling_interval,
-            events_received=c.events_received,
-            events_processed=c.events_processed,
-            events_failed=c.events_failed,
-            bytes_received=c.bytes_received,
-            last_event_at=c.last_event_at,
-            last_error_at=c.last_error_at,
-            last_error_message=c.last_error_message,
-            last_health_check_at=c.last_health_check_at,
-            tags=c.tags,
-            created_by=c.created_by,
-            created_at=c.created_at,
-            updated_at=c.updated_at,
+            id=connector.id,
+            name=connector.name,
+            description=connector.description,
+            connector_type=connector.connector_type,
+            status=connector.status,
+            health=connector.health,
+            config=mask_sensitive_config(connector.config, connector.connector_type),
+            target_index=connector.target_index,
+            data_type=connector.data_type,
+            parser_config=connector.parser_config,
+            include_filters=connector.include_filters,
+            exclude_filters=connector.exclude_filters,
+            polling_interval=connector.polling_interval,
+            events_received=connector.events_received,
+            events_processed=connector.events_processed,
+            events_failed=connector.events_failed,
+            bytes_received=connector.bytes_received,
+            last_event_at=connector.last_event_at,
+            last_error_at=connector.last_error_at,
+            last_error_message=connector.last_error_message,
+            last_health_check_at=connector.last_health_check_at,
+            tags=connector.tags,
+            created_by=connector.created_by,
+            created_at=connector.created_at,
+            updated_at=connector.updated_at,
         )
-        for c in connectors
+        for connector in connectors
     ]
 
     pages = (total + page_size - 1) // page_size if page_size else 1
@@ -913,14 +913,14 @@ async def list_connector_events(
 
     return [
         ConnectorEventResponse(
-            id=e.id,
-            connector_id=e.connector_id,
-            event_type=e.event_type,
-            message=e.message,
-            details=e.details,
-            created_at=e.created_at,
+            id=event.id,
+            connector_id=event.connector_id,
+            event_type=event.event_type,
+            message=event.message,
+            details=event.details,
+            created_at=event.created_at,
         )
-        for e in events
+        for event in events
     ]
 
 

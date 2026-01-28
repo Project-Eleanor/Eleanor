@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -17,6 +17,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatDividerModule } from '@angular/material/divider';
 import { TenantService } from '../../../core/services/tenant.service';
+import { LoggingService } from '../../../core/services/logging.service';
 import {
   Tenant,
   TenantCreate,
@@ -681,6 +682,8 @@ export class TenantsComponent implements OnInit {
     '#8bc34a', '#cddc39', '#ffc107', '#ff9800', '#ff5722'
   ];
 
+  private logger = inject(LoggingService);
+
   constructor(
     private tenantService: TenantService,
     private snackBar: MatSnackBar,
@@ -703,7 +706,7 @@ export class TenantsComponent implements OnInit {
         this.isLoading.set(false);
       },
       error: (err) => {
-        console.error('Failed to load tenants:', err);
+        this.logger.error('Failed to load tenants', err, { component: 'TenantsComponent' });
         this.snackBar.open('Failed to load tenants', 'Dismiss', { duration: 3000 });
         this.isLoading.set(false);
       }
@@ -732,14 +735,14 @@ export class TenantsComponent implements OnInit {
   loadTenantMembers(tenantId: string) {
     this.tenantService.listMembers(tenantId).subscribe({
       next: (members) => this.tenantMembers.set(members),
-      error: (err) => console.error('Failed to load members:', err)
+      error: (err) => this.logger.error('Failed to load members', err, { component: 'TenantsComponent' })
     });
   }
 
   loadTenantAPIKeys(tenantId: string) {
     this.tenantService.listAPIKeys(tenantId).subscribe({
       next: (keys) => this.tenantAPIKeys.set(keys),
-      error: (err) => console.error('Failed to load API keys:', err)
+      error: (err) => this.logger.error('Failed to load API keys', err, { component: 'TenantsComponent' })
     });
   }
 
@@ -760,7 +763,7 @@ export class TenantsComponent implements OnInit {
         this.loadTenants();
       },
       error: (err) => {
-        console.error('Failed to suspend tenant:', err);
+        this.logger.error('Failed to suspend tenant', err, { component: 'TenantsComponent' });
         this.snackBar.open('Failed to suspend tenant', 'Dismiss', { duration: 3000 });
       }
     });
@@ -773,7 +776,7 @@ export class TenantsComponent implements OnInit {
         this.loadTenants();
       },
       error: (err) => {
-        console.error('Failed to activate tenant:', err);
+        this.logger.error('Failed to activate tenant', err, { component: 'TenantsComponent' });
         this.snackBar.open('Failed to activate tenant', 'Dismiss', { duration: 3000 });
       }
     });
@@ -797,7 +800,7 @@ export class TenantsComponent implements OnInit {
         this.loadTenantAPIKeys(tenant.id);
       },
       error: (err) => {
-        console.error('Failed to revoke API key:', err);
+        this.logger.error('Failed to revoke API key', err, { component: 'TenantsComponent' });
         this.snackBar.open('Failed to revoke API key', 'Dismiss', { duration: 3000 });
       }
     });

@@ -21,6 +21,14 @@ import {
   ChartData,
 } from '../../shared/models/workbook.model';
 import { D3TimelineComponent, TimelineItem } from '../../shared/components/d3-timeline/d3-timeline.component';
+import { LoggingService } from '../../core/services/logging.service';
+
+/** Data structure for metric tile values */
+interface MetricTileData {
+  value?: number;
+  label?: string;
+  change?: number;
+}
 
 @Component({
   selector: 'app-workbook-viewer',
@@ -468,6 +476,7 @@ export class WorkbookViewerComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private workbookService = inject(WorkbookService);
   private snackBar = inject(MatSnackBar);
+  private logger = inject(LoggingService);
 
   workbook = signal<Workbook | null>(null);
   loading = signal(false);
@@ -478,7 +487,7 @@ export class WorkbookViewerComponent implements OnInit, OnDestroy {
   caseId = signal<string | null>(null);
   selectedCaseId = '';
 
-  private refreshInterval: any;
+  private refreshInterval: ReturnType<typeof setInterval> | null = null;
 
   // Chart color scheme (ngx-charts built-in scheme)
   chartColorScheme = 'cool';
@@ -516,7 +525,7 @@ export class WorkbookViewerComponent implements OnInit, OnDestroy {
         this.refreshAll();
       }
     } catch (error) {
-      console.error('Failed to load workbook:', error);
+      this.logger.error('Failed to load workbook', error as Error, { component: 'WorkbookViewerComponent' });
       this.snackBar.open('Failed to load workbook', 'Close', { duration: 3000 });
     } finally {
       this.loading.set(false);
@@ -549,7 +558,7 @@ export class WorkbookViewerComponent implements OnInit, OnDestroy {
         this.tileData.update((data) => ({ ...data, [tile.id]: response.data }));
       }
     } catch (error) {
-      console.error(`Failed to load tile ${tile.id}:`, error);
+      this.logger.error(`Failed to load tile ${tile.id}`, error as Error, { component: 'WorkbookViewerComponent', tileId: tile.id });
     } finally {
       this.tileLoading.update((state) => ({ ...state, [tile.id]: false }));
     }
@@ -565,7 +574,7 @@ export class WorkbookViewerComponent implements OnInit, OnDestroy {
     this.refreshAll();
   }
 
-  formatMetricValue(data: any): string {
+  formatMetricValue(data: MetricTileData | null | undefined): string {
     if (!data || data.value === undefined) return '-';
     const value = data.value;
     if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
@@ -621,7 +630,7 @@ export class WorkbookViewerComponent implements OnInit, OnDestroy {
 
       this.snackBar.open('Workbook exported successfully', 'Close', { duration: 3000 });
     } catch (error) {
-      console.error('Failed to export workbook:', error);
+      this.logger.error('Failed to export workbook', error as Error, { component: 'WorkbookViewerComponent' });
       this.snackBar.open('Failed to export workbook', 'Close', { duration: 3000 });
     }
   }
@@ -639,7 +648,7 @@ export class WorkbookViewerComponent implements OnInit, OnDestroy {
         this.router.navigate(['/workbooks', clone.id]);
       }
     } catch (error) {
-      console.error('Failed to clone workbook:', error);
+      this.logger.error('Failed to clone workbook', error as Error, { component: 'WorkbookViewerComponent' });
       this.snackBar.open('Failed to clone workbook', 'Close', { duration: 3000 });
     }
   }
@@ -736,7 +745,7 @@ export class WorkbookViewerComponent implements OnInit, OnDestroy {
    * Handle timeline event selection from workbook tile.
    */
   onTileEventSelected(tileId: string, event: TimelineItem): void {
-    console.log('Timeline event selected:', tileId, event);
+    this.logger.debug('Timeline event selected', { component: 'WorkbookViewerComponent', tileId, eventId: event.id });
     // Could open a detail panel or navigate to event details
     this.snackBar.open(`Event: ${event.title}`, 'Close', { duration: 3000 });
   }
@@ -790,7 +799,7 @@ export class WorkbookViewerComponent implements OnInit, OnDestroy {
 
       this.snackBar.open('PDF exported successfully', 'Close', { duration: 3000 });
     } catch (error) {
-      console.error('Failed to export PDF:', error);
+      this.logger.error('Failed to export PDF', error as Error, { component: 'WorkbookViewerComponent' });
       this.snackBar.open('Failed to export PDF. Make sure dependencies are installed.', 'Close', { duration: 5000 });
     } finally {
       this.isExporting.set(false);

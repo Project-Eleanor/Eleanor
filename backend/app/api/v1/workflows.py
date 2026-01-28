@@ -120,17 +120,17 @@ async def list_workflows(
 
     return [
         WorkflowInfo(
-            workflow_id=w.workflow_id,
-            name=w.name,
-            description=w.description,
-            category=w.category,
-            triggers=w.triggers,
-            is_active=w.is_active,
-            parameters=w.parameters,
-            created_at=w.created_at.isoformat() if w.created_at else None,
-            updated_at=w.updated_at.isoformat() if w.updated_at else None,
+            workflow_id=workflow.workflow_id,
+            name=workflow.name,
+            description=workflow.description,
+            category=workflow.category,
+            triggers=workflow.triggers,
+            is_active=workflow.is_active,
+            parameters=workflow.parameters,
+            created_at=workflow.created_at.isoformat() if workflow.created_at else None,
+            updated_at=workflow.updated_at.isoformat() if workflow.updated_at else None,
         )
-        for w in workflows
+        for workflow in workflows
     ]
 
 
@@ -204,18 +204,18 @@ async def list_executions(
 
     return [
         WorkflowExecutionInfo(
-            execution_id=e.execution_id,
-            workflow_id=e.workflow_id,
-            workflow_name=e.workflow_name,
-            status=e.status,
-            started_at=e.started_at.isoformat() if e.started_at else None,
-            completed_at=e.completed_at.isoformat() if e.completed_at else None,
-            triggered_by=e.triggered_by,
-            parameters=e.parameters,
-            results=e.results,
-            error=e.error,
+            execution_id=execution.execution_id,
+            workflow_id=execution.workflow_id,
+            workflow_name=execution.workflow_name,
+            status=execution.status,
+            started_at=execution.started_at.isoformat() if execution.started_at else None,
+            completed_at=execution.completed_at.isoformat() if execution.completed_at else None,
+            triggered_by=execution.triggered_by,
+            parameters=execution.parameters,
+            results=execution.results,
+            error=execution.error,
         )
-        for e in executions
+        for execution in executions
     ]
 
 
@@ -297,17 +297,17 @@ async def list_pending_approvals(
 
     return [
         ApprovalRequestInfo(
-            approval_id=a.approval_id,
-            execution_id=a.execution_id,
-            workflow_name=a.workflow_name,
-            action=a.action,
-            description=a.description,
-            requested_at=a.requested_at.isoformat(),
-            requested_by=a.requested_by,
-            expires_at=a.expires_at.isoformat() if a.expires_at else None,
-            parameters=a.parameters,
+            approval_id=approval.approval_id,
+            execution_id=approval.execution_id,
+            workflow_name=approval.workflow_name,
+            action=approval.action,
+            description=approval.description,
+            requested_at=approval.requested_at.isoformat(),
+            requested_by=approval.requested_by,
+            expires_at=approval.expires_at.isoformat() if approval.expires_at else None,
+            parameters=approval.parameters,
         )
-        for a in approvals
+        for approval in approvals
     ]
 
 

@@ -10,7 +10,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, BinaryIO, Iterator
 
-from app.parsers.base import BaseParser, ParsedEvent, ParserCategory
+from app.parsers.base import ParsedEvent, ParserCategory
+from app.parsers.formats.browser_sqlite_base import BrowserSQLiteParser
 from app.parsers.registry import register_parser
 
 logger = logging.getLogger(__name__)
@@ -33,7 +34,7 @@ def webkit_to_datetime(webkit_timestamp: int | None) -> datetime:
 
 
 @register_parser
-class ChromeHistoryParser(BaseParser):
+class ChromeHistoryParser(BrowserSQLiteParser):
     """Parser for Chrome browser History database."""
 
     @property
@@ -83,37 +84,17 @@ class ChromeHistoryParser(BaseParser):
         source_str = source_name or (str(source) if isinstance(source, Path) else "stream")
 
         try:
-            # For file-like objects, save to temp
-            if isinstance(source, BinaryIO) or hasattr(source, "read"):
-                import tempfile
-                with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
-                    tmp.write(source.read())
-                    db_path = tmp.name
-                cleanup = True
-            else:
-                db_path = str(source)
-                cleanup = False
-
-            try:
-                conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
-                conn.row_factory = sqlite3.Row
-
+            with self._db_context(source) as conn:
                 # Parse URL visits
                 yield from self._parse_visits(conn, source_str)
 
                 # Parse downloads
                 yield from self._parse_downloads(conn, source_str)
 
-                conn.close()
-
-            finally:
-                if cleanup:
-                    Path(db_path).unlink(missing_ok=True)
-
         except sqlite3.Error as e:
-            logger.error(f"SQLite error parsing Chrome history: {e}")
+            logger.error("SQLite error parsing Chrome history: %s", e)
         except Exception as e:
-            logger.error(f"Failed to parse Chrome history: {e}")
+            logger.error("Failed to parse Chrome history: %s", e)
             raise
 
     def _parse_visits(self, conn: sqlite3.Connection, source_name: str) -> Iterator[ParsedEvent]:
@@ -145,14 +126,8 @@ class ChromeHistoryParser(BaseParser):
                 # Parse transition type
                 transition_type = self._get_transition_type(transition)
 
-                # Extract domain
-                domain = None
-                try:
-                    from urllib.parse import urlparse
-                    parsed = urlparse(url)
-                    domain = parsed.netloc
-                except Exception:
-                    pass
+                # Extract domain using base class helper
+                domain = self._extract_domain(url)
 
                 message = f"Chrome visit: {title or url}"
                 if len(message) > 200:

@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, signal, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, Output, EventEmitter, signal, OnChanges, SimpleChanges, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -16,6 +16,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { GraphNode, GraphEdge, GraphData, PathResult, EntityType, NODE_COLORS } from '../../shared/models/graph.model';
+import { LoggingService } from '../../core/services/logging.service';
 
 interface AnnotationData {
   id: string;
@@ -668,7 +669,8 @@ export class GraphAnalyticsComponent implements OnChanges {
   annotationColors = ['#4CAF50', '#2196F3', '#FF9800', '#F44336', '#9C27B0', '#00BCD4'];
 
   timeRange: { start: Date; end: Date } | null = null;
-  private playInterval: any;
+  private playInterval: ReturnType<typeof setInterval> | null = null;
+  private logger = inject(LoggingService);
 
   constructor(private http: HttpClient) {}
 
@@ -708,7 +710,7 @@ export class GraphAnalyticsComponent implements OnChanges {
         this.pathResults.set([]);
       }
     } catch (error) {
-      console.error('Failed to find path:', error);
+      this.logger.error('Failed to find path', error as Error, { component: 'GraphAnalyticsComponent' });
     } finally {
       this.isLoadingPath.set(false);
     }
@@ -734,7 +736,7 @@ export class GraphAnalyticsComponent implements OnChanges {
         this.pathResults.set(result.paths);
       }
     } catch (error) {
-      console.error('Failed to find paths:', error);
+      this.logger.error('Failed to find paths', error as Error, { component: 'GraphAnalyticsComponent' });
     } finally {
       this.isLoadingPath.set(false);
     }
@@ -834,7 +836,7 @@ export class GraphAnalyticsComponent implements OnChanges {
 
       this.attackPaths.set(result?.attacks || []);
     } catch (error) {
-      console.error('Failed to detect attacks:', error);
+      this.logger.error('Failed to detect attacks', error as Error, { component: 'GraphAnalyticsComponent' });
       // Use mock data for demo
       this.attackPaths.set([
         {

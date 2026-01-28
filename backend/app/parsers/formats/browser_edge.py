@@ -12,25 +12,21 @@ Location: %LocalAppData%\\Microsoft\\Edge\\User Data\\Default\\
 
 import json
 import logging
+import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, AsyncIterator
 from uuid import uuid4
 
-from app.parsers.base import BaseParser, ParsedEvent, ParserMetadata
+from app.parsers.base import ParsedEvent, ParserMetadata
+from app.parsers.formats.browser_sqlite_base import BrowserSQLiteParser
 from app.parsers.registry import register_parser
 
 logger = logging.getLogger(__name__)
 
-try:
-    import sqlite3
-    SQLITE_AVAILABLE = True
-except ImportError:
-    SQLITE_AVAILABLE = False
-
 
 @register_parser
-class EdgeHistoryParser(BaseParser):
+class EdgeHistoryParser(BrowserSQLiteParser):
     """Parser for Microsoft Edge browser history."""
 
     @classmethod
@@ -53,13 +49,8 @@ class EdgeHistoryParser(BaseParser):
         **kwargs: Any,
     ) -> AsyncIterator[ParsedEvent]:
         """Parse Edge History SQLite database."""
-        if not SQLITE_AVAILABLE:
-            logger.error("sqlite3 module required for Edge history parsing")
-            return
-
         try:
-            conn = sqlite3.connect(f"file:{file_path}?mode=ro", uri=True)
-            conn.row_factory = sqlite3.Row
+            conn = self._connect_readonly(file_path)
             cursor = conn.cursor()
 
             # Query browsing history

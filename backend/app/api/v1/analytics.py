@@ -259,37 +259,37 @@ async def list_rules(
 
     items = [
         RuleResponse(
-            id=r.id,
-            name=r.name,
-            description=r.description,
-            rule_type=r.rule_type,
-            severity=r.severity,
-            status=r.status,
-            query=r.query,
-            query_language=r.query_language,
-            indices=r.indices,
-            schedule_interval=r.schedule_interval,
-            lookback_period=r.lookback_period,
-            threshold_count=r.threshold_count,
-            threshold_field=r.threshold_field,
-            mitre_tactics=r.mitre_tactics,
-            mitre_techniques=r.mitre_techniques,
-            tags=r.tags,
-            category=r.category,
-            data_sources=r.data_sources,
-            auto_create_incident=r.auto_create_incident,
-            playbook_id=r.playbook_id,
-            references=r.references,
-            custom_fields=r.custom_fields,
-            correlation_config=r.correlation_config,
-            created_by=r.created_by,
-            created_at=r.created_at,
-            updated_at=r.updated_at,
-            last_run_at=r.last_run_at,
-            hit_count=r.hit_count,
-            false_positive_count=r.false_positive_count,
+            id=rule.id,
+            name=rule.name,
+            description=rule.description,
+            rule_type=rule.rule_type,
+            severity=rule.severity,
+            status=rule.status,
+            query=rule.query,
+            query_language=rule.query_language,
+            indices=rule.indices,
+            schedule_interval=rule.schedule_interval,
+            lookback_period=rule.lookback_period,
+            threshold_count=rule.threshold_count,
+            threshold_field=rule.threshold_field,
+            mitre_tactics=rule.mitre_tactics,
+            mitre_techniques=rule.mitre_techniques,
+            tags=rule.tags,
+            category=rule.category,
+            data_sources=rule.data_sources,
+            auto_create_incident=rule.auto_create_incident,
+            playbook_id=rule.playbook_id,
+            references=rule.references,
+            custom_fields=rule.custom_fields,
+            correlation_config=rule.correlation_config,
+            created_by=rule.created_by,
+            created_at=rule.created_at,
+            updated_at=rule.updated_at,
+            last_run_at=rule.last_run_at,
+            hit_count=rule.hit_count,
+            false_positive_count=rule.false_positive_count,
         )
-        for r in rules
+        for rule in rules
     ]
 
     pages = (total + page_size - 1) // page_size if page_size else 1
@@ -640,18 +640,18 @@ async def list_rule_executions(
 
     return [
         ExecutionResponse(
-            id=e.id,
-            rule_id=e.rule_id,
-            started_at=e.started_at,
-            completed_at=e.completed_at,
-            duration_ms=e.duration_ms,
-            status=e.status,
-            hits_count=e.hits_count,
-            events_scanned=e.events_scanned,
-            error_message=e.error_message,
-            incidents_created=e.incidents_created,
+            id=execution.id,
+            rule_id=execution.rule_id,
+            started_at=execution.started_at,
+            completed_at=execution.completed_at,
+            duration_ms=execution.duration_ms,
+            status=execution.status,
+            hits_count=execution.hits_count,
+            events_scanned=execution.events_scanned,
+            error_message=execution.error_message,
+            incidents_created=execution.incidents_created,
         )
-        for e in executions
+        for execution in executions
     ]
 
 
@@ -1068,12 +1068,12 @@ async def list_correlation_templates(
     """List available correlation rule templates."""
     return [
         CorrelationTemplate(
-            name=t["name"],
-            description=t["description"],
-            pattern_type=t["pattern_type"],
-            config=t["config"],
+            name=correlation_template["name"],
+            description=correlation_template["description"],
+            pattern_type=correlation_template["pattern_type"],
+            config=correlation_template["config"],
         )
-        for t in CORRELATION_TEMPLATES
+        for correlation_template in CORRELATION_TEMPLATES
     ]
 
 

@@ -10,7 +10,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import BinaryIO, Iterator
 
-from app.parsers.base import BaseParser, ParsedEvent, ParserCategory
+from app.parsers.base import ParsedEvent, ParserCategory
+from app.parsers.formats.browser_sqlite_base import BrowserSQLiteParser
 from app.parsers.registry import register_parser
 
 logger = logging.getLogger(__name__)
@@ -30,7 +31,7 @@ def moz_timestamp_to_datetime(moz_timestamp: int | None) -> datetime:
 
 
 @register_parser
-class FirefoxHistoryParser(BaseParser):
+class FirefoxHistoryParser(BrowserSQLiteParser):
     """Parser for Firefox places.sqlite database."""
 
     @property
@@ -74,21 +75,7 @@ class FirefoxHistoryParser(BaseParser):
         source_str = source_name or (str(source) if isinstance(source, Path) else "stream")
 
         try:
-            # Handle file-like objects
-            if isinstance(source, BinaryIO) or hasattr(source, "read"):
-                import tempfile
-                with tempfile.NamedTemporaryFile(suffix=".sqlite", delete=False) as tmp:
-                    tmp.write(source.read())
-                    db_path = tmp.name
-                cleanup = True
-            else:
-                db_path = str(source)
-                cleanup = False
-
-            try:
-                conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
-                conn.row_factory = sqlite3.Row
-
+            with self._db_context(source) as conn:
                 # Parse history visits
                 yield from self._parse_visits(conn, source_str)
 
@@ -98,16 +85,10 @@ class FirefoxHistoryParser(BaseParser):
                 # Parse bookmarks
                 yield from self._parse_bookmarks(conn, source_str)
 
-                conn.close()
-
-            finally:
-                if cleanup:
-                    Path(db_path).unlink(missing_ok=True)
-
         except sqlite3.Error as e:
-            logger.error(f"SQLite error parsing Firefox history: {e}")
+            logger.error("SQLite error parsing Firefox history: %s", e)
         except Exception as e:
-            logger.error(f"Failed to parse Firefox history: {e}")
+            logger.error("Failed to parse Firefox history: %s", e)
             raise
 
     def _parse_visits(self, conn: sqlite3.Connection, source_name: str) -> Iterator[ParsedEvent]:

@@ -144,8 +144,8 @@ class ShuffleAdapter(SOARAdapter):
             triggers=shuffle_wf.trigger_types,
             is_active=shuffle_wf.status == "production",
             parameters=[
-                {"name": v.get("name"), "type": v.get("type", "string")}
-                for v in shuffle_wf.workflow_variables
+                {"name": variable.get("name"), "type": variable.get("type", "string")}
+                for variable in shuffle_wf.workflow_variables
             ],
             created_at=shuffle_wf.created,
             updated_at=shuffle_wf.edited,

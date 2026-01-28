@@ -957,10 +957,36 @@ export class HuntingConsoleComponent implements OnInit {
     });
   }
 
+  /**
+   * Extract Indicators of Compromise (IOCs) from event data.
+   *
+   * SECURITY: IP Address Filtering
+   * Private/internal IP ranges are excluded to prevent false positives and
+   * unnecessary threat intelligence lookups:
+   * - 10.0.0.0/8 (Class A private)
+   * - 192.168.0.0/16 (Class C private)
+   * - 127.0.0.0/8 (Loopback)
+   *
+   * Note: 172.16.0.0/12 is NOT currently filtered. Consider adding if needed.
+   *
+   * IOC Type Detection:
+   * - IP addresses: Full IPv4 validation, context-aware (field name contains 'ip')
+   * - File hashes: MD5 (32 hex), SHA1 (40 hex), SHA256 (64 hex)
+   * - Domains: FQDN pattern, excludes strings with spaces
+   *
+   * @param source - Event data object to extract IOCs from
+   * @returns Array of unique indicators with their detected type
+   */
   private extractIndicators(source: Record<string, unknown>): { value: string; type: string }[] {
     const indicators: { value: string; type: string }[] = [];
+
+    // IPv4 validation pattern - matches valid octets (0-255)
     const ipPattern = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+
+    // File hash patterns - MD5 (32), SHA1 (40), SHA256 (64) hex characters
     const hashPattern = /^[a-fA-F0-9]{32}$|^[a-fA-F0-9]{40}$|^[a-fA-F0-9]{64}$/;
+
+    // Domain pattern - valid FQDN with TLD (2+ chars)
     const domainPattern = /^(?!-)([a-zA-Z0-9-]{1,63}(?<!-)\.)+[a-zA-Z]{2,}$/;
 
     const extractFromValue = (key: string, value: unknown) => {
@@ -968,14 +994,14 @@ export class HuntingConsoleComponent implements OnInit {
 
       const lowerKey = key.toLowerCase();
 
-      // Check for IPs
+      // Check for IPs - exclude RFC1918 private ranges and loopback
       if (lowerKey.includes('ip') || ipPattern.test(value)) {
         if (ipPattern.test(value) && !value.startsWith('10.') && !value.startsWith('192.168.') && !value.startsWith('127.')) {
           indicators.push({ value, type: 'ip' });
         }
       }
 
-      // Check for hashes
+      // Check for hashes - type determined by length
       if (lowerKey.includes('hash') || lowerKey.includes('md5') || lowerKey.includes('sha')) {
         if (hashPattern.test(value)) {
           const type = value.length === 32 ? 'md5' : value.length === 40 ? 'sha1' : 'sha256';
@@ -983,7 +1009,7 @@ export class HuntingConsoleComponent implements OnInit {
         }
       }
 
-      // Check for domains/URLs
+      // Check for domains/URLs - normalize to lowercase
       if (lowerKey.includes('domain') || lowerKey.includes('url') || lowerKey.includes('host')) {
         if (domainPattern.test(value) && !value.includes(' ')) {
           indicators.push({ value: value.toLowerCase(), type: 'domain' });

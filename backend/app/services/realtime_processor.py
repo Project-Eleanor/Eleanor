@@ -11,7 +11,7 @@ Designed for high-throughput event processing with minimal latency.
 
 import asyncio
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
@@ -76,7 +76,7 @@ class RealtimeProcessor:
             return
 
         self._running = True
-        self._start_time = datetime.utcnow()
+        self._start_time = datetime.now(timezone.utc)
 
         logger.info("Starting real-time processor with %d workers", workers)
 

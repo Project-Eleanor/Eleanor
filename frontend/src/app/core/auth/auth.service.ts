@@ -5,6 +5,7 @@ import { Observable, tap, catchError, throwError, BehaviorSubject, filter, take,
 import { User, TokenResponse, LoginRequest } from '../../shared/models';
 import { AppConfigService } from '../config/app-config.service';
 import { RbacService } from '../api/rbac.service';
+import { LoggingService } from '../services/logging.service';
 
 const TOKEN_KEY = 'eleanor_token';
 const TOKEN_EXPIRY_KEY = 'eleanor_token_expiry';
@@ -16,6 +17,7 @@ const USER_KEY = 'eleanor_user';
 export class AuthService implements OnDestroy {
   private readonly config = inject(AppConfigService);
   private readonly injector = inject(Injector);
+  private readonly logger = inject(LoggingService);
   private get apiUrl(): string { return this.config.apiUrl; }
   private get refreshThreshold(): number { return this.config.auth.tokenRefreshThreshold; }
 
@@ -94,7 +96,7 @@ export class AuthService implements OnDestroy {
         this.loadCurrentUser();
       }),
       catchError(error => {
-        console.error('Login failed:', error);
+        this.logger.error('Login failed', error, { component: 'AuthService' });
         return throwError(() => error);
       })
     );
@@ -118,7 +120,7 @@ export class AuthService implements OnDestroy {
         this.loadPermissions();
       }),
       catchError(error => {
-        console.error('Failed to load user:', error);
+        this.logger.error('Failed to load user', error, { component: 'AuthService' });
         return throwError(() => error);
       })
     ).subscribe();
@@ -129,7 +131,7 @@ export class AuthService implements OnDestroy {
     runInInjectionContext(this.injector, () => {
       const rbacService = inject(RbacService);
       rbacService.getMyPermissions().subscribe({
-        error: (err) => console.error('Failed to load permissions:', err)
+        error: (err) => this.logger.error('Failed to load permissions', err, { component: 'AuthService' })
       });
     });
   }
