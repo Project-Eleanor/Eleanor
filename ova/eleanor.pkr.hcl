@@ -134,6 +134,12 @@ variable "vsphere_folder" {
   description = "VM folder for build VMs"
 }
 
+variable "http_bind_address" {
+  type        = string
+  default     = ""
+  description = "IP address to bind HTTP server (for cloud-init). Leave empty for auto-detect."
+}
+
 # Local variables
 locals {
   build_timestamp = formatdate("YYYYMMDD-hhmm", timestamp())
@@ -211,19 +217,28 @@ source "vsphere-iso" "eleanor" {
   iso_url      = var.iso_url
   iso_checksum = var.iso_checksum
 
-  http_directory = "cloud-init"
+  # Mount cloud-init data as secondary CD-ROM
+  cd_files = [
+    "./cloud-init/meta-data",
+    "./cloud-init/user-data"
+  ]
+  cd_label = "CIDATA"
 
-  boot_wait = "5s"
+  ip_wait_timeout   = "45m"
+  ip_settle_timeout = "30s"
+
+  boot_wait = "3s"
   boot_command = [
-    "c<wait>",
-    "linux /casper/vmlinuz --- autoinstall ds='nocloud-net;s=http://{{ .HTTPIP }}:{{ .HTTPPort }}/'<enter><wait>",
-    "initrd /casper/initrd<enter><wait>",
-    "boot<enter>"
+    "e<wait3s>",
+    "<down><down><down><end>",
+    " autoinstall",
+    "<f10>"
   ]
 
-  ssh_username = var.ssh_username
-  ssh_password = var.ssh_password
-  ssh_timeout  = "30m"
+  ssh_username         = var.ssh_username
+  ssh_password         = var.ssh_password
+  ssh_private_key_file = pathexpand("~/.ssh/id_ed25519")
+  ssh_timeout          = "30m"
 
   shutdown_command = "echo '${var.ssh_password}' | sudo -S shutdown -P now"
 
@@ -251,15 +266,15 @@ source "virtualbox-iso" "eleanor" {
 
   boot_wait = "5s"
   boot_command = [
-    "c<wait>",
-    "linux /casper/vmlinuz --- autoinstall ds='nocloud-net;s=http://{{ .HTTPIP }}:{{ .HTTPPort }}/'<enter><wait>",
-    "initrd /casper/initrd<enter><wait>",
-    "boot<enter>"
+    "e<wait3s>",
+    "<down><down><down><end>",
+    " autoinstall ds='nocloud-net;s=http://{{ .HTTPIP }}:{{ .HTTPPort }}/'",
+    "<f10>"
   ]
 
   ssh_username         = var.ssh_username
   ssh_password         = var.ssh_password
-  ssh_timeout          = "30m"
+  ssh_timeout          = "45m"
 
   shutdown_command = "echo '${var.ssh_password}' | sudo -S shutdown -P now"
 
