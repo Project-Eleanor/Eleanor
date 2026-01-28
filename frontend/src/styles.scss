@@ -71,6 +71,17 @@ html {
   --focus-ring: rgba(74, 158, 255, 0.4);
   --selection-bg: rgba(74, 158, 255, 0.3);
 
+  // Glow effects (matching project-eleanor.com)
+  --glow-accent: rgba(74, 158, 255, 0.15);
+  --glow-accent-strong: rgba(74, 158, 255, 0.25);
+  --glow-success: rgba(63, 185, 80, 0.15);
+  --glow-warning: rgba(210, 153, 34, 0.15);
+  --glow-danger: rgba(248, 81, 73, 0.15);
+
+  // Border variants (subtle transitions like the website)
+  --border-subtle: rgba(74, 158, 255, 0.1);
+  --border-hover: rgba(74, 158, 255, 0.25);
+
   // Font families
   --font-display: 'Syne', sans-serif;
   --font-body: 'Manrope', sans-serif;
@@ -195,10 +206,17 @@ a {
   color: var(--text-primary);
 }
 
-// Angular Material overrides
+// Angular Material overrides (refined like project-eleanor.com)
 .mat-mdc-card {
   background-color: $bg-card !important;
-  border: 1px solid $border-color;
+  border: 1px solid $border-color !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+  transition: border-color 0.2s ease, background-color 0.2s ease !important;
+
+  &:hover {
+    border-color: var(--border-hover) !important;
+  }
 }
 
 .mat-mdc-dialog-container {
@@ -265,49 +283,42 @@ a {
   &.severity-info { background-color: var(--severity-info) !important; }
 }
 
-// Button enhancements
-.mat-mdc-button, .mat-mdc-raised-button, .mat-mdc-flat-button {
+// Button enhancements (refined, subtle interactions like project-eleanor.com)
+.mat-mdc-button, .mat-mdc-raised-button, .mat-mdc-flat-button, .mat-mdc-stroked-button {
   font-family: var(--font-body) !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.3px;
+  font-weight: 500 !important;
+  letter-spacing: 0.2px;
   transition: all 0.2s ease !important;
+  border-radius: 6px !important;
+}
+
+// Accent/primary buttons
+.mat-mdc-raised-button.mat-accent,
+.mat-mdc-flat-button.mat-accent,
+.mat-mdc-unelevated-button.mat-accent {
+  background: var(--accent) !important;
+  color: white !important;
 
   &:hover:not(:disabled) {
-    transform: translateY(-1px);
-  }
-
-  &:active:not(:disabled) {
-    transform: translateY(0);
+    background: var(--accent-light) !important;
+    box-shadow: 0 0 20px var(--glow-accent);
   }
 }
 
-// Primary/accent buttons get shimmer on hover
-.mat-mdc-raised-button.mat-accent,
-.mat-mdc-flat-button.mat-accent {
-  position: relative;
-  overflow: hidden;
+// Stroked/outlined buttons
+.mat-mdc-stroked-button {
+  border-color: var(--border-color) !important;
 
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      rgba(255, 255, 255, 0.1) 50%,
-      transparent 100%
-    );
-    background-size: 200% 100%;
-    opacity: 0;
-    transition: opacity 0.3s ease;
+  &:hover:not(:disabled) {
+    border-color: var(--border-hover) !important;
+    background: var(--glow-accent) !important;
   }
+}
 
-  &:hover::before {
-    opacity: 1;
-    animation: shimmer 1.5s ease-in-out infinite;
+// Text buttons
+.mat-mdc-button {
+  &:hover:not(:disabled) {
+    background: var(--glow-accent) !important;
   }
 }
 
@@ -352,17 +363,51 @@ a {
   &.status-unhealthy { background-color: $danger; color: white; }
 }
 
-// Card styles
+// Card styles (refined like project-eleanor.com)
 .eleanor-card {
   background-color: $bg-card;
   border: 1px solid $border-color;
-  border-radius: 8px;
-  padding: 16px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  border-radius: 12px;
+  padding: 20px;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
 
   &:hover {
-    border-color: rgba($accent, 0.5);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    border-color: var(--border-hover);
+    background-color: rgba($bg-card, 0.9);
+  }
+
+  // Card with accent glow variant
+  &.glow-accent {
+    &:hover {
+      box-shadow: 0 0 30px var(--glow-accent);
+    }
+  }
+
+  // Success state card
+  &.card-success {
+    border-color: var(--glow-success);
+
+    &:hover {
+      border-color: var(--success);
+    }
+  }
+
+  // Warning state card
+  &.card-warning {
+    border-color: var(--glow-warning);
+
+    &:hover {
+      border-color: var(--warning);
+    }
+  }
+
+  // Danger state card
+  &.card-danger {
+    border-color: var(--glow-danger);
+
+    &:hover {
+      border-color: var(--danger);
+    }
   }
 }
 

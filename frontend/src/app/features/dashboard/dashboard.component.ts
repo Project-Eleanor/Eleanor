@@ -201,94 +201,105 @@ import { IntegrationStatus, Case, Hunt, ApprovalRequest } from '../../shared/mod
     </div>
   `,
   styles: [`
+    /*
+     * DESIGN: Refined dashboard styles matching project-eleanor.com
+     * - Subtle hover effects (border transitions, no dramatic transforms)
+     * - Glow accents using CSS variables
+     * - Clean, understated elevation
+     */
     .dashboard {
       max-width: 1400px;
       margin: 0 auto;
-      animation: fadeIn 0.3s ease-out;
+      animation: fadeIn 0.4s ease-out;
     }
 
     @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(8px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     .section {
-      margin-bottom: 32px;
+      margin-bottom: 40px;
     }
 
     .section-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 16px;
+      margin-bottom: 20px;
     }
 
     .section-title {
       font-family: var(--font-display);
-      font-size: 18px;
+      font-size: 16px;
       font-weight: 600;
-      color: var(--text-primary);
-      margin: 0 0 16px 0;
-      letter-spacing: -0.3px;
+      color: var(--text-secondary);
+      margin: 0 0 20px 0;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
     }
 
     .loading-container {
       display: flex;
       justify-content: center;
-      padding: 48px;
+      padding: 64px;
     }
 
-    /* Integration Grid */
+    /* Integration Grid - Refined */
     .integration-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 16px;
+      gap: 20px;
     }
 
     .integration-card {
       background: var(--bg-card);
       border: 1px solid var(--border-color);
-      transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+      border-radius: 12px;
+      transition: border-color 0.2s ease, background-color 0.2s ease;
 
       &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+        border-color: var(--border-hover);
       }
 
       &.healthy {
-        border-color: rgba(63, 185, 80, 0.3);
+        border-color: var(--glow-success);
 
         &:hover {
           border-color: var(--success);
+          box-shadow: 0 0 30px var(--glow-success);
         }
       }
 
       &.unhealthy {
-        border-color: rgba(248, 81, 73, 0.3);
+        border-color: var(--glow-danger);
 
         &:hover {
           border-color: var(--danger);
+          box-shadow: 0 0 30px var(--glow-danger);
         }
       }
 
       mat-card-avatar {
-        font-size: 28px;
+        font-size: 24px;
         width: 40px;
         height: 40px;
         display: flex;
         align-items: center;
         justify-content: center;
+        border-radius: 10px;
+        background: var(--glow-accent);
       }
 
       mat-card-title {
         font-family: var(--font-display);
         font-weight: 600;
+        font-size: 15px;
+      }
+
+      mat-card-subtitle {
+        font-size: 13px;
+        color: var(--text-secondary);
       }
     }
 
@@ -296,31 +307,32 @@ import { IntegrationStatus, Case, Hunt, ApprovalRequest } from '../../shared/mod
       display: flex;
       align-items: center;
       gap: 12px;
-      margin-top: 8px;
+      margin-top: 12px;
     }
 
     .status-badge {
       display: inline-flex;
       align-items: center;
-      padding: 4px 12px;
-      border-radius: 12px;
-      font-size: 12px;
-      font-weight: 500;
-      text-transform: capitalize;
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
 
-      &.status-connected { background: var(--success); color: black; }
-      &.status-disconnected { background: var(--text-muted); color: white; }
-      &.status-error { background: var(--danger); color: white; }
-      &.status-running { background: var(--info); color: white; }
-      &.status-pending { background: var(--warning); color: black; }
-      &.status-open { background: var(--info); color: white; }
-      &.status-in_progress { background: var(--warning); color: black; }
-      &.status-closed { background: var(--success); color: black; }
+      &.status-connected { background: var(--glow-success); color: var(--success); border: 1px solid var(--success); }
+      &.status-disconnected { background: rgba(74, 85, 104, 0.2); color: var(--text-muted); border: 1px solid var(--text-muted); }
+      &.status-error { background: var(--glow-danger); color: var(--danger); border: 1px solid var(--danger); }
+      &.status-running { background: var(--glow-accent); color: var(--accent); border: 1px solid var(--accent); }
+      &.status-pending { background: var(--glow-warning); color: var(--warning); border: 1px solid var(--warning); }
+      &.status-open { background: var(--glow-accent); color: var(--accent); border: 1px solid var(--accent); }
+      &.status-in_progress { background: var(--glow-warning); color: var(--warning); border: 1px solid var(--warning); }
+      &.status-closed { background: var(--glow-success); color: var(--success); border: 1px solid var(--success); }
     }
 
     .version {
-      color: var(--text-secondary);
-      font-size: 12px;
+      color: var(--text-muted);
+      font-size: 11px;
       font-family: var(--font-mono);
     }
 
@@ -328,48 +340,54 @@ import { IntegrationStatus, Case, Hunt, ApprovalRequest } from '../../shared/mod
       color: var(--danger);
       font-size: 12px;
       margin-top: 8px;
+      opacity: 0.9;
     }
 
     .status-connected { color: var(--success); }
     .status-disconnected { color: var(--text-muted); }
     .status-error { color: var(--danger); }
 
-    /* Stats Grid */
+    /* Stats Grid - Refined */
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: 16px;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 20px;
     }
 
     .stat-card {
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 20px;
       padding: 24px;
       background: var(--bg-card);
       border: 1px solid var(--border-color);
+      border-radius: 12px;
       position: relative;
       overflow: hidden;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      transition: border-color 0.2s ease;
 
       &:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+        border-color: var(--border-hover);
 
         .stat-accent {
-          height: 100%;
+          opacity: 1;
+        }
+
+        .stat-icon {
+          transform: scale(1.05);
         }
       }
     }
 
     .stat-accent {
       position: absolute;
+      top: 0;
       left: 0;
-      bottom: 0;
-      width: 3px;
-      height: 0;
+      right: 0;
+      height: 2px;
       background: var(--accent);
-      transition: height 0.3s ease;
+      opacity: 0;
+      transition: opacity 0.3s ease;
 
       &.warning { background: var(--warning); }
       &.success { background: var(--success); }
@@ -377,24 +395,36 @@ import { IntegrationStatus, Case, Hunt, ApprovalRequest } from '../../shared/mod
     }
 
     .stat-icon {
-      width: 52px;
-      height: 52px;
+      width: 48px;
+      height: 48px;
       border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
+      transition: transform 0.2s ease;
 
       mat-icon {
-        color: white;
-        font-size: 26px;
-        width: 26px;
-        height: 26px;
+        font-size: 24px;
+        width: 24px;
+        height: 24px;
       }
 
-      &.bg-info { background: linear-gradient(135deg, var(--info) 0%, #3d8bd9 100%); }
-      &.bg-warning { background: linear-gradient(135deg, var(--warning) 0%, #b8840a 100%); mat-icon { color: black; } }
-      &.bg-success { background: linear-gradient(135deg, var(--success) 0%, #2d9a40 100%); mat-icon { color: black; } }
-      &.bg-accent { background: linear-gradient(135deg, var(--accent) 0%, #2d7dd2 100%); }
+      &.bg-info {
+        background: var(--glow-accent);
+        mat-icon { color: var(--accent); }
+      }
+      &.bg-warning {
+        background: var(--glow-warning);
+        mat-icon { color: var(--warning); }
+      }
+      &.bg-success {
+        background: var(--glow-success);
+        mat-icon { color: var(--success); }
+      }
+      &.bg-accent {
+        background: var(--glow-accent);
+        mat-icon { color: var(--accent); }
+      }
     }
 
     .stat-content {
@@ -404,74 +434,76 @@ import { IntegrationStatus, Case, Hunt, ApprovalRequest } from '../../shared/mod
 
     .stat-value {
       font-family: var(--font-display);
-      font-size: 32px;
+      font-size: 28px;
       font-weight: 700;
       color: var(--text-primary);
       line-height: 1;
     }
 
     .stat-label {
-      font-size: 14px;
+      font-size: 13px;
       color: var(--text-secondary);
-      margin-top: 4px;
+      margin-top: 6px;
     }
 
-    /* Cases List */
+    /* Cases List - Refined */
     .cases-list {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-      gap: 16px;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 20px;
     }
 
     .case-card {
       padding: 20px;
       background: var(--bg-card);
       border: 1px solid var(--border-color);
+      border-radius: 12px;
       cursor: pointer;
       position: relative;
       overflow: hidden;
-      transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+      transition: border-color 0.2s ease, background-color 0.2s ease;
 
       &:hover {
-        border-color: rgba(74, 158, 255, 0.5);
-        transform: translateY(-2px);
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+        border-color: var(--border-hover);
+        background: rgba(20, 26, 36, 0.8);
 
         .case-accent {
-          width: 100%;
+          opacity: 1;
         }
       }
     }
 
     .case-accent {
       position: absolute;
-      bottom: 0;
+      top: 0;
       left: 0;
-      width: 0;
+      right: 0;
       height: 2px;
       background: linear-gradient(90deg, var(--accent), var(--accent-light));
-      transition: width 0.3s ease;
+      opacity: 0;
+      transition: opacity 0.3s ease;
     }
 
     .case-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
     }
 
     .case-number {
-      font-size: 12px;
-      color: var(--text-secondary);
+      font-size: 11px;
+      color: var(--text-muted);
       font-family: var(--font-mono);
+      letter-spacing: 0.5px;
     }
 
     .case-title {
       font-family: var(--font-display);
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 600;
       color: var(--text-primary);
-      margin: 0 0 12px 0;
+      margin: 0 0 14px 0;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -480,39 +512,40 @@ import { IntegrationStatus, Case, Hunt, ApprovalRequest } from '../../shared/mod
     .case-meta {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 14px;
       font-size: 12px;
       color: var(--text-secondary);
 
       .assignee {
         display: flex;
         align-items: center;
-        gap: 4px;
+        gap: 5px;
 
         mat-icon {
           font-size: 14px;
           width: 14px;
           height: 14px;
+          opacity: 0.7;
         }
       }
     }
 
-    /* Hunts List */
+    /* Hunts List - Refined */
     .hunts-list {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 16px;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 20px;
     }
 
     .hunt-card {
       padding: 20px;
       background: var(--bg-card);
       border: 1px solid var(--border-color);
-      transition: border-color 0.2s ease, transform 0.2s ease;
+      border-radius: 12px;
+      transition: border-color 0.2s ease;
 
       &:hover {
-        border-color: rgba(74, 158, 255, 0.3);
-        transform: translateY(-2px);
+        border-color: var(--border-hover);
       }
     }
 
@@ -520,11 +553,11 @@ import { IntegrationStatus, Case, Hunt, ApprovalRequest } from '../../shared/mod
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
 
       h3 {
         font-family: var(--font-display);
-        font-size: 16px;
+        font-size: 15px;
         font-weight: 600;
         margin: 0;
         color: var(--text-primary);
@@ -532,35 +565,37 @@ import { IntegrationStatus, Case, Hunt, ApprovalRequest } from '../../shared/mod
     }
 
     .hunt-artifact {
-      font-size: 12px;
-      color: var(--text-secondary);
-      margin: 0 0 12px 0;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin: 0 0 14px 0;
       font-family: var(--font-mono);
+      letter-spacing: 0.3px;
     }
 
     .hunt-progress {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 14px;
     }
 
     .progress-bar {
       flex: 1;
-      height: 6px;
+      height: 4px;
       background: var(--bg-tertiary);
-      border-radius: 3px;
+      border-radius: 2px;
       overflow: hidden;
     }
 
     .progress-fill {
       height: 100%;
-      background: linear-gradient(90deg, var(--success) 0%, #4ade80 100%);
-      transition: width 0.3s ease;
+      background: var(--success);
+      border-radius: 2px;
+      transition: width 0.4s ease;
     }
 
     .progress-text {
-      font-size: 12px;
-      color: var(--text-secondary);
+      font-size: 11px;
+      color: var(--text-muted);
       white-space: nowrap;
       font-family: var(--font-mono);
     }
@@ -570,31 +605,52 @@ import { IntegrationStatus, Case, Hunt, ApprovalRequest } from '../../shared/mod
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 48px;
+      padding: 64px;
       background: var(--bg-card);
       border: 1px solid var(--border-color);
+      border-radius: 12px;
       color: var(--text-muted);
 
       mat-icon {
-        font-size: 48px;
-        width: 48px;
-        height: 48px;
-        margin-bottom: 12px;
-        opacity: 0.5;
+        font-size: 40px;
+        width: 40px;
+        height: 40px;
+        margin-bottom: 16px;
+        opacity: 0.4;
       }
 
       p {
         margin: 0;
-        font-size: 14px;
+        font-size: 13px;
       }
     }
 
-    /* Severity chips */
-    .severity-critical { background: var(--severity-critical) !important; color: white !important; }
-    .severity-high { background: var(--severity-high) !important; color: white !important; }
-    .severity-medium { background: var(--severity-medium) !important; color: black !important; }
-    .severity-low { background: var(--severity-low) !important; color: white !important; }
-    .severity-info { background: var(--severity-info) !important; color: white !important; }
+    /* Severity chips - Refined */
+    .severity-critical {
+      background: var(--glow-danger) !important;
+      color: var(--danger) !important;
+      border: 1px solid var(--danger) !important;
+    }
+    .severity-high {
+      background: rgba(249, 115, 22, 0.15) !important;
+      color: #f97316 !important;
+      border: 1px solid #f97316 !important;
+    }
+    .severity-medium {
+      background: var(--glow-warning) !important;
+      color: var(--warning) !important;
+      border: 1px solid var(--warning) !important;
+    }
+    .severity-low {
+      background: var(--glow-accent) !important;
+      color: var(--accent) !important;
+      border: 1px solid var(--accent) !important;
+    }
+    .severity-info {
+      background: rgba(110, 118, 129, 0.15) !important;
+      color: #6e7681 !important;
+      border: 1px solid #6e7681 !important;
+    }
   `]
 })
 export class DashboardComponent implements OnInit {

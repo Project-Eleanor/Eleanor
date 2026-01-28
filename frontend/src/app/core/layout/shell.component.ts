@@ -151,6 +151,12 @@ interface NavGroup {
     </div>
   `,
   styles: [`
+    /*
+     * DESIGN: Shell layout matching project-eleanor.com aesthetic
+     * - Clean sidebar with subtle glow effects
+     * - Understated hover interactions
+     * - Refined border treatments
+     */
     .shell-container {
       display: flex;
       height: 100vh;
@@ -158,32 +164,33 @@ interface NavGroup {
       overflow: hidden;
     }
 
-    /* Sidebar */
+    /* Sidebar - Refined */
     .sidebar {
       width: 240px;
       min-width: 240px;
-      background: linear-gradient(180deg, var(--bg-secondary) 0%, #0f141c 100%);
+      background: var(--bg-secondary);
       border-right: 1px solid var(--border-color);
       display: flex;
       flex-direction: column;
       transition: width 0.2s ease, min-width 0.2s ease;
       position: relative;
 
-      /* Subtle radial pattern overlay */
+      /* Subtle top glow */
       &::before {
         content: '';
         position: absolute;
         top: 0;
         left: 0;
         right: 0;
-        bottom: 0;
-        background: radial-gradient(ellipse at 50% 0%, rgba(74, 158, 255, 0.03) 0%, transparent 70%);
+        height: 200px;
+        background: radial-gradient(ellipse at 50% 0%, var(--glow-accent) 0%, transparent 70%);
         pointer-events: none;
+        opacity: 0.5;
       }
 
       &.collapsed {
-        width: 64px;
-        min-width: 64px;
+        width: 68px;
+        min-width: 68px;
       }
     }
 
@@ -191,8 +198,8 @@ interface NavGroup {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 16px;
-      height: 64px;
+      padding: 20px 16px;
+      height: 68px;
       position: relative;
       z-index: 1;
     }
@@ -208,98 +215,98 @@ interface NavGroup {
     }
 
     .logo-img {
-      width: 36px;
-      height: 36px;
+      width: 32px;
+      height: 32px;
       object-fit: contain;
-      border-radius: 6px;
-      filter: drop-shadow(0 2px 8px rgba(74, 158, 255, 0.3));
-      transition: filter 0.3s ease, transform 0.3s ease;
+      border-radius: 8px;
+      filter: drop-shadow(0 0 12px var(--glow-accent));
+      transition: filter 0.2s ease;
 
       &:hover {
-        filter: drop-shadow(0 4px 16px rgba(74, 158, 255, 0.5));
-        transform: scale(1.05);
+        filter: drop-shadow(0 0 20px var(--glow-accent-strong));
       }
     }
 
     .logo-text {
       font-family: var(--font-display);
-      font-size: 22px;
+      font-size: 20px;
       font-weight: 700;
-      background: linear-gradient(135deg, var(--text-primary) 0%, var(--silver) 50%, var(--accent) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      color: var(--text-primary);
       letter-spacing: -0.5px;
     }
 
     .collapse-btn {
-      color: var(--text-secondary);
+      color: var(--text-muted);
       transition: color 0.2s ease;
+      opacity: 0.7;
 
       &:hover {
         color: var(--text-primary);
+        opacity: 1;
       }
     }
 
     .nav-list {
       flex: 1;
-      padding: 8px;
+      padding: 12px;
       overflow-y: auto;
       position: relative;
       z-index: 1;
     }
 
     .nav-group {
-      margin-bottom: 8px;
+      margin-bottom: 16px;
     }
 
     .nav-group-label {
       display: block;
-      font-family: var(--font-display);
-      font-size: 11px;
+      font-family: var(--font-body);
+      font-size: 10px;
       font-weight: 600;
       text-transform: uppercase;
       color: var(--text-muted);
-      padding: 12px 16px 6px;
-      letter-spacing: 0.5px;
+      padding: 8px 12px;
+      letter-spacing: 0.8px;
     }
 
     .nav-item {
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 12px 16px;
-      margin-bottom: 4px;
+      padding: 10px 12px;
+      margin-bottom: 2px;
       border-radius: 8px;
       color: var(--text-secondary);
       text-decoration: none;
       transition: all 0.15s ease;
       position: relative;
-      overflow: hidden;
+      border: 1px solid transparent;
 
       .nav-indicator {
         position: absolute;
         left: 0;
         top: 50%;
         transform: translateY(-50%);
-        width: 3px;
+        width: 2px;
         height: 0;
         background: var(--accent);
-        border-radius: 0 2px 2px 0;
+        border-radius: 0 1px 1px 0;
         transition: height 0.2s ease;
       }
 
       &:hover {
-        background: rgba(255, 255, 255, 0.05);
         color: var(--text-primary);
+        background: var(--glow-accent);
+        border-color: var(--border-subtle);
       }
 
       &.active {
-        background: rgba(74, 158, 255, 0.1);
         color: var(--accent);
+        background: var(--glow-accent);
+        border-color: var(--border-hover);
 
         .nav-indicator {
-          height: 24px;
+          height: 20px;
         }
 
         mat-icon {
@@ -309,12 +316,15 @@ interface NavGroup {
 
       mat-icon {
         color: inherit;
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
         transition: color 0.15s ease;
       }
     }
 
     .nav-label {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 500;
     }
 
@@ -322,33 +332,29 @@ interface NavGroup {
       padding: 16px;
       position: relative;
       z-index: 1;
+      border-top: 1px solid var(--border-color);
     }
 
     .integration-status {
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 8px;
+      gap: 10px;
+      padding: 10px 12px;
       font-size: 12px;
       color: var(--text-secondary);
+      border-radius: 8px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
 
       mat-icon {
-        font-size: 20px;
-        width: 20px;
-        height: 20px;
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
       }
 
-      .status-healthy {
-        color: var(--success);
-      }
-
-      .status-partial {
-        color: var(--warning);
-      }
-
-      .status-unhealthy {
-        color: var(--danger);
-      }
+      .status-healthy { color: var(--success); }
+      .status-partial { color: var(--warning); }
+      .status-unhealthy { color: var(--danger); }
     }
 
     /* Main Area */
@@ -357,30 +363,19 @@ interface NavGroup {
       display: flex;
       flex-direction: column;
       overflow: hidden;
+      background: var(--bg-primary);
     }
 
-    /* Header */
+    /* Header - Refined */
     .header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      height: 64px;
-      padding: 0 24px;
-      background: linear-gradient(90deg, var(--bg-secondary) 0%, #151c26 100%);
+      height: 68px;
+      padding: 0 28px;
+      background: var(--bg-secondary);
       border-bottom: 1px solid var(--border-color);
       position: relative;
-
-      /* Subtle accent line at bottom */
-      &::after {
-        content: '';
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: 1px;
-        background: linear-gradient(90deg, transparent 0%, var(--accent) 50%, transparent 100%);
-        opacity: 0.3;
-      }
     }
 
     .header-left {
@@ -391,7 +386,7 @@ interface NavGroup {
 
     .page-title {
       font-family: var(--font-display);
-      font-size: 20px;
+      font-size: 18px;
       font-weight: 600;
       color: var(--text-primary);
       letter-spacing: -0.3px;
@@ -400,30 +395,30 @@ interface NavGroup {
     .header-right {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 12px;
     }
 
     .quick-search {
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 8px 16px;
-      background: var(--bg-surface);
+      gap: 10px;
+      padding: 9px 16px;
+      background: var(--bg-primary);
       border: 1px solid var(--border-color);
-      border-radius: 20px;
-      margin-right: 16px;
-      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      border-radius: 8px;
+      margin-right: 12px;
+      transition: border-color 0.2s ease;
 
       &:focus-within {
-        border-color: var(--accent);
-        box-shadow: 0 0 0 3px var(--focus-ring);
+        border-color: var(--border-hover);
+        box-shadow: 0 0 20px var(--glow-accent);
       }
 
       mat-icon {
-        color: var(--text-secondary);
-        font-size: 20px;
-        width: 20px;
-        height: 20px;
+        color: var(--text-muted);
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
       }
 
       input {
@@ -431,8 +426,9 @@ interface NavGroup {
         border: none;
         outline: none;
         color: var(--text-primary);
-        width: 200px;
+        width: 180px;
         font-family: var(--font-body);
+        font-size: 13px;
 
         &::placeholder {
           color: var(--text-muted);
@@ -440,34 +436,43 @@ interface NavGroup {
       }
     }
 
+    .user-button {
+      color: var(--text-secondary);
+      transition: color 0.2s ease;
+
+      &:hover {
+        color: var(--text-primary);
+      }
+    }
+
     /* Content */
     .content {
       flex: 1;
-      padding: 24px;
+      padding: 28px;
       overflow-y: auto;
       background: var(--bg-primary);
-      animation: fadeIn 0.3s ease-out;
+      animation: fadeIn 0.4s ease-out;
     }
 
     @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(8px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     /* Menu Styles */
     .user-info {
       display: flex;
       flex-direction: column;
-      padding: 12px 16px;
+      padding: 14px 18px;
+      gap: 4px;
 
       strong {
         color: var(--text-primary);
+        font-size: 14px;
+      }
+
+      span {
+        font-size: 12px;
       }
     }
 
