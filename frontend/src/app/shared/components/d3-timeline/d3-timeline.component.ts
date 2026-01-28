@@ -13,17 +13,9 @@ import {
   NgZone
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import * as d3Types from 'd3';
 
 // D3 types - will be loaded dynamically
-declare const d3: typeof d3Types;
-
-// Type aliases for D3 elements used in this component
-type D3SvgSelection = d3Types.Selection<SVGSVGElement, unknown, null, undefined>;
-type D3TooltipSelection = d3Types.Selection<HTMLDivElement, unknown, HTMLElement, unknown>;
-type D3TimeScale = d3Types.ScaleTime<number, number>;
-type D3TimeAxis = d3Types.Axis<Date | d3Types.NumberValue>;
-type D3ZoomBehavior = d3Types.ZoomBehavior<SVGSVGElement, unknown>;
+declare const d3: any;
 
 export interface TimelineItem {
   id: string;
@@ -246,12 +238,12 @@ export class D3TimelineComponent implements OnInit, OnChanges, AfterViewInit, On
   @Output() itemSelected = new EventEmitter<TimelineItem>();
   @Output() rangeChanged = new EventEmitter<{ start: Date; end: Date }>();
 
-  private svg: D3SvgSelection | null = null;
-  private xScale: D3TimeScale | null = null;
-  private xAxis: D3TimeAxis | null = null;
-  private zoom: D3ZoomBehavior | null = null;
-  private currentTransform: d3Types.ZoomTransform | null = null;
-  private tooltip: D3TooltipSelection | null = null;
+  private svg: any = null;
+  private xScale: any = null;
+  private xAxis: any = null;
+  private zoom: any = null;
+  private currentTransform: any = null;
+  private tooltip: any = null;
   private d3Loaded = false;
 
   categories: { name: string; color: string; visible: boolean }[] = [];

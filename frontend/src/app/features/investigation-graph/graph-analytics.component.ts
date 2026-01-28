@@ -669,7 +669,7 @@ export class GraphAnalyticsComponent implements OnChanges {
   annotationColors = ['#4CAF50', '#2196F3', '#FF9800', '#F44336', '#9C27B0', '#00BCD4'];
 
   timeRange: { start: Date; end: Date } | null = null;
-  private playInterval: ReturnType<typeof setInterval> | null = null;
+  private playInterval: ReturnType<typeof setInterval> | undefined = undefined;
   private logger = inject(LoggingService);
 
   constructor(private http: HttpClient) {}

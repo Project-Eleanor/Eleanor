@@ -710,7 +710,7 @@ export class InvestigationGraphComponent implements OnInit {
 
   onEdgeClick(edge: GraphEdge): void {
     // Could show edge details
-    this.logger.debug('Edge clicked', { component: 'InvestigationGraphComponent', edgeId: edge.id });
+    this.logger.debug('Edge clicked', { component: 'InvestigationGraphComponent', edge: `${edge.source}->${edge.target}` });
   }
 
   async expandNode(node: GraphNode): Promise<void> {
