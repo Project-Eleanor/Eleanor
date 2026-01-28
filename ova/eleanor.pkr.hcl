@@ -259,6 +259,10 @@ source "virtualbox-iso" "eleanor" {
   hard_drive_interface = "sata"
   headless             = var.headless
 
+  # Skip guest additions (we use open-vm-tools instead)
+  guest_additions_mode   = "disable"
+  virtualbox_version_file = ""
+
   iso_url      = var.iso_url
   iso_checksum = var.iso_checksum
 
@@ -310,20 +314,20 @@ build {
   provisioner "shell" {
     inline = [
       "while [ ! -f /var/lib/cloud/instance/boot-finished ]; do echo 'Waiting for cloud-init...'; sleep 5; done",
-      "sudo cloud-init status --wait"
+      "echo '${var.ssh_password}' | sudo -S cloud-init status --wait"
     ]
   }
 
   # Copy setup scripts
   provisioner "file" {
-    source      = "scripts/"
-    destination = "/tmp/eleanor-scripts/"
+    source      = "scripts"
+    destination = "/tmp/eleanor-scripts"
   }
 
   # Copy setup wizard
   provisioner "file" {
-    source      = "setup-wizard/"
-    destination = "/tmp/eleanor-wizard/"
+    source      = "setup-wizard"
+    destination = "/tmp/eleanor-wizard"
   }
 
   # Run base system setup

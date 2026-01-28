@@ -59,12 +59,14 @@ autoinstall:
     - sed -i 's/^#*PasswordAuthentication.*/PasswordAuthentication yes/' /target/etc/ssh/sshd_config
     - sed -i 's/^#*PubkeyAuthentication.*/PubkeyAuthentication yes/' /target/etc/ssh/sshd_config
     - sed -i 's/^KbdInteractiveAuthentication.*/KbdInteractiveAuthentication yes/' /target/etc/ssh/sshd_config
-    # Set up SSH keys for eleanor user
-    - curtin in-target --target=/target -- mkdir -p /home/eleanor/.ssh
+    # Set up SSH keys for eleanor user (use UID 1000 since user lookup fails in curtin)
+    - mkdir -p /target/home/eleanor/.ssh
     - echo 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINOdl3Dnl9q8iM8z9P7HQQnGwEzUhYsWNhHtl7oUMKyK packer-build' > /target/home/eleanor/.ssh/authorized_keys
-    - curtin in-target --target=/target -- chmod 700 /home/eleanor/.ssh
-    - curtin in-target --target=/target -- chmod 600 /home/eleanor/.ssh/authorized_keys
-    - curtin in-target --target=/target -- chown -R eleanor:eleanor /home/eleanor/.ssh
+    - chmod 700 /target/home/eleanor/.ssh
+    - chmod 600 /target/home/eleanor/.ssh/authorized_keys
+    # Ensure home directory and .ssh have correct ownership
+    - chown 1000:1000 /target/home/eleanor
+    - chown -R 1000:1000 /target/home/eleanor/.ssh
     # Create Eleanor directories
-    - curtin in-target --target=/target -- mkdir -p /opt/eleanor /opt/eleanor-setup /var/lib/eleanor
-    - curtin in-target --target=/target -- chown -R 1000:1000 /opt/eleanor /opt/eleanor-setup /var/lib/eleanor
+    - mkdir -p /target/opt/eleanor /target/opt/eleanor-setup /target/var/lib/eleanor
+    - chown -R 1000:1000 /target/opt/eleanor /target/opt/eleanor-setup /target/var/lib/eleanor
