@@ -394,6 +394,91 @@ class MockSessionFactory:
             pass
         return limit, offset
 
+    def _extract_filters(self, stmt):
+        """Extract filter parameters from SQLAlchemy statement."""
+        filters = {}
+        try:
+            compiled = stmt.compile()
+            params = compiled.params
+            stmt_str = str(stmt).lower()
+
+            # Map parameter names to filter fields
+            for key, value in params.items():
+                if value is not None:
+                    # Check if this is a search pattern (contains % wildcards)
+                    if isinstance(value, str) and value.startswith('%') and value.endswith('%'):
+                        # Extract the search term from ILIKE pattern
+                        search_term = value.strip('%')
+                        filters['search'] = search_term
+                    else:
+                        # Normalize key name (remove _1, _2 suffixes added by SQLAlchemy)
+                        import re
+                        clean_key = re.sub(r'_\d+$', '', key)
+                        filters[clean_key] = value
+
+        except Exception:
+            pass
+        return filters
+
+    def _apply_filters(self, items, filters, table_type):
+        """Apply filters to a list of items based on table type."""
+        if not filters:
+            return items
+
+        filtered = []
+        for item in items:
+            match = True
+            for field, value in filters.items():
+                # Handle special text search fields (used with ILIKE in actual queries)
+                if field == 'search':
+                    # Search across text fields based on table type
+                    search_term = str(value).lower()
+                    found = False
+                    if table_type == 'cases':
+                        for attr in ['title', 'description', 'case_number']:
+                            attr_val = getattr(item, attr, '')
+                            if attr_val and search_term in str(attr_val).lower():
+                                found = True
+                                break
+                        # Also check tags if present
+                        tags = getattr(item, 'tags', []) or []
+                        for tag in tags:
+                            if search_term in str(tag).lower():
+                                found = True
+                                break
+                    elif table_type == 'evidence':
+                        for attr in ['filename', 'original_filename', 'description']:
+                            attr_val = getattr(item, attr, '')
+                            if attr_val and search_term in str(attr_val).lower():
+                                found = True
+                                break
+                    elif table_type == 'saved_queries':
+                        for attr in ['name', 'description', 'query']:
+                            attr_val = getattr(item, attr, '')
+                            if attr_val and search_term in str(attr_val).lower():
+                                found = True
+                                break
+                    if not found:
+                        match = False
+                        break
+                    continue
+
+                item_value = getattr(item, field, None)
+                if item_value is None:
+                    continue
+                # Handle enum comparisons
+                if hasattr(item_value, 'value'):
+                    item_value = item_value.value
+                if hasattr(value, 'value'):
+                    value = value.value
+                # Compare values
+                if str(item_value).lower() != str(value).lower():
+                    match = False
+                    break
+            if match:
+                filtered.append(item)
+        return filtered
+
     def _apply_pagination(self, items, limit, offset):
         """Apply pagination to a list of items."""
         if offset:
@@ -430,13 +515,17 @@ class MockSessionFactory:
         # Count queries - check for count(*) or count( patterns
         is_count_query = "count(*)" in stmt_str or "count(" in stmt_str
         if is_count_query:
+            filters = self._extract_filters(stmt)
             if "cases" in stmt_str:
-                # Return actual count of cases in the mock, not just counter
-                return MockResult([len(set(self.cases.values()))])
+                items = list(set(self.cases.values()))
+                items = self._apply_filters(items, filters, 'cases')
+                return MockResult([len(items)])
             if "detection_rules" in stmt_str or "detectionrule" in stmt_str:
                 return MockResult([len(self.detection_rules)])
             if "evidence" in stmt_str:
-                return MockResult([len(self.evidence)])
+                items = list(self.evidence.values())
+                items = self._apply_filters(items, filters, 'evidence')
+                return MockResult([len(items)])
             if "saved_queries" in stmt_str or "savedquery" in stmt_str:
                 return MockResult([len(self.saved_queries)])
             return MockResult([0])
@@ -473,10 +562,14 @@ class MockSessionFactory:
 
         # Case queries
         if "cases" in stmt_str:
+            # Check for specific case ID lookup first
+            filters = self._extract_filters(stmt)
             for key, case in self.cases.items():
                 if key.lower() in stmt_str:
                     return MockResult([case])
             items = list(set(self.cases.values()))
+            # Apply filters (status, severity, etc.)
+            items = self._apply_filters(items, filters, 'cases')
             items = self._apply_pagination(items, limit, offset)
             return MockResult(items)
 
@@ -500,10 +593,14 @@ class MockSessionFactory:
 
         # Evidence queries
         if "evidence" in stmt_str:
+            # Check for specific evidence ID lookup first
+            filters = self._extract_filters(stmt)
             for key, ev in self.evidence.items():
                 if key.lower() in stmt_str:
                     return MockResult([ev])
             items = list(self.evidence.values())
+            # Apply filters (evidence_type, status, case_id, etc.)
+            items = self._apply_filters(items, filters, 'evidence')
             items = self._apply_pagination(items, limit, offset)
             return MockResult(items)
 
@@ -518,10 +615,13 @@ class MockSessionFactory:
 
         # Saved queries
         if "saved_queries" in stmt_str or "savedquery" in stmt_str:
+            filters = self._extract_filters(stmt)
             for key, sq in self.saved_queries.items():
                 if key.lower() in stmt_str:
                     return MockResult([sq])
             items = list(self.saved_queries.values())
+            # Apply filters (category, is_public, etc.)
+            items = self._apply_filters(items, filters, 'saved_queries')
             items = self._apply_pagination(items, limit, offset)
             return MockResult(items)
 
