@@ -760,8 +760,10 @@ export class ConnectorsComponent implements OnInit {
   openAddConnector(): void {
     const dialogRef = this.dialog.open(ConnectorDialogComponent, {
       width: '600px',
+      maxHeight: '85vh',
       data: { mode: 'create' },
-      panelClass: 'centered-dialog'
+      panelClass: 'centered-dialog',
+      position: { top: '50px' }
     });
 
     dialogRef.afterClosed().subscribe(result => {
@@ -775,8 +777,10 @@ export class ConnectorsComponent implements OnInit {
   editConnector(connector: DataConnector): void {
     const dialogRef = this.dialog.open(ConnectorDialogComponent, {
       width: '600px',
+      maxHeight: '85vh',
       data: { mode: 'edit', connector },
-      panelClass: 'centered-dialog'
+      panelClass: 'centered-dialog',
+      position: { top: '50px' }
     });
 
     dialogRef.afterClosed().subscribe(result => {
