@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 class ConnectorType(str, enum.Enum):
     """Data connector types."""
 
+    # Original types
     SYSLOG = "syslog"
     WINDOWS_EVENT = "windows_event"
     CLOUD_TRAIL = "cloud_trail"
@@ -30,6 +31,16 @@ class ConnectorType(str, enum.Enum):
     API_POLLING = "api_polling"
     FILE_UPLOAD = "file_upload"
     CUSTOM = "custom"
+
+    # New connector types (Phase 2-4)
+    GCP_CLOUD_LOGGING = "gcp_cloud_logging"
+    AWS_SECURITY_HUB = "aws_security_hub"
+    AZURE_EVENT_HUB = "azure_event_hub"
+    FLUENTD = "fluentd"
+    WEF = "wef"  # Windows Event Forwarding
+    OKTA = "okta"
+    CROWDSTRIKE_FDR = "crowdstrike_fdr"
+    SPLUNK_HEC = "splunk_hec"
 
 
 class ConnectorStatus(str, enum.Enum):

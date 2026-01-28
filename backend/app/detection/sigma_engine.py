@@ -12,7 +12,7 @@ Provides:
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -311,8 +311,8 @@ class SigmaEngine:
         Returns:
             True if all conditions match
         """
-        for field, pattern in detection_item.items():
-            event_value = self._get_field_value(event, field)
+        for field_name, pattern in detection_item.items():
+            event_value = self._get_field_value(event, field_name)
 
             if event_value is None:
                 return False

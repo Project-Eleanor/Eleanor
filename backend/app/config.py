@@ -139,6 +139,133 @@ class Settings(BaseSettings):
     sentinel_resource_group: str = ""  # Resource group containing Sentinel workspace
     sentinel_workspace_name: str = ""  # Log Analytics workspace name
 
+    # ==========================================================================
+    # Phase 1: Enrichment and Notifications
+    # ==========================================================================
+
+    # VirusTotal - File/IOC Enrichment
+    virustotal_enabled: bool = False
+    virustotal_api_key: str = ""
+    virustotal_rate_limit: int = 4  # Requests per minute (free tier)
+
+    # Slack - Notifications
+    slack_enabled: bool = False
+    slack_webhook_url: str = ""
+    slack_bot_token: str = ""
+    slack_default_channel: str = "#dfir-alerts"
+
+    # Microsoft Teams - Notifications
+    teams_enabled: bool = False
+    teams_webhook_url: str = ""
+
+    # ==========================================================================
+    # Phase 2: Cloud and Identity Integrations
+    # ==========================================================================
+
+    # GCP Cloud Logging
+    gcp_enabled: bool = False
+    gcp_project_id: str = ""
+    gcp_credentials_path: str = ""
+    gcp_default_log_name: str = ""
+
+    # AWS Security Hub
+    aws_securityhub_enabled: bool = False
+    aws_access_key_id: str = ""
+    aws_secret_access_key: str = ""
+    aws_region: str = "us-east-1"
+
+    # Okta - Identity Management
+    okta_enabled: bool = False
+    okta_domain: str = ""  # e.g., dev-123456.okta.com
+    okta_api_token: str = ""
+
+    # MISP - Threat Intelligence
+    misp_enabled: bool = False
+    misp_url: str = ""
+    misp_api_key: str = ""
+    misp_verify_ssl: bool = True
+
+    # ==========================================================================
+    # Phase 3: EDR and Case Management
+    # ==========================================================================
+
+    # CrowdStrike Falcon
+    crowdstrike_enabled: bool = False
+    crowdstrike_client_id: str = ""
+    crowdstrike_client_secret: str = ""
+    crowdstrike_region: str = "us-1"  # us-1, us-2, eu-1, us-gov-1
+
+    # TheHive - Case Management
+    thehive_enabled: bool = False
+    thehive_url: str = ""
+    thehive_api_key: str = ""
+    thehive_organisation: str = ""
+    thehive_verify_ssl: bool = True
+
+    # Cortex - Analysis/Response
+    cortex_enabled: bool = False
+    cortex_url: str = ""
+    cortex_api_key: str = ""
+    cortex_organisation: str = ""
+    cortex_verify_ssl: bool = True
+
+    # Jira - Ticketing
+    jira_enabled: bool = False
+    jira_url: str = ""
+    jira_username: str = ""
+    jira_api_token: str = ""
+    jira_default_project: str = ""
+    jira_default_issue_type: str = "Task"
+    jira_case_link_field: str = ""  # Custom field ID for case links
+
+    # ==========================================================================
+    # Phase 4: SIEM and Advanced Integrations
+    # ==========================================================================
+
+    # Splunk - SIEM (Bidirectional)
+    splunk_enabled: bool = False
+    splunk_url: str = ""  # Management port (8089)
+    splunk_username: str = ""
+    splunk_password: str = ""
+    splunk_hec_url: str = ""  # HEC port (8088)
+    splunk_hec_token: str = ""
+    splunk_default_index: str = "main"
+    splunk_verify_ssl: bool = True
+
+    # Azure Event Hub
+    eventhub_enabled: bool = False
+    eventhub_connection_string: str = ""
+    eventhub_name: str = ""
+    eventhub_consumer_group: str = "$Default"
+    eventhub_checkpoint_connection_string: str = ""
+    eventhub_checkpoint_container: str = "eventhub-checkpoints"
+
+    # Fluentd/Fluent Bit
+    fluentd_enabled: bool = False
+    fluentd_http_port: int = 8888
+    fluentd_forward_enabled: bool = False
+    fluentd_forward_port: int = 24224
+
+    # Windows Event Forwarding (WEF)
+    wef_enabled: bool = False
+    wef_port: int = 5985
+    wef_use_https: bool = False
+    wef_https_port: int = 5986
+
+    # ==========================================================================
+    # Detection Engines
+    # ==========================================================================
+
+    # YARA
+    yara_enabled: bool = True
+    yara_rules_path: str = "/app/yara-rules"
+    yara_compiled_rules_path: str = ""
+
+    # Sigma
+    sigma_enabled: bool = True
+    sigma_rules_path: str = "/app/sigma-rules"
+    sigma_pipeline: str = "ecs_windows"
+
 
 @lru_cache
 def get_settings() -> Settings:

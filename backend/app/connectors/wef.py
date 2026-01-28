@@ -11,11 +11,11 @@ Provides:
 
 import asyncio
 import logging
+import xml.etree.ElementTree as ET
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from typing import Any
-import xml.etree.ElementTree as ET
 
 from app.connectors.base import (
     ConnectorConfig,
