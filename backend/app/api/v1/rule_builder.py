@@ -1,16 +1,22 @@
-"""Rule builder API endpoints for visual correlation rule creation."""
+"""Rule builder API endpoints for visual correlation rule creation.
+
+All endpoints require authentication since detection rules
+are security-sensitive functionality.
+"""
 
 import logging
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Annotated, Any
 
 import yaml
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.v1.auth import get_current_user
 from app.config import get_settings
 from app.core.tenant_context import get_current_tenant_id, get_elasticsearch_pattern
 from app.database import get_db, get_elasticsearch
+from app.models.user import User
 from app.schemas.rule_builder import (
     AvailableField,
     CorrelationMatch,
@@ -147,9 +153,11 @@ PATTERN_DEFINITIONS = [
 @router.post("/validate", response_model=RuleValidationResult)
 async def validate_rule(
     config: RuleBuilderConfig,
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> RuleValidationResult:
     """Validate a rule builder configuration.
 
+    Requires authentication.
     Returns validation errors, warnings, and the generated correlation_config.
     """
     validator = get_rule_validator()
@@ -159,10 +167,12 @@ async def validate_rule(
 @router.post("/preview", response_model=RulePreviewResult)
 async def preview_rule(
     request: RulePreviewRequest,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> RulePreviewResult:
     """Preview rule matches against recent data.
 
+    Requires authentication.
     Executes the rule configuration against the specified time range
     and returns matching correlations.
     """
@@ -280,10 +290,12 @@ async def preview_rule(
 @router.post("/test", response_model=RuleTestResult)
 async def test_rule(
     request: RuleTestRequest,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> RuleTestResult:
     """Test a rule against historical data.
 
+    Requires authentication.
     Provides statistics on how the rule would have performed
     over the specified time period.
     """
@@ -407,10 +419,12 @@ async def test_rule(
 
 @router.get("/fields", response_model=FieldsResponse)
 async def get_available_fields(
+    current_user: Annotated[User, Depends(get_current_user)],
     index_pattern: str | None = Query(None, description="Index pattern to query fields from"),
 ) -> FieldsResponse:
     """Get available fields for rule building.
 
+    Requires authentication.
     Returns field definitions with types and sample values.
     """
     es = await get_elasticsearch()
@@ -459,17 +473,24 @@ async def get_available_fields(
 
 
 @router.get("/patterns", response_model=PatternsResponse)
-async def get_patterns() -> PatternsResponse:
-    """Get available correlation pattern definitions."""
+async def get_patterns(
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> PatternsResponse:
+    """Get available correlation pattern definitions.
+
+    Requires authentication.
+    """
     return PatternsResponse(patterns=PATTERN_DEFINITIONS)
 
 
 @router.post("/import/sigma", response_model=SigmaImportResult)
 async def import_sigma_rule(
     request: SigmaImportRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> SigmaImportResult:
     """Import a Sigma rule and convert to Eleanor format.
 
+    Requires authentication.
     Supports basic Sigma rules and can optionally convert to correlation rules.
     """
     warnings: list[str] = []

@@ -1,7 +1,12 @@
-"""Playbook management API endpoints."""
+"""Playbook management API endpoints.
+
+Provides CRUD operations for playbooks, execution management,
+approval workflows, and rule bindings.
+"""
 
 import logging
 from datetime import datetime
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -10,6 +15,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
+from app.api.v1.auth import get_current_user
 from app.core.tenant_context import get_current_tenant_id
 from app.database import get_db
 from app.models.playbook import (
@@ -21,6 +27,7 @@ from app.models.playbook import (
     PlaybookStatus,
     RulePlaybookBinding,
 )
+from app.models.user import User
 from app.services.playbook_engine import get_playbook_engine
 
 logger = logging.getLogger(__name__)
@@ -189,9 +196,13 @@ class ActionDefinition(BaseModel):
 @router.post("", response_model=PlaybookResponse, status_code=status.HTTP_201_CREATED)
 async def create_playbook(
     playbook_data: PlaybookCreate,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> Playbook:
-    """Create a new playbook."""
+    """Create a new playbook.
+
+    Requires authentication. The creating user is recorded for audit purposes.
+    """
     tenant_id = get_current_tenant_id()
     if not tenant_id:
         raise HTTPException(
@@ -215,20 +226,31 @@ async def create_playbook(
     db.add(playbook)
     await db.flush()
 
-    logger.info("Created playbook: %s (%s)", playbook.name, playbook.id)
+    logger.info(
+        "Created playbook",
+        extra={
+            "playbook_id": str(playbook.id),
+            "playbook_name": playbook.name,
+            "user_id": str(current_user.id),
+        },
+    )
     return playbook
 
 
 @router.get("", response_model=list[PlaybookResponse])
 async def list_playbooks(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
     status_filter: PlaybookStatus | None = Query(None, alias="status"),
     category: str | None = None,
     search: str | None = None,
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
-    db: AsyncSession = Depends(get_db),
 ) -> list[Playbook]:
-    """List playbooks."""
+    """List playbooks.
+
+    Requires authentication. Returns playbooks filtered by tenant context.
+    """
     tenant_id = get_current_tenant_id()
     query = select(Playbook)
 
@@ -250,9 +272,13 @@ async def list_playbooks(
 @router.get("/{playbook_id}", response_model=PlaybookResponse)
 async def get_playbook(
     playbook_id: UUID,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> Playbook:
-    """Get playbook details."""
+    """Get playbook details.
+
+    Requires authentication.
+    """
     result = await db.execute(select(Playbook).where(Playbook.id == playbook_id))
     playbook = result.scalar_one_or_none()
 
@@ -266,9 +292,13 @@ async def get_playbook(
 async def update_playbook(
     playbook_id: UUID,
     playbook_data: PlaybookUpdate,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> Playbook:
-    """Update a playbook."""
+    """Update a playbook.
+
+    Requires authentication. The updating user is recorded for audit purposes.
+    """
     result = await db.execute(select(Playbook).where(Playbook.id == playbook_id))
     playbook = result.scalar_one_or_none()
 
@@ -290,16 +320,28 @@ async def update_playbook(
     for field, value in update_data.items():
         setattr(playbook, field, value)
 
-    logger.info("Updated playbook: %s", playbook.name)
+    logger.info(
+        "Updated playbook",
+        extra={
+            "playbook_id": str(playbook_id),
+            "playbook_name": playbook.name,
+            "user_id": str(current_user.id),
+        },
+    )
     return playbook
 
 
 @router.delete("/{playbook_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_playbook(
     playbook_id: UUID,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> None:
-    """Delete a playbook (archive it)."""
+    """Delete a playbook (archive it).
+
+    Requires authentication. Soft-deletes by setting status to ARCHIVED.
+    The archiving user is recorded for audit purposes.
+    """
     result = await db.execute(select(Playbook).where(Playbook.id == playbook_id))
     playbook = result.scalar_one_or_none()
 
@@ -307,7 +349,15 @@ async def delete_playbook(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Playbook not found")
 
     playbook.status = PlaybookStatus.ARCHIVED
-    logger.info("Archived playbook: %s", playbook.name)
+
+    logger.info(
+        "Archived playbook",
+        extra={
+            "playbook_id": str(playbook_id),
+            "playbook_name": playbook.name,
+            "user_id": str(current_user.id),
+        },
+    )
 
 
 # =============================================================================
@@ -319,19 +369,33 @@ async def delete_playbook(
 async def execute_playbook(
     playbook_id: UUID,
     request: ExecutePlaybookRequest,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> PlaybookExecution:
-    """Execute a playbook."""
+    """Execute a playbook.
+
+    Requires authentication. The executing user is recorded for audit purposes.
+    """
     engine = get_playbook_engine()
 
     try:
         execution = await engine.start_execution(
             playbook_id=playbook_id,
             input_data=request.input_data,
-            trigger_type=request.trigger_type,
+            trigger_type=request.trigger_type or "manual",
             trigger_id=request.trigger_id,
-            started_by=None,  # TODO: Get from auth
+            started_by=current_user.id,
             db=db,
+        )
+
+        logger.info(
+            "Playbook execution started",
+            extra={
+                "playbook_id": str(playbook_id),
+                "execution_id": str(execution.id),
+                "user_id": str(current_user.id),
+                "trigger_type": request.trigger_type or "manual",
+            },
         )
 
         # Execute asynchronously
@@ -346,13 +410,17 @@ async def execute_playbook(
 
 @router.get("/executions", response_model=list[ExecutionResponse])
 async def list_executions(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
     playbook_id: UUID | None = None,
     status_filter: ExecutionStatus | None = Query(None, alias="status"),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
-    db: AsyncSession = Depends(get_db),
 ) -> list[PlaybookExecution]:
-    """List playbook executions."""
+    """List playbook executions.
+
+    Requires authentication. Returns executions filtered by tenant context.
+    """
     tenant_id = get_current_tenant_id()
     query = select(PlaybookExecution)
 
@@ -372,9 +440,13 @@ async def list_executions(
 @router.get("/executions/{execution_id}", response_model=ExecutionResponse)
 async def get_execution(
     execution_id: UUID,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> PlaybookExecution:
-    """Get execution details."""
+    """Get execution details.
+
+    Requires authentication.
+    """
     result = await db.execute(
         select(PlaybookExecution)
         .options(joinedload(PlaybookExecution.playbook))
@@ -391,17 +463,30 @@ async def get_execution(
 @router.post("/executions/{execution_id}/cancel", response_model=ExecutionResponse)
 async def cancel_execution(
     execution_id: UUID,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> PlaybookExecution:
-    """Cancel a running execution."""
+    """Cancel a running execution.
+
+    Requires authentication. The cancelling user is recorded for audit purposes.
+    """
     engine = get_playbook_engine()
 
     try:
         execution = await engine.cancel_execution(
             execution_id=execution_id,
-            cancelled_by=UUID("00000000-0000-0000-0000-000000000000"),  # TODO: Get from auth
+            cancelled_by=current_user.id,
             db=db,
         )
+
+        logger.info(
+            "Playbook execution cancelled",
+            extra={
+                "execution_id": str(execution_id),
+                "user_id": str(current_user.id),
+            },
+        )
+
         return execution
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -414,9 +499,13 @@ async def cancel_execution(
 
 @router.get("/approvals", response_model=list[ApprovalResponse])
 async def list_pending_approvals(
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> list[PlaybookApproval]:
-    """List pending approval requests."""
+    """List pending approval requests.
+
+    Requires authentication. Returns approvals filtered by tenant context.
+    """
     tenant_id = get_current_tenant_id()
     query = select(PlaybookApproval).where(PlaybookApproval.status == ApprovalStatus.PENDING)
 
@@ -429,13 +518,17 @@ async def list_pending_approvals(
     return list(result.scalars().all())
 
 
-@router.post("/approvals/{approval_id}/approve", response_model=ExecutionResponse)
-async def approve_step(
+@router.post("/approvals/{approval_id}/decide", response_model=ExecutionResponse)
+async def decide_approval(
     approval_id: UUID,
     decision: ApprovalDecision,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> PlaybookExecution:
-    """Approve or deny a playbook step."""
+    """Approve or deny a playbook step.
+
+    Requires authentication. The deciding user is recorded for audit purposes.
+    """
     # Get approval
     result = await db.execute(select(PlaybookApproval).where(PlaybookApproval.id == approval_id))
     approval = result.scalar_one_or_none()
@@ -456,9 +549,20 @@ async def approve_step(
             execution_id=approval.execution_id,
             approved=decision.approved,
             decision_comment=decision.comment,
-            decided_by=UUID("00000000-0000-0000-0000-000000000000"),  # TODO: Get from auth
+            decided_by=current_user.id,
             db=db,
         )
+
+        logger.info(
+            "Playbook approval decision made",
+            extra={
+                "approval_id": str(approval_id),
+                "execution_id": str(approval.execution_id),
+                "user_id": str(current_user.id),
+                "approved": decision.approved,
+            },
+        )
+
         return execution
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -473,9 +577,14 @@ async def approve_step(
 async def bind_playbook_to_rule(
     rule_id: UUID,
     request: BindPlaybookRequest,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> dict:
-    """Bind a playbook to a detection rule."""
+    """Bind a playbook to a detection rule.
+
+    Requires authentication. Creates an association between a detection rule
+    and a playbook for automated response.
+    """
     tenant_id = get_current_tenant_id()
     if not tenant_id:
         raise HTTPException(
@@ -509,15 +618,28 @@ async def bind_playbook_to_rule(
     db.add(binding)
     await db.flush()
 
+    logger.info(
+        "Bound playbook to rule",
+        extra={
+            "rule_id": str(rule_id),
+            "playbook_id": str(request.playbook_id),
+            "user_id": str(current_user.id),
+        },
+    )
+
     return {"id": str(binding.id), "message": "Playbook bound to rule"}
 
 
 @router.get("/rules/{rule_id}/playbooks")
 async def get_rule_playbooks(
     rule_id: UUID,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> list[dict]:
-    """Get playbooks bound to a rule."""
+    """Get playbooks bound to a rule.
+
+    Requires authentication.
+    """
     result = await db.execute(
         select(RulePlaybookBinding)
         .options(joinedload(RulePlaybookBinding.playbook))
@@ -543,9 +665,14 @@ async def get_rule_playbooks(
 async def unbind_playbook_from_rule(
     rule_id: UUID,
     playbook_id: UUID,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> None:
-    """Remove a playbook binding from a rule."""
+    """Remove a playbook binding from a rule.
+
+    Requires authentication. Removes the association between a detection rule
+    and a playbook.
+    """
     result = await db.execute(
         select(RulePlaybookBinding).where(
             RulePlaybookBinding.rule_id == rule_id,
@@ -559,6 +686,15 @@ async def unbind_playbook_from_rule(
 
     await db.delete(binding)
 
+    logger.info(
+        "Unbound playbook from rule",
+        extra={
+            "rule_id": str(rule_id),
+            "playbook_id": str(playbook_id),
+            "user_id": str(current_user.id),
+        },
+    )
+
 
 # =============================================================================
 # Actions Endpoint
@@ -566,8 +702,14 @@ async def unbind_playbook_from_rule(
 
 
 @router.get("/actions", response_model=list[ActionDefinition])
-async def list_available_actions() -> list[dict]:
-    """List all available actions for playbook steps."""
+async def list_available_actions(
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> list[dict]:
+    """List all available actions for playbook steps.
+
+    Requires authentication. Returns the list of available actions
+    that can be used in playbook step configurations.
+    """
     from app.services.action_executor import ActionExecutor
 
     return ActionExecutor.list_actions()

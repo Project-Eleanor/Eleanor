@@ -1,10 +1,15 @@
-"""Tenant management API endpoints."""
+"""Tenant management API endpoints.
+
+All endpoints require admin authentication since tenant management
+is a privileged operation.
+"""
 
 import hashlib
 import logging
 import re
 import secrets
 from datetime import datetime
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -13,6 +18,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
+from app.api.v1.auth import get_current_active_admin
 from app.database import get_db
 from app.models.tenant import (
     Tenant,
@@ -196,9 +202,13 @@ class AdapterConfigResponse(BaseModel):
 @router.post("", response_model=TenantResponse, status_code=status.HTTP_201_CREATED)
 async def create_tenant(
     tenant_data: TenantCreate,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_active_admin)],
 ) -> Tenant:
-    """Create a new tenant organization."""
+    """Create a new tenant organization.
+
+    Requires admin authentication.
+    """
     # Check if slug already exists
     existing = await db.execute(select(Tenant).where(Tenant.slug == tenant_data.slug))
     if existing.scalar_one_or_none():
@@ -248,14 +258,18 @@ async def create_tenant(
 
 @router.get("", response_model=list[TenantResponse])
 async def list_tenants(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_active_admin)],
     status_filter: TenantStatus | None = Query(None, alias="status"),
     plan: TenantPlan | None = None,
     search: str | None = None,
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
-    db: AsyncSession = Depends(get_db),
 ) -> list[Tenant]:
-    """List all tenants (admin only)."""
+    """List all tenants.
+
+    Requires admin authentication.
+    """
     query = select(Tenant)
 
     if status_filter:
@@ -284,9 +298,13 @@ async def list_tenants(
 @router.get("/{tenant_id}", response_model=TenantResponse)
 async def get_tenant(
     tenant_id: UUID,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_active_admin)],
 ) -> Tenant:
-    """Get tenant details."""
+    """Get tenant details.
+
+    Requires admin authentication.
+    """
     result = await db.execute(select(Tenant).where(Tenant.id == tenant_id))
     tenant = result.scalar_one_or_none()
 
@@ -310,9 +328,13 @@ async def get_tenant(
 async def update_tenant(
     tenant_id: UUID,
     tenant_data: TenantUpdate,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_active_admin)],
 ) -> Tenant:
-    """Update tenant details."""
+    """Update tenant details.
+
+    Requires admin authentication.
+    """
     result = await db.execute(select(Tenant).where(Tenant.id == tenant_id))
     tenant = result.scalar_one_or_none()
 
@@ -336,9 +358,13 @@ async def update_tenant(
 @router.delete("/{tenant_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_tenant(
     tenant_id: UUID,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_active_admin)],
 ) -> None:
-    """Delete a tenant (soft delete - sets status to suspended)."""
+    """Delete a tenant (soft delete - sets status to suspended).
+
+    Requires admin authentication.
+    """
     result = await db.execute(select(Tenant).where(Tenant.id == tenant_id))
     tenant = result.scalar_one_or_none()
 
@@ -361,9 +387,13 @@ async def delete_tenant(
 @router.get("/{tenant_id}/members", response_model=list[TenantMembershipResponse])
 async def list_tenant_members(
     tenant_id: UUID,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_active_admin)],
 ) -> list[TenantMembership]:
-    """List all members of a tenant."""
+    """List all members of a tenant.
+
+    Requires admin authentication.
+    """
     query = (
         select(TenantMembership)
         .options(joinedload(TenantMembership.user))
@@ -391,9 +421,13 @@ async def list_tenant_members(
 async def add_tenant_member(
     tenant_id: UUID,
     membership_data: TenantMembershipCreate,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_active_admin)],
 ) -> TenantMembership:
-    """Add a user to a tenant."""
+    """Add a user to a tenant.
+
+    Requires admin authentication.
+    """
     # Verify tenant exists
     tenant_result = await db.execute(select(Tenant).where(Tenant.id == tenant_id))
     if not tenant_result.scalar_one_or_none():
@@ -476,9 +510,13 @@ async def update_tenant_member(
     tenant_id: UUID,
     user_id: UUID,
     membership_data: TenantMembershipUpdate,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_active_admin)],
 ) -> TenantMembership:
-    """Update a tenant membership."""
+    """Update a tenant membership.
+
+    Requires admin authentication.
+    """
     query = (
         select(TenantMembership)
         .options(joinedload(TenantMembership.user))
@@ -529,9 +567,13 @@ async def update_tenant_member(
 async def remove_tenant_member(
     tenant_id: UUID,
     user_id: UUID,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_active_admin)],
 ) -> None:
-    """Remove a user from a tenant."""
+    """Remove a user from a tenant.
+
+    Requires admin authentication.
+    """
     result = await db.execute(
         select(TenantMembership).where(
             TenantMembership.tenant_id == tenant_id,
@@ -558,9 +600,13 @@ async def remove_tenant_member(
 @router.get("/{tenant_id}/api-keys", response_model=list[APIKeyResponse])
 async def list_api_keys(
     tenant_id: UUID,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_active_admin)],
 ) -> list[TenantAPIKey]:
-    """List all API keys for a tenant."""
+    """List all API keys for a tenant.
+
+    Requires admin authentication.
+    """
     query = (
         select(TenantAPIKey)
         .where(TenantAPIKey.tenant_id == tenant_id)
@@ -579,10 +625,12 @@ async def list_api_keys(
 async def create_api_key(
     tenant_id: UUID,
     key_data: APIKeyCreate,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_active_admin)],
 ) -> dict:
     """Create a new API key for a tenant.
 
+    Requires admin authentication.
     The full API key is only returned once at creation time.
     """
     # Verify tenant exists
@@ -638,9 +686,13 @@ async def create_api_key(
 async def revoke_api_key(
     tenant_id: UUID,
     key_id: UUID,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_active_admin)],
 ) -> None:
-    """Revoke an API key."""
+    """Revoke an API key.
+
+    Requires admin authentication.
+    """
     result = await db.execute(
         select(TenantAPIKey).where(
             TenantAPIKey.id == key_id,
@@ -667,9 +719,13 @@ async def revoke_api_key(
 @router.get("/{tenant_id}/adapters", response_model=list[AdapterConfigResponse])
 async def list_adapter_configs(
     tenant_id: UUID,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_active_admin)],
 ) -> list[TenantAdapterConfig]:
-    """List all adapter configurations for a tenant."""
+    """List all adapter configurations for a tenant.
+
+    Requires admin authentication.
+    """
     query = (
         select(TenantAdapterConfig)
         .where(TenantAdapterConfig.tenant_id == tenant_id)
@@ -688,9 +744,13 @@ async def list_adapter_configs(
 async def create_adapter_config(
     tenant_id: UUID,
     config_data: AdapterConfigCreate,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_active_admin)],
 ) -> TenantAdapterConfig:
-    """Create adapter configuration for a tenant."""
+    """Create adapter configuration for a tenant.
+
+    Requires admin authentication.
+    """
     # Verify tenant exists
     tenant_result = await db.execute(select(Tenant).where(Tenant.id == tenant_id))
     if not tenant_result.scalar_one_or_none():
@@ -738,9 +798,13 @@ async def update_adapter_config(
     tenant_id: UUID,
     adapter_type: str,
     config_data: AdapterConfigUpdate,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_active_admin)],
 ) -> TenantAdapterConfig:
-    """Update adapter configuration."""
+    """Update adapter configuration.
+
+    Requires admin authentication.
+    """
     result = await db.execute(
         select(TenantAdapterConfig).where(
             TenantAdapterConfig.tenant_id == tenant_id,
@@ -770,9 +834,13 @@ async def update_adapter_config(
 async def delete_adapter_config(
     tenant_id: UUID,
     adapter_type: str,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_active_admin)],
 ) -> None:
-    """Delete adapter configuration."""
+    """Delete adapter configuration.
+
+    Requires admin authentication.
+    """
     result = await db.execute(
         select(TenantAdapterConfig).where(
             TenantAdapterConfig.tenant_id == tenant_id,
