@@ -87,6 +87,30 @@ jobs:
         continue-on-error: true
         id: vsphere-build
 
+      - name: Convert vSphere OVF to OVA
+        if: steps.vsphere-build.outcome == 'success'
+        working-directory: ova/output-vsphere
+        run: |
+          # vSphere exports OVF format, convert to OVA (TAR archive)
+          # OVA requires files in order: .ovf first, then .vmdk, then .mf
+          OVF_FILE=$(ls *.ovf 2>/dev/null | head -1)
+          if [ -n "$OVF_FILE" ]; then
+            BASE_NAME="${OVF_FILE%.ovf}"
+            echo "Converting $BASE_NAME to OVA format..."
+
+            # Create OVA (tar archive with specific file order)
+            tar -cvf "${BASE_NAME}.ova" \
+              "${BASE_NAME}.ovf" \
+              ${BASE_NAME}*.vmdk \
+              "${BASE_NAME}.mf"
+
+            echo "Created OVA:"
+            ls -lh "${BASE_NAME}.ova"
+          else
+            echo "No OVF file found in output-vsphere"
+            exit 1
+          fi
+
       - name: Build VirtualBox OVA (fallback)
         if: steps.vsphere-build.outcome != 'success'
         working-directory: ova
