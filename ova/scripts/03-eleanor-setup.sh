@@ -82,7 +82,7 @@ services:
 
   # Eleanor Backend API
   backend:
-    image: ghcr.io/eleanor-dfir/backend:${ELEANOR_VERSION:-latest}
+    image: ghcr.io/project-eleanor/backend:${ELEANOR_VERSION:-latest}
     container_name: eleanor-backend
     restart: unless-stopped
     depends_on:
@@ -111,7 +111,7 @@ services:
 
   # Eleanor Frontend
   frontend:
-    image: ghcr.io/eleanor-dfir/frontend:${ELEANOR_VERSION:-latest}
+    image: ghcr.io/project-eleanor/frontend:${ELEANOR_VERSION:-latest}
     container_name: eleanor-frontend
     restart: unless-stopped
     depends_on:
@@ -125,7 +125,7 @@ services:
 
   # Celery Worker
   celery-worker:
-    image: ghcr.io/eleanor-dfir/backend:${ELEANOR_VERSION:-latest}
+    image: ghcr.io/project-eleanor/backend:${ELEANOR_VERSION:-latest}
     container_name: eleanor-celery-worker
     restart: unless-stopped
     depends_on:
@@ -145,7 +145,7 @@ services:
 
   # Celery Beat Scheduler
   celery-beat:
-    image: ghcr.io/eleanor-dfir/backend:${ELEANOR_VERSION:-latest}
+    image: ghcr.io/project-eleanor/backend:${ELEANOR_VERSION:-latest}
     container_name: eleanor-celery-beat
     restart: unless-stopped
     depends_on:
