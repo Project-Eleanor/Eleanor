@@ -14,10 +14,17 @@
         "Workbooks system for custom dashboards and queries"
       ],
       "isLatest": true,
-      "assets": []
+      "assets": [
+        {
+          "name": "eleanor-dfir-v1.0.0-alpha.1.ova",
+          "downloadUrl": "https://pub-6cada15fbfab42d7bf296998f82a603e.r2.dev/v1.0.0-alpha.1/eleanor-dfir-v1.0.0-alpha.1.ova",
+          "size": 2813937152,
+          "platform": "unknown"
+        }
+      ]
     }
   ],
   "latest": "v1.0.0-alpha.1",
   "status": "pre-alpha",
-  "message": "Eleanor v1.0.0-alpha.1 is available for testing. The OVA file (2.7GB) exceeds GitHub's file size limit - see the GitHub release page for download instructions."
+  "message": "Eleanor v1.0.0-alpha.1 is available for download and testing."
 }
