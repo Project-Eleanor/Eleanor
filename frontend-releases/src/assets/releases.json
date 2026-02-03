@@ -1,6 +1,23 @@
 {
-  "releases": [],
-  "latest": null,
-  "status": "in-development",
-  "message": "Eleanor is currently in active development. Subscribe to be notified when the first release is available."
+  "releases": [
+    {
+      "version": "v1.0.0-alpha.1",
+      "date": "February 3, 2026",
+      "size": "2.7 GB",
+      "sha256": "549c11cc6ba1b4f2d43c13f8acf61f10d06ed04a44368857903d82cd4a33b79c",
+      "changelog": [
+        "Initial pre-alpha release of Eleanor DFIR Platform",
+        "Setup wizard with guided first-time configuration",
+        "Integration with Velociraptor, DFIR-IRIS, Timesketch, and OpenCTI",
+        "31+ forensic artifact parsers using Dissect framework",
+        "Investigation graph visualization with Cytoscape.js",
+        "Workbooks system for custom dashboards and queries"
+      ],
+      "isLatest": true,
+      "assets": []
+    }
+  ],
+  "latest": "v1.0.0-alpha.1",
+  "status": "pre-alpha",
+  "message": "Eleanor v1.0.0-alpha.1 is available for testing. The OVA file (2.7GB) exceeds GitHub's file size limit - see the GitHub release page for download instructions."
 }
