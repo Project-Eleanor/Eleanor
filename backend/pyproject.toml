@@ -44,7 +44,7 @@ dependencies = [
     "aiofiles>=23.2.1",
     "python-magic>=0.4.27",
     "grpcio>=1.60.0",
-    "pyvelociraptor>=0.1.9",
+    "pyvelociraptor>=0.1.11",
     # Celery task queue
     "celery>=5.3.0",
     # Dissect forensic parsers
